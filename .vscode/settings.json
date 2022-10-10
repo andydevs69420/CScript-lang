@@ -1,0 +1,8 @@
+{
+    "copyrighter.newFilesOnly": true,
+    "python.defaultInterpreterPath": "/cscript-venv",
+    "python.analysis.extraPaths": [
+        "./src/object",
+        "./src/cscript-vm"
+    ]
+}
