@@ -21,16 +21,16 @@ class CSDouble(CSNumber):
         return str(self.get("this"))
     
     # ======================== OVERRIDE MAGIC METHOD
-    def bit_not(self, _object: CSObject):
+    def bit_not(self):
         ...
         # TODO: add error !
         raise TypeError("invalid bitwise expression for non integer!")
-    def bit_and(self, _object: CSObject):
+    def bit_and(self):
         ...
         # TODO: add error !
         raise TypeError("invalid bitwise expression for non integer!")
     
-    def bit_xor(self, _object: CSObject):
+    def bit_xor(self):
         ...
         # TODO: add error !
         raise TypeError("invalid bitwise expression for non integer!")

@@ -299,7 +299,7 @@ class TokenBuilder(LexUtils):
         """
         # optional assert!
         if  _assert:\
-        assert self.is_oct_part(), "invalid hex context"
+        assert self.is_oct_part(), "invalid oct context"
 
         _raw_part= ""
         
@@ -404,7 +404,8 @@ class TokenBuilder(LexUtils):
             self.clook == '{' or \
             self.clook == '}' or \
             self.clook == '(' or \
-            self.clook == ')':
+            self.clook == ')' or \
+            self.clook == '~':
             _part += append()
 
         elif self.clook == '*' or \
