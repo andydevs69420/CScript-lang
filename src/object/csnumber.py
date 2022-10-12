@@ -1,5 +1,6 @@
 
 from csobject import CSObject
+from cstoken import CSToken
 
 
 class CSNumber(CSObject):
@@ -18,64 +19,45 @@ class CSNumber(CSObject):
         return str(self.get("this"))
     
     # =============================== MAGIC METHODS
-    def bit_not(self):
-        return CSObject.new_integer(~ self.get("this"))
+    def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
+        _class = None
 
-    def bin_not(self):
+        if  _rhs.dtype == "CSInteger":
+            _class = CSObject.new_integer
+        elif _rhs.dtype == "CSDouble":
+            _class = CSObject.new_double
+        else:
+            # TODO: error!
+            raise TypeError("unsupported op '%s' for type(s) %s and %s" % (_opt.token, _lhs.dtype, _rhs.dtype))
+        
+        # follow left-hand if double
+        if  self.dtype == "CSDouble":\
+        _class = CSObject.new_double
+
+        return _class
+    """
+        Shared operation for numbers
+    """
+    def bin_not(self, _opt:CSToken):
         return CSObject.new_boolean("true" if not self.get("this") else "false")
     
-    def positive(self):
+    def positive(self, _opt:CSToken):
         return CSObject.new_integer(+ self.get("this"))
     
-    def negative(self):
+    def negative(self, _opt:CSToken):
         return CSObject.new_integer(- self.get("this"))
 
-    def pow(self, _object:CSObject):
-        _class = None
-
-        if  _object.dtype == "CSInteger":
-            _class = CSObject.new_integer
-        elif _object.dtype == "CSDouble":
-            _class = CSObject.new_double
-        else:
-            # TODO: error!
-            raise TypeError("unsupported op '%s' for type(s) %s and %s" % ("^^", self.dtype, _object.dtype))
-        
-        if  self.dtype == "CSDouble":\
-        _class = CSObject.new_double
-        
+    def pow(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
         return _class(self.get("this") ** _object.get("this"))
 
-    def mul(self, _object:CSObject):
-        _class = None
-
-        if  _object.dtype == "CSInteger":
-            _class = CSObject.new_integer
-        elif _object.dtype == "CSDouble":
-            _class = CSObject.new_double
-        else:
-            # TODO: error!
-            raise TypeError("unsupported op '%s' for type(s) %s and %s" % ("*", self.dtype, _object.dtype))
-        
-        if  self.dtype == "CSDouble":\
-        _class = CSObject.new_double
-        
+    def mul(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
         return _class(self.get("this") * _object.get("this"))
     
 
-    def div(self, _object:CSObject):
-        _class = None
-
-        if  _object.dtype == "CSInteger":
-            _class = CSObject.new_integer
-        elif _object.dtype == "CSDouble":
-            _class = CSObject.new_double
-        else:
-            # TODO: error!
-            raise TypeError("unsupported op '%s' for type(s) %s and %s" % ("/", self.dtype, _object.dtype))
-        
-        if  self.dtype == "CSDouble":\
-        _class = CSObject.new_double
+    def div(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
 
         _left  = self.get("this")
         _right = _object.get("this")
@@ -84,19 +66,8 @@ class CSNumber(CSObject):
 
         return _class(_left / _right)
     
-    def mod(self, _object:CSObject):
-        _class = None
-
-        if  _object.dtype == "CSInteger":
-            _class = CSObject.new_integer
-        elif _object.dtype == "CSDouble":
-            _class = CSObject.new_double
-        else:
-            # TODO: error!
-            raise TypeError("unsupported op '%s' for type(s) %s and %s" % ("%", self.dtype, _object.dtype))
-        
-        if  self.dtype == "CSDouble":\
-        _class = CSObject.new_double
+    def mod(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
 
         _left  = self.get("this")
         _right = _object.get("this")
@@ -105,34 +76,18 @@ class CSNumber(CSObject):
 
         return _class(_left % _right)
 
-    def add(self, _object:CSObject):
-        _class = None
-
-        if  _object.dtype == "CSInteger":
-            _class = CSObject.new_integer
-        elif _object.dtype == "CSDouble":
-            _class = CSObject.new_double
-        else:
-            # TODO: error!
-            raise TypeError("unsupported op '%s' for type(s) %s and %s" % ("+", self.dtype, _object.dtype))
-
-        if  self.dtype == "CSDouble":\
-        _class = CSObject.new_double
-        
+    def add(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
         return _class(self.get("this") + _object.get("this"))
     
-    def sub(self, _object:CSObject):
-        _class = None
-
-        if  _object.dtype == "CSInteger":
-            _class = CSObject.new_integer
-        elif _object.dtype == "CSDouble":
-            _class = CSObject.new_double
-        else:
-            # TODO: error!
-            raise TypeError("unsupported op '%s' for type(s) %s and %s" % ("-", self.dtype, _object.dtype))
-        
-        if  self.dtype == "CSDouble":\
-        _class = CSObject.new_double
-
+    def sub(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
         return _class(self.get("this") - _object.get("this"))
+    
+    def eq(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
+        return _class(self.get("this") == _object.get("this"))
+    
+    def neq(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
+        return _class(self.get("this") != _object.get("this"))

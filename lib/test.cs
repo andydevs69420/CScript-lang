@@ -1,3 +1,4 @@
-~2.2
 
+
+(!null)?true:false;
 

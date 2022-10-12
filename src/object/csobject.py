@@ -1,5 +1,6 @@
 
 
+from cstoken import CSToken
 from hashmap import hasher, HashMap
 
 class CSObject(HashMap):pass
@@ -13,7 +14,6 @@ class CSObject(HashMap):
         # initilize defauls
         self.dtype = type(self).__name__
         self.proto = HashMap()
-    
 
     # ![bound::toString]
     def toString(self):
@@ -23,6 +23,9 @@ class CSObject(HashMap):
             -------
             CSString
         """
+    
+    def __str__(self):
+        return self.toString()
     
     def hasAttribute(self, _key:str):
         _bucket_index = hasher(_key) % self.bcount
@@ -98,7 +101,22 @@ class CSObject(HashMap):
         return _null
         
     # ================= MAGIC METHODS
-    def bit_not(self):
+    #  must be private!. do not include as attribte
+    def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
+        """ Type assertion for CScript operation
+
+            Prameters
+            ---------
+            _opt : CSToken
+            _lhs : CSObject
+            _rhs : CSObject
+
+            Returns
+            -------
+            Any
+        """
+
+    def bit_not(self, _opt:CSToken):
         """ Called when unary ~ operation
 
             Returns
@@ -107,7 +125,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::bit_not method must be overritten!" % self.dtype)
 
-    def bin_not(self):
+    def bin_not(self, _opt:CSToken):
         """ Called when unary ! operation
 
             Returns
@@ -116,7 +134,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::bin_not method must be overritten!" % self.dtype)
     
-    def positive(self):
+    def positive(self, _opt:CSToken):
         """ Called when unary + operation
 
             Returns
@@ -125,7 +143,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::positive method must be overritten!" % self.dtype)
     
-    def negative(self):
+    def negative(self, _opt:CSToken):
         """ Called when unary - operation
 
             Returns
@@ -134,7 +152,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::negaive method must be overritten!" % self.dtype)
 
-    def pow(self, _object:CSObject):
+    def pow(self, _opt:CSToken, _object:CSObject):
         """ Called when power operation
 
             Returns
@@ -143,7 +161,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::pow method must be overritten!" % self.dtype)
 
-    def mul(self, _object:CSObject):
+    def mul(self, _opt:CSToken, _object:CSObject):
         """ Called when mul operation
 
             Returns
@@ -152,7 +170,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::mul method must be overritten!" % self.dtype)
     
-    def div(self, _object:CSObject):
+    def div(self, _opt:CSToken, _object:CSObject):
         """ Called when div operation
 
             Returns
@@ -161,7 +179,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::div method must be overritten!" % self.dtype)
     
-    def mod(self, _object:CSObject):
+    def mod(self, _opt:CSToken, _object:CSObject):
         """ Called when mod operation
 
             Returns
@@ -170,7 +188,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::mod method must be overritten!" % self.dtype)
 
-    def add(self, _object:CSObject):
+    def add(self, _opt:CSToken, _object:CSObject):
         """ Called when add operation
 
             Returns
@@ -179,7 +197,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::add method must be overritten!" % self.dtype)
     
-    def sub(self, _object:CSObject):
+    def sub(self, _opt:CSToken, _object:CSObject):
         """ Called when sub operation
 
             Returns
@@ -188,7 +206,79 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::sub method must be overritten!" % self.dtype)
     
-    def bit_and(self, _object:CSObject):
+    def lshift(self, _opt:CSToken, _object:CSObject):
+        """ Called when left shift operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::lshift method must be overritten!" % self.dtype)
+    
+    def rshift(self, _opt:CSToken, _object:CSObject):
+        """ Called when right shift operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::rshift method must be overritten!" % self.dtype)
+    
+    def lt(self, _opt:CSToken, _object:CSObject):
+        """ Called when lessthan operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::lt method must be overritten!" % self.dtype)
+
+    def lte(self, _opt:CSToken, _object:CSObject):
+        """ Called when lessthan equal operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::lte method must be overritten!" % self.dtype)
+    
+    def gt(self, _opt:CSToken, _object:CSObject):
+        """ Called when greaterthan operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::gt method must be overritten!" % self.dtype)
+
+    def gte(self, _opt:CSToken, _object:CSObject):
+        """ Called when greaterthan equal operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::gte method must be overritten!" % self.dtype)
+    
+    def eq(self, _opt:CSToken, _object:CSObject):
+        """ Called when equal
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::eq method must be overritten!" % self.dtype)
+    
+    def neq(self, _opt:CSToken, _object:CSObject):
+        """ Called when not equal
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::neq method must be overritten!" % self.dtype)
+
+    def bit_and(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise and operation
 
             Returns
@@ -197,7 +287,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::bit_and method must be overritten!" % self.dtype)
     
-    def bit_xor(self, _object:CSObject):
+    def bit_xor(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise xor operation
 
             Returns
@@ -206,7 +296,7 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::bit_xor method must be overritten!" % self.dtype)
     
-    def bit_or(self, _object:CSObject):
+    def bit_or(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise or operation
 
             Returns
@@ -214,3 +304,23 @@ class CSObject(HashMap):
             CSObject
         """
         raise NotImplementedError("%s::bit_or method must be overritten!" % self.dtype)
+    
+    # for compile time constant evaluation
+    def log_and(self, _opt:CSToken, _object:CSObject):
+        """ Called when logic and operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::log_and method must be overritten!" % self.dtype)
+    
+    # for compile time constant evaluation
+    def log_or(self, _opt:CSToken, _object:CSObject):
+        """ Called when logic or operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::log_or method must be overritten!" % self.dtype)

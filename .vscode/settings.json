@@ -1,8 +1,9 @@
 {
     "copyrighter.newFilesOnly": true,
-    "python.defaultInterpreterPath": "/cscript-venv",
+    "terminal.integrated.fontFamily": "Cascadia Code PL",
+    "python.defaultInterpreterPath": "cscript-venv/bin/python",
     "python.analysis.extraPaths": [
         "./src/object",
-        "./src/cscript-vm"
+        "./src/cscriptvm"
     ]
 }

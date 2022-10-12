@@ -1,15 +1,18 @@
 
 import cstoken
+from compilable import Compilable
 from strongtyping.strong_typing import match_typing
 
-
+from cscriptvm.csevaluator import Evaluatable, Evaluator
 from csobject import CSObject
-from csevaluator import Evaluatable, Evaluator
 
 
-class CSAst(object):
+class CSAst(Compilable):
     """ CSAst ast for cscript
     """
+
+    class COMPILE_STATE:
+        ...
 
     def __init__(self):
         super().__init__()
@@ -22,7 +25,7 @@ class CSAst(object):
             -------
             CSObject
         """
-        raise NotImplementedError("compile method must be override!")
+        raise NotImplementedError(f"{type(self).__name__}::compile method must be override!")
 
 
 class ReferenceNode(CSAst):
@@ -40,6 +43,11 @@ class ReferenceNode(CSAst):
     
     def compile(self):
         return super().compile()
+    
+    def evaluate(self):
+        """ Leave None!!!
+        """
+        return None
 
 
 class IntegerNode(CSAst, Evaluatable):
@@ -56,7 +64,7 @@ class IntegerNode(CSAst, Evaluatable):
         self.integer = _int
         
     def compile(self):
-        return super().compile()
+        self.push_constant(self.evaluate())
     
     def evaluate(self):
         return CSObject.new_integer(int(self.integer.token))
@@ -76,7 +84,7 @@ class DoubleNode(CSAst, Evaluatable):
         self.double = _double
         
     def compile(self):
-        return super().compile()
+        self.push_constant(self.evaluate())
     
     def evaluate(self):
         return CSObject.new_double(float(self.double.token))
@@ -97,7 +105,7 @@ class StringNode(CSAst, Evaluatable):
         self.string = _str
         
     def compile(self):
-        return super().compile()
+        self.push_constant(self.evaluate())
     
     def evaluate(self):
         return CSObject.new_string(self.string.token)
@@ -116,7 +124,7 @@ class BoolNode(CSAst, Evaluatable):
         self.boolean = _bool
         
     def compile(self):
-        return super().compile()
+        self.push_constant(self.evaluate())
     
     def evaluate(self):
         return CSObject.new_boolean(self.boolean.token)
@@ -135,7 +143,7 @@ class NullNode(CSAst, Evaluatable):
         self.nulltype = _null
         
     def compile(self):
-        return super().compile()
+        self.push_constant(self.evaluate())
     
     def evaluate(self):
         return CSObject.new_nulltype(self.nulltype.token)
@@ -231,6 +239,9 @@ class SubscriptNode(CSAst):
     def compile(self):
         return super().compile()
 
+
+
+
 class CallNode(CSAst):
     """ Holds call node
 
@@ -248,6 +259,12 @@ class CallNode(CSAst):
     
     def compile(self):
         return super().compile()
+
+
+
+
+
+
 
 
 class TernaryNode(CSAst):
@@ -268,7 +285,19 @@ class TernaryNode(CSAst):
         self.vfalse = _false
     
     def compile(self):
-        return super().compile()
+        _condition = self.condition.evaluate()
+        if  _condition:
+            if  _condition.get("this"):
+                self.vtrue.compile()
+            else:
+                self.vfalse.compile()
+            return
+        
+        # continue compilation
+
+
+
+
 
 class AllocDeallocNode(CSAst, Evaluator):
     """ Holds allocate and deallocate expression node
@@ -287,6 +316,9 @@ class AllocDeallocNode(CSAst, Evaluator):
     
     def compile(self):
         return super().compile()
+
+
+
 
 
 class UnaryExprNode(CSAst, Evaluator):
@@ -311,6 +343,9 @@ class UnaryExprNode(CSAst, Evaluator):
         return self.evaluate_unary_op(self.opt, self.rhs)
 
 
+
+
+
 class BinaryExprNode(CSAst, Evaluator):
     """ Holds binary expression node
 
@@ -329,10 +364,117 @@ class BinaryExprNode(CSAst, Evaluator):
         self.rhs = _rhs
         
     def compile(self):
+        _result = self.evaluate()
+        if  _result:
+            self.push_constant(_result)
+            return
+        
+        # continue compilation
 
-        _result = self.evaluate_bin_op(self.opt, self.lhs, self.rhs)
+        # compile rhs
+        self.rhs.compile()
+        # compile lhs
+        self.lhs.compile()
+
+        # select by op
+        if  self.opt.matches("^^"):
+            self.binary_pow(self.opt)
+        elif self.opt.matches("*"):
+            self.binary_mul(self.opt)
+        elif self.opt.matches("/"):
+            self.binary_div(self.opt)
+        elif self.opt.matches("%"):
+            self.binary_mod(self.opt)
+        elif self.opt.matches("+"):
+            self.binary_add(self.opt)
+        elif self.opt.matches("-"):
+            self.binary_sub(self.opt)
+        elif self.opt.matches("<<"):
+            self.binary_lshift(self.opt)
+        elif self.opt.matches(">>"):
+            self.binary_rshift(self.opt)
+        elif self.opt.matches("&"):
+            self.binary_and(self.opt)
+        elif self.opt.matches("^"):
+            self.binary_xor(self.opt)
+        elif self.opt.matches("|"):
+            self.binary_or(self.opt)
+        else:\
+        raise NotImplementedError("invalid operator \"%s\"" % self.opt.token)
+    
+    def evaluate(self):
+        return self.evaluate_bin_op(self.opt, self.lhs, self.rhs)
+
+
+
+
+
+
+class CompareExprNode(CSAst, Evaluator):
+    """ Holds comparison expression node
+
+        Parameters
+        ----------
+        _opt : cstoken.CSToken
+        _lhs : CSAst
+        _rhs : CSAst
+    """
+
+    @match_typing
+    def __init__(self, _opt:cstoken.CSToken, _lhs:CSAst, _rhs:CSAst):
+        super().__init__()
+        self.opt = _opt
+        self.lhs = _lhs
+        self.rhs = _rhs
+        
+    def compile(self):
+        _result = self.evaluate()
+        if  _result:
+            self.push_constant(_result)
+            return
+
+        # continue compilation
+
+        # compile rhs
+        self.rhs.compile()
+        # compile lhs
+        self.lhs.compile()
 
         return super().compile()
     
     def evaluate(self):
-        return self.evaluate_bin_op(self.opt, self.lhs, self.rhs)
+        return self.evaluate_comp_op(self.opt, self.lhs, self.rhs)
+
+
+class LogicalExprNode(CompareExprNode):
+    """ Holds logical expression|jump
+
+        Parameters
+        ----------
+        _opt : cstoken.CSToken
+        _lhs : CSAst
+        _rhs : CSAst
+    """
+
+    def __init__(self, _opt: cstoken.CSToken, _lhs: CSAst, _rhs: CSAst):
+        super().__init__(_opt, _lhs, _rhs)
+    
+    def compile(self):
+        _result = self.evaluate()
+        if  _result:
+            self.push_constant(_result)
+            return
+
+        # continue compilation
+
+        # compile rhs
+        self.rhs.compile()
+        # compile lhs
+        self.lhs.compile()
+    
+    def evaluate(self):
+        return super().evaluate()
+
+
+# =============================== BEGIN COMPOUND
+# ==============================================

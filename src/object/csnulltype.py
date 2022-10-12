@@ -1,6 +1,7 @@
 
 from types import NoneType
 from csobject import CSObject
+from cstoken import CSToken
 
 
 class CSNullType(CSObject):
@@ -18,4 +19,9 @@ class CSNullType(CSObject):
     # ![bound::toString]
     def toString(self):
         return str("null")
-
+    
+    # ==================== MAGIC METHODS
+    """ CSInteger specific operation
+    """
+    def bin_not(self, _opt:CSToken):
+        return CSObject.new_boolean("true" if not self.get("this") else "false")

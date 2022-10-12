@@ -1,6 +1,6 @@
 
 from lib2to3.pgen2 import token
-from csAst import AccessNode, AllocDeallocNode, ArrayNode, BinaryExprNode, BoolNode, CallNode, IntegerNode, DoubleNode, NullNode, ObjectNode, ReferenceNode, StaticAccessNode, StringNode, SubscriptNode, TernaryNode, UnaryExprNode
+from csAst import AccessNode, AllocDeallocNode, ArrayNode, BinaryExprNode, BoolNode, CallNode, CompareExprNode, IntegerNode, DoubleNode, LogicalExprNode, NullNode, ObjectNode, ReferenceNode, StaticAccessNode, StringNode, SubscriptNode, TernaryNode, UnaryExprNode
 from cstoken import TokenType, CSToken
 from cslexer import CSLexer
 from errortoken import show_error
@@ -144,8 +144,9 @@ class CSParser(object):
 
             invalid_keyword()
 
-            if  self.token.matches("true" ) or \
-                self.token.matches("false"):
+            if  self.token.matches(TokenType.IDENTIFIER) and \
+                (self.token.matches("true" ) or \
+                 self.token.matches("false")):
                 return boolean()
             elif  self.token.matches("null"):
                 return nulltype()
@@ -300,8 +301,17 @@ class CSParser(object):
 
             return _node
         
+        def parenthesis():
+            if  self.token.matches("("):
+                self.eat("(")
+                _expr = non_nullable_expression()
+                self.eat(")")
+                return _expr
+            
+            return member_access()
+        
         def ternary():
-            _node = member_access()
+            _node = parenthesis()
             if not _node: return _node
 
             if not self.token.matches("?"):
@@ -318,15 +328,6 @@ class CSParser(object):
 
             # return as ternary
             return TernaryNode(_node, _tv, _fv)
-
-        def parenthesis():
-            if  self.token.matches("("):
-                self.eat("(")
-                _expr = non_nullable_expression()
-                self.eat(")")
-                return _expr
-            
-            return ternary()
         
         def unary_op():
 
@@ -353,7 +354,7 @@ class CSParser(object):
                 # return as unary expr
                 return UnaryExprNode(_opt, _exp)
 
-            return parenthesis()
+            return ternary()
         
         
         def power():
@@ -419,8 +420,116 @@ class CSParser(object):
             # return node
             return _node
         
+        def shift():
+            _node = addetive()
+            if not _node: return _node
+
+            while self.token.matches("<<") or \
+                  self.token.matches(">>"):
+                
+                _opt = self.token
+                self.eat(_opt.ttype)
+
+                _rhs = addetive()
+                if  not _rhs:
+                    return show_error(self, "missing right-hand expression \"%s\"" % _opt.token, _opt)
+            
+                _node = BinaryExprNode(
+                    _opt, _node, _rhs
+                )
+
+            # return node
+            return _node
+        
+        def relational():
+            _node = shift()
+            if not _node: return _node
+
+            while self.token.matches("<" ) or \
+                  self.token.matches("<=") or \
+                  self.token.matches(">" ) or \
+                  self.token.matches(">="):
+                
+                _opt = self.token
+                self.eat(_opt.ttype)
+
+                _rhs = shift()
+                if  not _rhs:
+                    return show_error(self, "missing right-hand expression \"%s\"" % _opt.token, _opt)
+            
+                _node = CompareExprNode(
+                    _opt, _node, _rhs
+                )
+
+            # return node
+            return _node
+        
+        def equality():
+            _node = relational()
+            if not _node: return _node
+
+            while self.token.matches("==" ) or \
+                  self.token.matches("!="):
+                
+                _opt = self.token
+                self.eat(_opt.ttype)
+
+                _rhs = relational()
+                if  not _rhs:
+                    return show_error(self, "missing right-hand expression \"%s\"" % _opt.token, _opt)
+            
+                _node = CompareExprNode(
+                    _opt, _node, _rhs
+                )
+
+            # return node
+            return _node
+        
+        def bitwise():
+            _node = equality()
+            if not _node: return _node
+
+            while self.token.matches("&") or \
+                  self.token.matches("^") or \
+                  self.token.matches("|"):
+                
+                _opt = self.token
+                self.eat(_opt.ttype)
+
+                _rhs = equality()
+                if  not _rhs:
+                    return show_error(self, "missing right-hand expression \"%s\"" % _opt.token, _opt)
+            
+                _node = BinaryExprNode(
+                    _opt, _node, _rhs
+                )
+
+            # return node
+            return _node
+        
+        def logical():
+            _node = bitwise()
+            if not _node: return _node
+
+            while self.token.matches("&&") or \
+                  self.token.matches("||"):
+                
+                _opt = self.token
+                self.eat(_opt.ttype)
+
+                _rhs = bitwise()
+                if  not _rhs:
+                    return show_error(self, "missing right-hand expression \"%s\"" % _opt.token, _opt)
+            
+                _node = LogicalExprNode(
+                    _opt, _node, _rhs
+                )
+
+            # return node
+            return _node
+        
         def nullable_expression():
-            return addetive()
+            return logical()
         
         def non_nullable_expression():
             _exp = nullable_expression()
@@ -430,4 +539,4 @@ class CSParser(object):
             
             return _exp
 
-        return addetive()
+        return non_nullable_expression()

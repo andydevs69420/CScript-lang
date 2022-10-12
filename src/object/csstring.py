@@ -1,5 +1,6 @@
 
 from csobject import CSObject
+from cstoken import CSToken
 
 
 class CSString(CSObject):
@@ -20,7 +21,7 @@ class CSString(CSObject):
         return str(self.get("this"))
     
     # =============================== MAGIC METHODS
-    def add(self, _object:CSObject):
+    def add(self, _opt:CSToken, _object:CSObject):
         if  _object.dtype != "CSString":
             # TODO: error!
             return
