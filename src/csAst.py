@@ -3,8 +3,9 @@ import cstoken
 from compilable import Compilable
 from strongtyping.strong_typing import match_typing
 
+# core
 from cscriptvm.csevaluator import Evaluatable, Evaluator
-from csobject import CSObject
+from object.csobject import CSObject
 
 
 class CSAst(Compilable):
@@ -337,7 +338,10 @@ class UnaryExprNode(CSAst, Evaluator):
         self.rhs = _rhs
     
     def compile(self):
-        return super().compile()
+        _result = self.evaluate()
+        if  _result:
+            self.push_constant(_result)
+            return
     
     def evaluate(self):
         return self.evaluate_unary_op(self.opt, self.rhs)

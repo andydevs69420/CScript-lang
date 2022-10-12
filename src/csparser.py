@@ -1,5 +1,3 @@
-
-from lib2to3.pgen2 import token
 from csAst import AccessNode, AllocDeallocNode, ArrayNode, BinaryExprNode, BoolNode, CallNode, CompareExprNode, IntegerNode, DoubleNode, LogicalExprNode, NullNode, ObjectNode, ReferenceNode, StaticAccessNode, StringNode, SubscriptNode, TernaryNode, UnaryExprNode
 from cstoken import TokenType, CSToken
 from cslexer import CSLexer

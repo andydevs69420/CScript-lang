@@ -1,4 +1,1 @@
-
-
-(!null)?true:false;
-
+-(2+2)
