@@ -15,10 +15,6 @@ class CSInteger(CSNumber):
     def __init__(self, _int:int):
         super().__init__()
         self.put("this", int(_int))
-
-    # ![bound::toString]
-    def toString(self):
-        return str(self.get("this"))
     
     # ==================== MAGIC METHODS
     """ CSInteger specific operation

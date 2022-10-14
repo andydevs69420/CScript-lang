@@ -20,7 +20,7 @@ class CSBoolean(CSObject):
     
     # ![bound::toString]
     def toString(self):
-        return "true" if self.get("this") else "false"
+        return CSObject.new_string("true" if self.get("this") else "false")
     
     # ================= SUPPORTED MAGIC METHODS
     def assertType(self, _opt: CSToken, _lhs: CSObject, _rhs: CSObject):

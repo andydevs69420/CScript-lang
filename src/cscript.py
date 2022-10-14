@@ -8,10 +8,18 @@ setrecursionlimit(15000)
 
 
 from csparser import CSParser
-from compilable import Compilable
+
+# core
+from cscriptvm.compilable import Compilable
+from cscriptvm.csvm import CSVirtualMachine
 
 FILE = "lib/test.cs"
 parser = CSParser(FILE, open(FILE, "r").read())
-parser.parse().compile()
+x = parser.parse()
+x.compile()
+
 for ins in Compilable.INSTRUCTIONS[-1]:
     print(ins)
+print("Done!")
+
+CSVirtualMachine.run(x.getInstructions())

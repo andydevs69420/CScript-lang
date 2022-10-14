@@ -24,20 +24,38 @@ class Evaluator(object):
     """
 
     @staticmethod
+    def evaluate_ternary_op(_condition:Evaluatable|Evaluator, _true:Evaluatable|Evaluator, _false:Evaluatable|Evaluator):
+        
+        if  not(isinstance(_condition, (Evaluatable, Evaluator)) and (isinstance(_true, (Evaluatable, Evaluator)), isinstance(_false, (Evaluatable, Evaluator)))):
+            return None
+
+        _cond = _condition.evaluate()
+        if  _cond:
+            if  _cond.get("this"):
+                return _true.evaluate()
+            else:
+                return _false.evaluate()
+        
+        return None
+
+
+    @staticmethod
     def evaluate_unary_op(_opt:CSToken, _rhs:Evaluatable|Evaluator):
 
         if  not isinstance(_rhs, (Evaluatable, Evaluator)):
             return None
         
+        _rhs = _rhs.evaluate()
+        if  not _rhs: return _rhs
 
         if _opt.matches("~"):
-            return _rhs.evaluate().bit_not(_opt)
+            return _rhs.bit_not(_opt)
         elif _opt.matches("!"):
-            return _rhs.evaluate().bin_not(_opt)
+            return _rhs.bin_not(_opt)
         elif _opt.matches("+"):
-            return _rhs.evaluate().positive(_opt)
+            return _rhs.positive(_opt)
         elif _opt.matches("-"):
-            return _rhs.evaluate().negative(_opt)
+            return _rhs.negative(_opt)
         
         raise ValueError("invalid unary op value \"%s\"" % _opt)
 
@@ -47,39 +65,35 @@ class Evaluator(object):
         if  not(isinstance(_lhs, (Evaluatable, Evaluator)) and isinstance(_rhs, (Evaluatable, Evaluator))):
             return None
 
+
+        _lhs = _lhs.evaluate()
+        _rhs = _rhs.evaluate()
+
+        if not (_lhs and _rhs):\
+        return None
+
         if _opt.matches("^^"):
-            return _lhs.evaluate()\
-                .pow(_opt, _rhs.evaluate())
+            return _lhs.pow(_opt, _rhs)
         elif _opt.matches('*'):
-            return _lhs.evaluate()\
-                .mul(_opt, _rhs.evaluate())
+            return _lhs.mul(_opt, _rhs)
         elif _opt.matches('/'):
-            return _lhs.evaluate()\
-                .div(_opt, _rhs.evaluate())
+            return _lhs.div(_opt, _rhs)
         elif _opt.matches('%'):
-            return _lhs.evaluate()\
-                .mod(_opt, _rhs.evaluate())
+            return _lhs.mod(_opt, _rhs)
         elif _opt.matches('+'):
-            return _lhs.evaluate()\
-                .add(_opt, _rhs.evaluate())
+            return _lhs.add(_opt, _rhs)
         elif _opt.matches('-'):
-            return _lhs.evaluate()\
-                .sub(_opt, _rhs.evaluate())
+            return _lhs.sub(_opt, _rhs)
         elif _opt.matches("<<"):
-            return _lhs.evaluate()\
-                .lshift(_opt, _rhs.evaluate())
+            return _lhs.lshift(_opt, _rhs)
         elif _opt.matches(">>"):
-            return _lhs.evaluate()\
-                .rshift(_opt, _rhs.evaluate())
+            return _lhs.rshift(_opt, _rhs)
         elif _opt.matches('&'):
-            return _lhs.evaluate()\
-                .bit_and(_opt, _rhs.evaluate())
+            return _lhs.bit_and(_opt, _rhs)
         elif _opt.matches('^'):
-            return _lhs.evaluate()\
-                .bit_xor(_opt, _rhs.evaluate())
+            return _lhs.bit_xor(_opt, _rhs)
         elif _opt.matches('|'):
-            return _lhs.evaluate()\
-                .bit_or(_opt, _rhs.evaluate())
+            return _lhs.bit_or(_opt, _rhs)
 
         raise ValueError("invalid binary op value \"%s\"" % _opt)
 
@@ -89,29 +103,27 @@ class Evaluator(object):
         if  not(isinstance(_lhs, (Evaluatable, Evaluator)) and isinstance(_rhs, (Evaluatable, Evaluator))):
             return None
 
+        _lhs = _lhs.evaluate()
+        _rhs = _rhs.evaluate()
+
+        if not (_lhs and _rhs):\
+        return None
+
         if _opt.matches('<'):
-            return _lhs.evaluate()\
-                .lt(_opt, _rhs.evaluate())
+            return _lhs.lt(_opt, _rhs)
         elif _opt.matches("<="):
-            return _lhs.evaluate()\
-                .lte(_opt, _rhs.evaluate())
+            return _lhs.lte(_opt, _rhs)
         elif _opt.matches('>'):
-            return _lhs.evaluate()\
-                .gt(_opt, _rhs.evaluate())
+            return _lhs.gt(_opt, _rhs)
         elif _opt.matches(">="):
-            return _lhs.evaluate()\
-                .gte(_opt, _rhs.evaluate())
+            return _lhs.gte(_opt, _rhs)
         elif _opt.matches("=="):
-            return _lhs.evaluate()\
-                .eq(_opt, _rhs.evaluate())
+            return _lhs.eq(_opt, _rhs)
         elif _opt.matches("!="):
-            return _lhs.evaluate()\
-                .neq(_opt, _rhs.evaluate())
+            return _lhs.neq(_opt, _rhs)
         elif _opt.matches("&&"):
-            return _lhs.evaluate()\
-                .log_and(_opt, _rhs.evaluate())
+            return _lhs.log_and(_opt, _rhs)
         elif _opt.matches("||"):
-            return _lhs.evaluate()\
-                .log_or(_opt, _rhs.evaluate())
+            return _lhs.log_or(_opt, _rhs)
 
         raise ValueError("invalid compare op value \"%s\"" % _opt)

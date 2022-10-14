@@ -18,7 +18,7 @@ class CSNullType(CSObject):
 
     # ![bound::toString]
     def toString(self):
-        return str("null")
+        return CSObject.new_string("null")
     
     # ==================== MAGIC METHODS
     """ CSInteger specific operation

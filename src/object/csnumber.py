@@ -16,7 +16,7 @@ class CSNumber(CSObject):
 
     # ![bound::toString]
     def toString(self):
-        return str(self.get("this"))
+        return CSObject.new_string(str(self.get("this")))
     
     # =============================== MAGIC METHODS
     def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
@@ -84,10 +84,26 @@ class CSNumber(CSObject):
         _class = self.assertType(_opt, self, _object)
         return _class(self.get("this") - _object.get("this"))
     
+    def lt(self, _opt:CSToken, _object:CSObject):
+        self.assertType(_opt, self, _object)
+        return CSObject.new_boolean("true" if self.get("this") < _object.get("this") else "false")
+    
+    def lte(self, _opt:CSToken, _object:CSObject):
+        self.assertType(_opt, self, _object)
+        return CSObject.new_boolean("true" if self.get("this") <= _object.get("this") else "false")
+
+    def gt(self, _opt:CSToken, _object:CSObject):
+        self.assertType(_opt, self, _object)
+        return CSObject.new_boolean("true" if self.get("this") > _object.get("this") else "false")
+    
+    def gte(self, _opt:CSToken, _object:CSObject):
+        self.assertType(_opt, self, _object)
+        return CSObject.new_boolean("true" if self.get("this") >= _object.get("this") else "false")
+
     def eq(self, _opt:CSToken, _object:CSObject):
-        _class = self.assertType(_opt, self, _object)
-        return _class(self.get("this") == _object.get("this"))
+        self.assertType(_opt, self, _object)
+        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false")
     
     def neq(self, _opt:CSToken, _object:CSObject):
-        _class = self.assertType(_opt, self, _object)
-        return _class(self.get("this") != _object.get("this"))
+        self.assertType(_opt, self, _object)
+        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false")

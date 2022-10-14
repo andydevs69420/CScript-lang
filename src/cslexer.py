@@ -373,7 +373,7 @@ class TokenBuilder(LexUtils):
         # error if not closed
         if  not _isClose:
             _builder.update(self)
-            return show_error(self, "string is not properly closed", _builder)
+            return show_error("string is not properly closed", _builder)
 
         # update builder
         _builder.concat(_sChunk)
@@ -505,7 +505,7 @@ class TokenBuilder(LexUtils):
             _builder.concat(self.error_part())
             _builder.update(self)
             # error
-            return show_error(self, "unknown token", _builder)
+            return show_error("unknown token", _builder)
 
         _builder.concat(_part)
         _builder.update(self)

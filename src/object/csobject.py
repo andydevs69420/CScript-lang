@@ -13,6 +13,7 @@ class CSObject(HashMap):
         super().__init__()
         # initilize defauls
         self.dtype = type(self).__name__
+        self.static = []
         self.proto = HashMap()
 
     # ![bound::toString]
@@ -23,9 +24,18 @@ class CSObject(HashMap):
             -------
             CSString
         """
+        _keys = self.keys()
+        _attrib = ""
+        for k in range(len(_keys)):
+            _attrib += f"{_keys[k]}: {self.get(_keys[k]).__str__()}"
+        
+            if  k < (len(_keys) - 1):
+                _attrib += ", "
+
+        return CSObject.new_string("{" + f"{_attrib}" + "}")
     
     def __str__(self):
-        return self.toString()
+        return self.toString().__str__()
     
     def hasAttribute(self, _key:str):
         _bucket_index = hasher(_key) % self.bcount
@@ -99,9 +109,30 @@ class CSObject(HashMap):
         _null = csnulltype.CSNullType(_data)
         del csnulltype
         return _null
+    
+    # ================= DUNDER METHODS
+    # must be private!. do not include as attribute
         
+    def subscript(self, _opt:CSToken, _expr:CSObject):
+        """ Called when [...](subscript) operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::subscript method must be overritten!" % self.dtype)
+    
+    def call(self, _opt:CSToken, _args:CSObject):
+        """ Called when (...)(call) operation
+
+            Returns
+            -------
+            CSObject
+        """
+        raise NotImplementedError("%s::call method must be overritten!" % self.dtype)
+
     # ================= MAGIC METHODS
-    #  must be private!. do not include as attribte
+    # must be private!. do not include as attribte
     def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
         """ Type assertion for CScript operation
 

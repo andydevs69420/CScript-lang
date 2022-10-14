@@ -92,14 +92,12 @@ class HashMap(object):
         
 
     def rehash(self):
-        print("rehash")
         # increase by mupltiply of 2 := 16 * 2 = 32
         self.bcount *= 2
         self.copy = self.bucket
         self.bucket = [
             None for _ in range(self.bcount)
         ]
-
 
         for node in self.bucket:
             if  node != None:
@@ -108,6 +106,17 @@ class HashMap(object):
                     self.put(last.nkey, last.data)
                     last = last.tail
 
+
+    def keys(self):
+        _keys = []
+        for buck in self.bucket:
+            if  buck:
+                _last = buck
+                while _last:
+                    _keys.append(_last.nkey)
+                    _last = _last.tail
+        
+        return _keys
 
 
 if  __name__ == "__main__":

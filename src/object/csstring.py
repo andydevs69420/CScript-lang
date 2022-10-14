@@ -18,7 +18,10 @@ class CSString(CSObject):
 
     # ![bound::toString]
     def toString(self):
-        return str(self.get("this"))
+        return self
+    
+    def __str__(self):
+        return self.get("this")
     
     # =============================== MAGIC METHODS
     def add(self, _opt:CSToken, _object:CSObject):
