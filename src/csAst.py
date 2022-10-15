@@ -1,8 +1,11 @@
 import cstoken
+from errortoken import show_error
 from strongtyping.strong_typing import match_typing
 
 # core
 from cscriptvm.csevaluator import Evaluatable, Evaluator
+from cscriptvm.cssymboltable import CSSymbolTable as ST
+from cscriptvm.csvm import CSVirtualMachine as VM
 from cscriptvm.compilable import Compilable
 from object.csobject import CSObject
 
@@ -35,6 +38,15 @@ class Assignable(CSAst):
     def compile(self):
         return super().compile()
     
+    def offset(self):
+        """ get reference
+
+            Returns
+            -------
+            None
+        """
+        raise NotImplementedError(f"{type(self).__name__}::reference method must be override!")
+    
     def assign(self):
         """ Compile as assign
 
@@ -60,8 +72,25 @@ class ReferenceNode(Assignable):
         self.reference = _id
     
     def compile(self):
-        self.push_name(self.reference)
+        # check if exists
+        if  not ST.exists(self.reference.token):
+            return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
+        
+        # compile
+        _s = ST.lookup(self.reference.token)
+        self.push_name(self.reference, _s["_slot"])
+    
+    def offset(self):
+        # check if exists
+        if  not ST.exists(self.reference.token):
+            return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
 
+        _offset = ST.lookup(self.reference.token)
+
+        # increase ref count
+        VM.incRef(_offset["_slot"])
+
+        return _offset
     
     def evaluate(self):
         """ Leave None!!!
@@ -790,6 +819,7 @@ class SpitsCode(CSAst):
     def getInstructions(self):
         return self.INSTRUCTIONS.pop()
 
+
 class ModuleNode(SpitsCode):
     """
     """
@@ -800,8 +830,10 @@ class ModuleNode(SpitsCode):
         self.child_nodes = _child_nodes
     
     def compile(self):
+        ST.newScope()
         for node in self.child_nodes:
             node.compile()
+        ST.endScope()
         
         # module opcode
         self.make_module()
@@ -817,10 +849,10 @@ class ClassNode(CSAst):
     """
 
     @match_typing
-    def __init__(self, _name:cstoken.CSToken, _base:cstoken.CSToken, _member:tuple):
+    def __init__(self, _name:cstoken.CSToken, _base:cstoken.CSToken|None, _member:tuple):
         super().__init__()
-        self.name = _name
-        self.base = _base
+        self.name   = _name
+        self.base   = _base
         self.member = _member
     
     def compile(self):
@@ -1312,8 +1344,26 @@ class VarNode(CSAst):
             else:
                 assignment["val"].compile()
             
-            # push name
-            self.push_constant(CSObject.new_string(assignment["var"].token))
+            _var = assignment["var"]
+
+            # ================= RECORDING PURPOSE
+            # ===================================
+            # check existence
+            if  ST.islocal(_var.token):
+                return show_error("variable \"%s\" is already defined" % _var.token, _var)
+            
+            # make|get slot
+            _s = assignment["val"].offset()["_slot"]         \
+                if isinstance(assignment["val"], Assignable) \
+                else VM.makeSlot()
+
+            # save var_name
+            ST.insert(_var.token, _slot = _s)
+
+            # ============ MEMORY SETTING PURPOSE
+            # ===================================
+            # store name
+            self.store_name(_var, _s)
 
 
 class LetNode(CSAst):

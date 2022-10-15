@@ -1,4 +1,4 @@
-from csAst import AccessNode, AllocDeallocNode, ArrayNode, Assignable, AugmentedAssignment, BinaryExprNode, BoolNode, CallNode, ClassNode, CompareExprNode, DoWileNode, EqualityExprNode, ExprStmntNode, IfStatementNode, IntegerNode, DoubleNode, LetNode, LogicalExprNode, ModuleNode, NullNode, ObjectNode, ReferenceNode, SimpleAssignment, StaticAccessNode, StringNode, SubscriptNode, SwitchNode, TernaryNode, UnaryExprNode, VarNode, WhileNode
+from csAst import AccessNode, AllocDeallocNode, ArrayNode, AugmentedAssignment, BinaryExprNode, BoolNode, CallNode, ClassNode, CompareExprNode, DoWileNode, EqualityExprNode, ExprStmntNode, IfStatementNode, IntegerNode, DoubleNode, LetNode, LogicalExprNode, ModuleNode, NullNode, ObjectNode, ReferenceNode, SimpleAssignment, StaticAccessNode, StringNode, SubscriptNode, SwitchNode, TernaryNode, UnaryExprNode, VarNode, WhileNode
 from cstoken import TokenType, CSToken
 from cslexer import CSLexer
 from errortoken import show_error

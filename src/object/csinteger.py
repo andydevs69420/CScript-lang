@@ -17,6 +17,7 @@ class CSInteger(CSNumber):
         self.put("this", int(_int))
     
     # ==================== MAGIC METHODS
+    # ==================================
     """ CSInteger specific operation
     """
     def bit_not(self, _opt:CSToken):
@@ -26,7 +27,7 @@ class CSInteger(CSNumber):
         _class = self.assertType(_opt, self, _object)
         return _class(self.get("this") << _object.get("this"))
     
-    def lshift(self, _opt:CSToken, _object:CSObject):
+    def rshift(self, _opt:CSToken, _object:CSObject):
         _class = self.assertType(_opt, self, _object)
         return _class(self.get("this") >> _object.get("this"))
     

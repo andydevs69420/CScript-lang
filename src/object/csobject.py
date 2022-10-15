@@ -8,6 +8,7 @@ class CSObject(HashMap):pass
 class CSObject(HashMap):
     """ Represents Object in CScript
     """
+    dtype = "CSObject"
     
     def __init__(self):
         super().__init__()

@@ -18,7 +18,8 @@ class CSNumber(CSObject):
     def toString(self):
         return CSObject.new_string(str(self.get("this")))
     
-    # =============================== MAGIC METHODS
+    # =================== MAGIC METHODS
+    # =================================
     def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
         _class = None
 

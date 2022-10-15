@@ -56,12 +56,12 @@ class Compilable(object):
         return len(Compilable.INSTRUCTIONS[-1]) * 2
 
     @staticmethod
-    def push_name(_name:CSToken):
+    def push_name(_name:CSToken, _offset:int):
         Compilable.INSTRUCTIONS[-1]\
         .append(
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
-                CSOpCode.PUSH_NAME, name=_name
+                CSOpCode.PUSH_NAME, name=_name, offset=_offset
             )
         )
 
@@ -132,6 +132,16 @@ class Compilable(object):
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
                 CSOpCode.SET_ATTRIB, attr=_attrib
+            )
+        )
+    
+    @staticmethod
+    def store_name(_name:CSToken, _offset:int):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.STORE_NAME, name=_name, offset=_offset
             )
         )
     

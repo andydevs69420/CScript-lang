@@ -52,6 +52,11 @@ class CSSymbolTable:
         return (True if CSSymbolTable.CURRENT.lookup(_symbol) else False)
     
     @staticmethod
+    def lookup(_symbol:str):
+        assert CSSymbolTable.exists(_symbol), "not exists!"
+        return CSSymbolTable.CURRENT.lookup(_symbol)
+    
+    @staticmethod
     def islocal(_symbol:str):
         assert CSSymbolTable.CURRENT, "empty scope!"
         return CSSymbolTable.CURRENT.vlocal(_symbol)
@@ -77,6 +82,6 @@ class CSSymbolTable:
         if  len(CSSymbolTable.HISTORY) <= 0:
             CSSymbolTable.CURRENT = None
             return
-        CSSymbolTable.CURRENT =  CSSymbolTable.HISTORY.pop()
+        CSSymbolTable.CURRENT = CSSymbolTable.HISTORY.pop()
 
 
