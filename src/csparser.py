@@ -874,7 +874,7 @@ class CSParser(object):
             _id = raw_identifier()
             
             if not self.token.matches("="):
-                return {{"var": _id, "val": None }}
+                return ({"var": _id, "val": None })
             
             # eat operator
             self.eat("=")

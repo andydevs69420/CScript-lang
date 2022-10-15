@@ -34,8 +34,10 @@ class CSObject(HashMap):
 
         return CSObject.new_string("{" + f"{_attrib}" + "}")
     
-    def __str__(self):
-        return self.toString().__str__()
+    def get(self, _key: str):
+        if  type(self) == CSObject and _key == "this":
+            return self
+        return super().get(_key)
     
     def hasAttribute(self, _key:str):
         _bucket_index = hasher(_key) % self.bcount
@@ -50,6 +52,9 @@ class CSObject(HashMap):
                 return True
             _head = _head.tail
         return False
+    
+    def __str__(self):
+        return self.toString().__str__()
 
     @staticmethod
     def new_integer(_data:int):

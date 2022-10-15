@@ -1,6 +1,5 @@
-
-from csnumber import CSNumber
 from csobject import CSObject
+from csnumber import CSNumber
 from cstoken import CSToken
 
 

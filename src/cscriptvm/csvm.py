@@ -114,13 +114,23 @@ class CallStack:
 
 class Memory:
 
-    MEM:list[CSObject] = [
+    MEM:list[CSObject] = {
         # object
-    ]
+    }
 
     REF:dict = ({
         # [offset|index] : count
     })
+
+    @staticmethod
+    def makeSlot():
+        # make slot
+        _idx = len(Memory.MEM)
+        Memory.MEM[_idx] = None
+
+        # add initial ref count
+        Memory.REF[_idx] = 1
+        return _idx
 
     @staticmethod
     def incRef(_offset:int):
@@ -129,22 +139,18 @@ class Memory:
     @staticmethod
     def decRef(_offset:int):
         Memory.REF[_offset] -= 1
-
-        # delete|Set None if zero
-        if  Memory.REF[_offset] <= 0:
-            Memory.MEM[_offset]  = None
-
-    @staticmethod
-    def makeSlot():
-        # make slot
-        _idx = len(Memory.MEM)
-        Memory.MEM.append(CSObject.new_nulltype("null"))
-
-        # add initial ref count
-        Memory.REF[_idx] = 1
-
-        return _idx
     
+    @staticmethod
+    def collect():
+        _deleted = []
+        for k, v in zip(Memory.REF.keys(), Memory.REF.values()):
+            if v <= 0:
+                _deleted.append(k)
+                del Memory.MEM[k]
+
+        # remove indexes
+        for k in _deleted:
+            del Memory.REF[k]
     @staticmethod
     def memGet(_offset:int):
         return Memory.MEM[_offset]
@@ -156,7 +162,6 @@ class Memory:
 
 class CSVirtualMachine(
     ExceptionTable, 
-    EvalStack     , 
     CallStack     ,
     Memory        ,
 ):
@@ -176,6 +181,9 @@ class CSVirtualMachine(
             
             # pop if done
             CallStack.pop_frame()
+        Memory.collect()
+        print(Memory.REF)
+        print(Memory.MEM)
     
     @staticmethod
     def evaluate(_instruction:Instruction):
@@ -189,9 +197,14 @@ class CSVirtualMachine(
                 return CSVirtualMachine\
                     .push_name(_instruction)
             
+            # OK!!!
             case CSOpCode.MAKE_ARRAY:
                 return CSVirtualMachine\
                     .make_array(_instruction)
+
+            case CSOpCode.MAKE_OBJECT:
+                return CSVirtualMachine\
+                    .make_object(_instruction)
 
             case CSOpCode.MAKE_CLASS:
                 return CSVirtualMachine\
@@ -356,6 +369,19 @@ class CSVirtualMachine(
             _array.push(EvalStack.pop())
         
         EvalStack.push(_array)
+    
+    @staticmethod
+    def make_object(_instruction:Instruction):
+        _size = _instruction.get("size")
+
+        _object = CSObject()
+
+        for idx in range(_size):
+            _k = EvalStack.pop()
+            _v = EvalStack.pop()
+            _object.put(_k.__str__(), _v)
+        
+        EvalStack.push(_object)
 
     @staticmethod
     def make_class(_instruction:Instruction):

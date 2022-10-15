@@ -39,13 +39,22 @@ class Assignable(CSAst):
         return super().compile()
     
     def offset(self):
-        """ get reference
+        """ get offset
 
             Returns
             -------
             None
         """
-        raise NotImplementedError(f"{type(self).__name__}::reference method must be override!")
+        raise NotImplementedError(f"{type(self).__name__}::offset method must be override!")
+    
+    def updateOffset(self):
+        """ update offset
+
+            Returns
+            -------
+            None
+        """
+        raise NotImplementedError(f"{type(self).__name__}::updateOffset method must be override!")
     
     def assign(self):
         """ Compile as assign
@@ -85,9 +94,8 @@ class ReferenceNode(Assignable):
         if  not ST.exists(self.reference.token):
             return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
 
-        # decrement where it is pointed first
+        # props
         _s = ST.lookup(self.reference.token)
-        VM.decRef(_s["_slot"])
 
         # compile
         self.store_name(self.reference, _s["_slot"])
@@ -95,17 +103,33 @@ class ReferenceNode(Assignable):
         # push to stack new value
         self.push_name (self.reference, _s["_slot"])
     
-    def offset(self):
+    def getOffset(self):
         # check if exists
         if  not ST.exists(self.reference.token):
             return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
 
-        _offset = ST.lookup(self.reference.token)
+        # increase ref count to current
+        _prop = ST.lookup(self.reference.token)
+        VM.incRef(_prop["_slot"])
 
-        # increase ref count
-        VM.incRef(_offset["_slot"])
+        # return slot
+        return _prop["_slot"]
+    
+    def derefCurrent(self, _new_offset:int):
+        # check if exists
+        if  not ST.exists(self.reference.token):
+            return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
+        
+        
+        _prop = ST.lookup(self.reference.token)
+        
+        # do not update if same cell
+        if  _prop["_slot"] == _new_offset:
+            return
 
-        return _offset
+        # decrease reference
+        VM.decRef(_prop["_slot"])
+        ST.update(self.reference.token, _slot=_new_offset)
     
     def evaluate(self):
         """ Leave None!!!
@@ -225,10 +249,13 @@ class NullNode(CSAst, Evaluatable):
         return CSObject.new_nulltype(self.nulltype.token)
 
 
+class Subscriptable(CSAst):
+    def __init__(self):
+        super().__init__()
 
 
 # OK!!!
-class ArrayNode(CSAst):
+class ArrayNode(Subscriptable):
     """ Holds array node
 
         Parameters
@@ -262,7 +289,7 @@ class ArrayNode(CSAst):
 
 
 # OK!!!
-class ObjectNode(CSAst):
+class ObjectNode(Subscriptable):
     """ Holds object node
 
         Parameters
@@ -797,6 +824,12 @@ class SimpleAssignment(Assignment):
         # make sure left hand is assignable
         if  not isinstance(self.lhs, Assignable):
             return show_error("invalid left-hand expression", self.opt)
+
+        # update where it is pointed to
+        if  isinstance(self.rhs, Assignable):
+            self.lhs.derefCurrent(self.rhs.getOffset())
+        else:
+            self.lhs.derefCurrent(VM.makeSlot())
 
         # compile lhs
         self.lhs.assign()
@@ -1356,22 +1389,19 @@ class VarNode(CSAst):
             
             _var = assignment["var"]
 
-            # ================= RECORDING PURPOSE
-            # ===================================
+            # ================= RECORDING PURPOSE|
+            # ===================================|
             # check existence
             if  ST.islocal(_var.token):
                 return show_error("variable \"%s\" is already defined" % _var.token, _var)
             
-            # make|get slot
-            _s = assignment["val"].offset()["_slot"]         \
-                if isinstance(assignment["val"], Assignable) \
-                else VM.makeSlot()
+            _s = VM.makeSlot()
 
             # save var_name
-            ST.insert(_var.token, _slot = _s)
+            ST.insert(_var.token, _slot=_s, _global=True)
 
-            # ============ MEMORY SETTING PURPOSE
-            # ===================================
+            # ============ MEMORY SETTING PURPOSE|
+            # ===================================|
             # store name
             self.store_name(_var, _s)
 

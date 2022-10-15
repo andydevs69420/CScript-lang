@@ -2,14 +2,13 @@
 import dis
 
 
-code ="""
-a = 10
+code = """
 
-match a:
-    case 10, 20:
-        print("yes")
-    case 30, 40:
-        print("no")
+a = [1,2,3,4,5,6]
+b = a
+
+a = 2
+c = 2
 
 """
 dis.dis(code)

@@ -41,6 +41,10 @@ class CSSymbolTable:
     HISTORY = []
 
     @staticmethod
+    def update(_symbol:str, **_props:dict):
+        CSSymbolTable.lookup(_symbol).update(_props)
+
+    @staticmethod
     def insert(_symbol:str, **_props:dict):
         assert CSSymbolTable.CURRENT, "empty scope!"
         return CSSymbolTable.CURRENT.insert(_symbol, **_props)
