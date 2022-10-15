@@ -4,5 +4,13 @@ cscript programming language
 
 # TODO:
 
-- [ ] Add 
-- [x]
+## Statements
+[/] var declairation
+[/] if statement
+[/] while statement
+[/] do|while statement
+[/] switch|case statement
+
+## Other feature
+[/] operator overloading(few)
+
