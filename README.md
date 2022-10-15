@@ -4,5 +4,5 @@ cscript programming language
 
 # TODO:
 
-[ ] Add 
-[x]
+- [ ] Add 
+- [x]
