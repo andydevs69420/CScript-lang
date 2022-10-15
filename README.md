@@ -4,16 +4,19 @@ cscript programming language
 ## Statements
 - [ ] import statement
 - [x] var declairation
+- [x] let declairation
 - [x] if statement
 - [ ] for statement
 - [x] while statement
 - [x] do|while statement
 - [x] switch|case statement
 - [x] print (print is a statement here.)
-- [ ] class dec
-- [ ] enum dec
-- [ ] function dec
+- [ ] class declairation
+- [ ] enum declairation
+- [ ] function declairation
 - [x] statement block
+- [x] expression statement
+
 
 ## Datatype
 - [x] CSObject(Hashmap based)
