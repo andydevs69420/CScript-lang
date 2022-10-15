@@ -484,8 +484,10 @@ class TokenBuilder(LexUtils):
         elif self.clook == '^':
             _part += append()
 
-            if  self.clook == '^' or \
-                self.clook == '=':
+            if  self.clook == '^':
+                _part += append()
+            
+            if  self.clook == '=':
                 _part += append()
 
         elif self.clook == '?':
