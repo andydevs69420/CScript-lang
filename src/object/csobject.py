@@ -12,10 +12,9 @@ class CSObject(HashMap):
     
     def __init__(self):
         super().__init__()
-        # initilize defauls
-        self.dtype = type(self).__name__
+        # initilize
+        self.dtype  = type(self).__name__
         self.static = []
-        self.proto = HashMap()
 
     # ![bound::toString]
     def toString(self):
@@ -132,7 +131,8 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::call method must be overritten!" % self.dtype)
 
-    # ================= MAGIC METHODS
+    # ================= MAGIC METHODS|
+    # ===============================|
     # must be private!. do not include as attribte
     def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
         """ Type assertion for CScript operation
@@ -292,6 +292,15 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::gte method must be overritten!" % self.dtype)
     
+    def equals(self, _object:CSObject):
+        """ Raw equals
+
+            Returns
+            -------
+            bool
+        """
+        return self.get("this") == _object.get("this")
+
     def eq(self, _opt:CSToken, _object:CSObject):
         """ Called when equal
 

@@ -1,9 +1,9 @@
 
-var a = 2;
-var b = 100;
-var c = a * 2 + 6 % 23 / b;
-var d = c ^ 2 | 2 & 10;
+var a = false;
 
+print: a;
 
-var e = -d;
-
+a = 2;
+print: a;
+a += 2;
+print: a;

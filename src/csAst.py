@@ -75,10 +75,25 @@ class ReferenceNode(Assignable):
         # check if exists
         if  not ST.exists(self.reference.token):
             return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
-        
+
         # compile
         _s = ST.lookup(self.reference.token)
         self.push_name(self.reference, _s["_slot"])
+    
+    def assign(self):
+        # check if exists
+        if  not ST.exists(self.reference.token):
+            return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
+
+        # decrement where it is pointed first
+        _s = ST.lookup(self.reference.token)
+        VM.decRef(_s["_slot"])
+
+        # compile
+        self.store_name(self.reference, _s["_slot"])
+
+        # push to stack new value
+        self.push_name (self.reference, _s["_slot"])
     
     def offset(self):
         # check if exists
@@ -99,7 +114,7 @@ class ReferenceNode(Assignable):
 
 
 
-# OK!!!
+# OK!!! | PASSED
 class IntegerNode(CSAst, Evaluatable):
     """ Holds string node
 
@@ -122,7 +137,7 @@ class IntegerNode(CSAst, Evaluatable):
 
 
 
-# OK!!!
+# OK!!! | PASSED
 class DoubleNode(CSAst, Evaluatable):
     """ Holds string node
 
@@ -144,7 +159,7 @@ class DoubleNode(CSAst, Evaluatable):
 
 
 
-# OK!!!
+# OK!!! | PASSED
 class StringNode(CSAst, Evaluatable):
     """ Holds string node
 
@@ -166,7 +181,7 @@ class StringNode(CSAst, Evaluatable):
 
 
 
-# OK!!!
+# OK!!! | PASSED
 class BoolNode(CSAst, Evaluatable):
     """ Holds boolean node
 
@@ -440,7 +455,7 @@ class CallNode(CSAst):
 
 
 
-# OK!!!
+# OK!!! | COMPILED | PASSED
 class TernaryNode(CSAst, Evaluator):
     """ Holds ternary node
 
@@ -515,7 +530,7 @@ class AllocDeallocNode(CSAst, Evaluator):
 
 
 
-# OK!!!
+# OK!!! | COMPILED | PASSED
 class UnaryExprNode(CSAst, Evaluator):
     """ Holds unary expression node
 
@@ -552,7 +567,7 @@ class UnaryExprNode(CSAst, Evaluator):
 
 
 
-# OK!!!
+# OK!!! | COMPILED | PASSED
 class BinaryExprNode(CSAst, Evaluator):
     """ Holds binary expression node
 
@@ -619,7 +634,7 @@ class BinaryExprNode(CSAst, Evaluator):
 
 
 
-# OK!!!
+# OK!!! | COMPILED | PASSED
 class CompareExprNode(CSAst, Evaluator):
     """ Holds comparison expression node
 
@@ -661,9 +676,7 @@ class CompareExprNode(CSAst, Evaluator):
 
 
 
-
-
-# OK!!!
+# OK!!! | COMPILED | PASSED
 class EqualityExprNode(CompareExprNode):
     """ Holds equality expression|jump
 
@@ -686,9 +699,7 @@ class EqualityExprNode(CompareExprNode):
 
 
 
-
-
-# OK!!!
+# OK!!! | COMPILED | SHORT CIRCUITING | PASSED
 class LogicalExprNode(CompareExprNode):
     """ Holds logical expression|jump|shortcircuit
 
@@ -777,9 +788,15 @@ class SimpleAssignment(Assignment):
     def compile(self):
         # compile rhs
         self.rhs.compile()
+        
+        # make sure left hand is assignable
+        if  not isinstance(self.lhs, Assignable):
+            return show_error("invalid left-hand expression", self.opt)
 
         # compile lhs
         self.lhs.assign()
+
+
 
 
 class AugmentedAssignment(Assignment):
@@ -800,8 +817,36 @@ class AugmentedAssignment(Assignment):
         # compile rhs
         self.rhs.compile()
 
+        # make sure left hand is assignable
+        if  not isinstance(self.lhs, Assignable):
+            return show_error("invalid left-hand expression", self.opt)
+
         # compile lhs
         self.lhs.compile()
+
+        # compile by op
+        if  self.opt.matches("*="):
+            self.inplace_mul(self.opt)
+        elif self.opt.matches("/="):
+            self.inplace_div(self.opt)
+        elif self.opt.matches("%="):
+            self.inplace_mod(self.opt)
+        elif self.opt.matches("+="):
+            self.inplace_add(self.opt)
+        elif self.opt.matches("-="):
+            self.inplace_sub(self.opt)
+        elif self.opt.matches("<<="):
+            self.inplace_lshift(self.opt)
+        elif self.opt.matches(">>="):
+            self.inplace_rshift(self.opt)
+        elif self.opt.matches("&="):
+            self.inplace_and(self.opt)
+        elif self.opt.matches("^="):
+            self.inplace_xor(self.opt)
+        elif self.opt.matches("|="):
+            self.inplace_or(self.opt)
+        else:\
+        raise NotImplementedError("invalid operator \"%s\"" % self.opt.token)
 
         # compile lhs
         self.lhs.assign()
@@ -873,7 +918,11 @@ class ClassNode(CSAst):
         # push class name
         self.push_constant(CSObject.new_string(self.name.token))
 
-# OK!!!
+
+
+
+
+# OK!!! | COMPILED | PASSED
 class IfStatementNode(CSAst):
 
     def __init__(self, _condition:CSAst, _statement:CSAst, _else:CSAst):
@@ -894,45 +943,17 @@ class IfStatementNode(CSAst):
             return
         
         # compile branching?
-        if  isinstance(self.condition, EqualityExprNode):
-            self.equality()
-        elif isinstance(self.condition, LogicalExprNode):
+        if isinstance(self.condition, LogicalExprNode):
             self.logical()
         else:
             self.default()
     
-    def equality(self):
-        # extract rhs and compile
-        self.condition.rhs.compile()
-
-        # extract lhs and compile
-        self.condition.lhs.compile()
-
-        self.jump_not_equal(...)
-        _jump_t0 = self.peekLast()
-
-        # compile statement
-        self.statement.compile()
-
-        self.jump_to(...)
-        _jump_t1 = self.peekLast()
-
-        # set jump target 0
-        _jump_t0.kwargs["target"] = self.getLine()
-
-        # compile else
-        if  self.else_stmnt:
-            self.else_stmnt.compile()
-
-        # set jump target 1
-        _jump_t1.kwargs["target"] = self.getLine()
-    
-
     def logical(self):
         _jump_t0, _jump_t1 = None, None
 
         # extract rhs and compile
         _rhs_evaluated = self.condition.rhs.evaluate()
+        _rhs_evaluated = _rhs_evaluated.get("this") if _rhs_evaluated else False
 
         if  not _rhs_evaluated:
             self.condition.rhs.compile()
@@ -948,6 +969,7 @@ class IfStatementNode(CSAst):
             _jump_t0 = self.peekLast()
         
         _lhs_evaluated = self.condition.lhs.evaluate()
+        _lhs_evaluated = _lhs_evaluated.get("this") if _lhs_evaluated else False
 
         if  not _lhs_evaluated:
             # extract lhs and compile
@@ -1014,7 +1036,7 @@ class IfStatementNode(CSAst):
 
 
 
-# OK!!!
+# OK!!! | COMPILED | PASSED
 class DoWileNode(CSAst):
     """ Holds while statement
 
@@ -1039,33 +1061,11 @@ class DoWileNode(CSAst):
                 return
 
         # compile
-        if  isinstance(self.condition, EqualityExprNode):
-            self.equality()
-        elif isinstance(self.condition, LogicalExprNode):
+        if isinstance(self.condition, LogicalExprNode):
             self.logical()
         else:
             self.default()
-    
-    def equality(self):
-        _begin = self.getLine()
 
-        # compile body
-        self.body.compile()
-
-        # extract rhs and compile
-        self.condition.rhs.compile()
-
-        # extract lhs and compile
-        self.condition.lhs.compile()
-
-        self.jump_not_equal(...)
-        _jump_t0 = self.peekLast()
-
-        # jump to body
-        self.absolute_jump(_begin);
-
-        # set jump target 0
-        _jump_t0.kwargs["target"] = self.getLine()
     
     def logical(self):
         _jump_t0, _jump_t1 = None, None
@@ -1076,6 +1076,7 @@ class DoWileNode(CSAst):
         self.body.compile()
         
         _rhs_evaluated = self.condition.rhs.evaluate()
+        _rhs_evaluated = _rhs_evaluated.get("this") if _rhs_evaluated else False
 
         if  not _rhs_evaluated:
             # compile rhs
@@ -1091,6 +1092,7 @@ class DoWileNode(CSAst):
             _jump_t0 = self.peekLast()
 
         _lhs_evaluated = self.condition.lhs.evaluate()
+        _lhs_evaluated = _lhs_evaluated.get("this") if _lhs_evaluated else False
 
         if  not _lhs_evaluated:
             # compile rhs
@@ -1140,7 +1142,8 @@ class DoWileNode(CSAst):
         _jump_t0.kwargs["target"] = self.getLine()
 
 
-# OK!!!
+
+# OK!!! | COMPILED | PASSED
 class WhileNode(CSAst):
     """ Holds while statement
 
@@ -1165,33 +1168,10 @@ class WhileNode(CSAst):
                 return
 
         # compile
-        if  isinstance(self.condition, EqualityExprNode):
-            self.equality()
-        elif isinstance(self.condition, LogicalExprNode):
+        if isinstance(self.condition, LogicalExprNode):
             self.logical()
         else:
             self.default()
-    
-    def equality(self):
-        _begin = self.getLine()
-
-        # extract rhs and compile
-        self.condition.rhs.compile()
-
-        # extract lhs and compile
-        self.condition.lhs.compile()
-
-        self.jump_not_equal(...)
-        _jump_t0 = self.peekLast()
-
-        # compile body
-        self.body.compile()
-
-        # jump to condition eval
-        self.absolute_jump(_begin)
-
-        # set jump target 0
-        _jump_t0.kwargs["target"] = self.getLine()
     
     def logical(self):
         _jump_t0, _jump_t1 = None, None
@@ -1199,6 +1179,7 @@ class WhileNode(CSAst):
         _begin = self.getLine()
         
         _rhs_evaluated = self.condition.rhs.evaluate()
+        _rhs_evaluated = _rhs_evaluated.get("this") if _rhs_evaluated else False
 
         if  not _rhs_evaluated:
             # compile rhs
@@ -1214,6 +1195,7 @@ class WhileNode(CSAst):
             _jump_t0 = self.peekLast()
 
         _lhs_evaluated = self.condition.lhs.evaluate()
+        _lhs_evaluated = _lhs_evaluated.get("this") if _lhs_evaluated else False
 
         if  not _lhs_evaluated:
             # compile rhs
@@ -1266,7 +1248,7 @@ class WhileNode(CSAst):
         _jump_t0.kwargs["target"] = self.getLine()
 
 
-# OK!!!
+# OK!!! | COMPILED | PASSED
 class SwitchNode(CSAst):
     """ Holds switch statement
 
@@ -1322,7 +1304,7 @@ class SwitchNode(CSAst):
             _jump.kwargs["target"] = self.getLine()
         
 
-
+# OK!!! | COMPILED | PASSED
 class VarNode(CSAst):
     """ Holds var declairation
 
@@ -1337,7 +1319,7 @@ class VarNode(CSAst):
         self.assignments = _assignments
     
     def compile(self):
-        for assignment in self.assignments[::-1]:
+        for assignment in self.assignments:
             # compile value
             if  not assignment["val"]:
                 self.push_constant(CSObject.new_nulltype("null"))
@@ -1380,7 +1362,7 @@ class LetNode(CSAst):
         self.assignments = _assignments
     
     def compile(self):
-        for assignment in self.assignments[::-1]:
+        for assignment in self.assignments:
             # compile value
             if  not assignment["val"]:
                 self.push_constant(CSObject.new_nulltype("null"))
@@ -1391,9 +1373,35 @@ class LetNode(CSAst):
             self.push_constant(CSObject.new_string(assignment["var"].token))
 
 
+# OK!!! | COMPILED | PASSED
+class PrintNode(CSAst):
+    """ Handles print statement
 
+        Parameters
+        ----------
+        _expr_list : list
+    """
+
+    @match_typing
+    def __init__(self, _expr_list:tuple):
+        super().__init__()
+        self.expressions = _expr_list
+
+    
+    def compile(self):
+        # compile right most
+        for node in self.expressions[::-1]:
+            node.compile()
+        
+        # print opcode
+        self.print_object(len(self.expressions))
+
+
+
+# OK!!! | COMPILED | PASSED
 class ExprStmntNode(CSAst):
 
+    @match_typing
     def __init__(self, _expr:CSAst):
         super().__init__()
         self.expr = _expr

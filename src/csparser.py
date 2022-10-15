@@ -1,4 +1,4 @@
-from csAst import AccessNode, AllocDeallocNode, ArrayNode, AugmentedAssignment, BinaryExprNode, BoolNode, CallNode, ClassNode, CompareExprNode, DoWileNode, EqualityExprNode, ExprStmntNode, IfStatementNode, IntegerNode, DoubleNode, LetNode, LogicalExprNode, ModuleNode, NullNode, ObjectNode, ReferenceNode, SimpleAssignment, StaticAccessNode, StringNode, SubscriptNode, SwitchNode, TernaryNode, UnaryExprNode, VarNode, WhileNode
+from csAst import AccessNode, AllocDeallocNode, ArrayNode, AugmentedAssignment, BinaryExprNode, BoolNode, CallNode, ClassNode, CompareExprNode, DoWileNode, EqualityExprNode, ExprStmntNode, IfStatementNode, IntegerNode, DoubleNode, LetNode, LogicalExprNode, ModuleNode, NullNode, ObjectNode, PrintNode, ReferenceNode, SimpleAssignment, StaticAccessNode, StringNode, SubscriptNode, SwitchNode, TernaryNode, UnaryExprNode, VarNode, WhileNode
 from cstoken import TokenType, CSToken
 from cslexer import CSLexer
 from errortoken import show_error
@@ -49,9 +49,12 @@ class CSParser(object):
                  self.token.matches("throw"   ) or \
                  self.token.matches("if"      ) or \
                  self.token.matches("else"    ) or \
+                 self.token.matches("do"      ) or \
                  self.token.matches("while"   ) or \
+                 self.token.matches("switch"  ) or \
                  self.token.matches("var"     ) or \
-                 self.token.matches("let"     )):
+                 self.token.matches("let"     ) or \
+                 self.token.matches("print"   )):
                 # throw
                 return show_error("unexpected keyword for expresion \"%s\"" % self.token.token, self.token)
             
@@ -165,14 +168,14 @@ class CSParser(object):
         def array():
             self.eat("[")
 
-            _el = array_element()
+            _el = array_elements()
 
             self.eat("]")
 
             # return as array
             return ArrayNode(_el)
         
-        def array_element():
+        def array_elements():
             _elements = []
 
             _el0 = nullable_expression()
@@ -791,7 +794,7 @@ class CSParser(object):
             return _body
         
         def switch_matches():
-            return array_element()
+            return array_elements()
 
         def block_stmnt():
             self.eat("{")
@@ -871,7 +874,20 @@ class CSParser(object):
             _val = non_nullable_expression()
 
             return ({"var": _id, "val": _val })
+
         
+        def print_stmnt():
+            self.eat("print")
+            self.eat(":")
+
+            _expr_list = array_elements()
+
+            self.eat(";")
+
+            # return as print node
+            return PrintNode(_expr_list)
+
+
         def expression_stmnt():
             _expr = non_nullable_expression()
             self.eat(";")
@@ -879,13 +895,18 @@ class CSParser(object):
             # return as expr stmnt
             return ExprStmntNode(_expr)
         
+
+
         def simple_stmnt():
             if  self.token.matches("var"):
                 return var_stmnt()
             elif self.token.matches("let"):
                 return let_stmnt()
+            elif self.token.matches("print"):
+                return print_stmnt()
             return expression_stmnt()
         
+
 
         def module():
             _nodes = []

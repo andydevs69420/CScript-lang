@@ -1,0 +1,14 @@
+// Non unittest test
+
+var x = 2;
+
+switch (x) {
+    case 10, 20, 30:
+        print: "match case 1";
+    case 10, 20, 30:
+        print: "match case 2";
+    else:
+        print: "no match !!";
+}
+
+

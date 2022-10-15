@@ -304,6 +304,106 @@ class Compilable(object):
                 CSOpCode.COMPARE_OP, opt=_operator
             )
         )
+    
+    @staticmethod
+    def inplace_mul(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_MUL, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_div(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_DIV, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_mod(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_MOD, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_add(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_ADD, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_sub(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_SUB, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_lshift(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_LSHIFT, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_rshift(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_RSHIFT, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_and(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_AND, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_xor(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_XOR, opt=_opt
+            )
+        )
+    
+    @staticmethod
+    def inplace_or(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_OR, opt=_opt
+            )
+        )
 
     @staticmethod
     def pop_jump_if_false(_target:int):
@@ -345,6 +445,7 @@ class Compilable(object):
             )
         )
     
+    
     @staticmethod
     def jump_equal(_target:int):
         Compilable.INSTRUCTIONS[-1]\
@@ -352,16 +453,6 @@ class Compilable(object):
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
                 CSOpCode.JUMP_EQUAL, target=_target
-            )
-        )
-    
-    @staticmethod
-    def jump_not_equal(_target:int):
-        Compilable.INSTRUCTIONS[-1]\
-        .append(
-            Instruction(
-                len(Compilable.INSTRUCTIONS[-1]) * 2,
-                CSOpCode.JUMP_NOT_EQUAL, target=_target
             )
         )
     
@@ -375,6 +466,17 @@ class Compilable(object):
             )
         )
     
+    # deprecated! 
+    @staticmethod
+    def jump_not_equal(_target:int):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.JUMP_NOT_EQUAL, target=_target
+            )
+        )
+    
     @staticmethod
     def absolute_jump(_target:int):
         Compilable.INSTRUCTIONS[-1]\
@@ -382,6 +484,16 @@ class Compilable(object):
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
                 CSOpCode.ABSOLUTE_JUMP, target=_target
+            )
+        )
+    
+    @staticmethod
+    def print_object(_size:int):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.PRINT_OBJECT, size=_size
             )
         )
     

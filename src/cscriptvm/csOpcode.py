@@ -28,6 +28,7 @@ class CSOpCode(Enum):
    SET_SUBSCRIPT = 0x18
    COMPARE_OP = 0x19
 
+   INPLACE_POW = ...
    INPLACE_MUL = 0x1a
    INPLACE_DIV = 0x1b
    INPLACE_MOD = 0x1c
@@ -47,6 +48,7 @@ class CSOpCode(Enum):
    JUMP_EQUAL = 0x29
    JUMP_TO = 0x2a
    ABSOLUTE_JUMP = 0x2b
-   NO_OPERATION = 0x2c
-   POP_TOP = 0x2d
-   RETURN_OP = 0x2e
+   PRINT_OBJECT = 0x2c
+   NO_OPERATION = 0x2d
+   POP_TOP = 0x2e
+   RETURN_OP = 0x2f

@@ -52,6 +52,9 @@ class Frame(object):
         self.locals = []
         self.instructions = _instructions
 
+    def setPointer(self, _index:int):
+        self.ipointer = _index
+
     def next(self):
         _code = self.instructions[self.ipointer]
         self.ipointer += 1
@@ -98,11 +101,11 @@ class CallStack:
         )
     
     @staticmethod
-    def peek_frame():
+    def peek_frame() -> Frame:
         return CallStack.CALL_STACK[-1]
     
     @staticmethod
-    def pop_frame():
+    def pop_frame()  -> Frame:
         return CallStack.CALL_STACK.pop()
 
 
@@ -130,7 +133,6 @@ class Memory:
         # delete|Set None if zero
         if  Memory.REF[_offset] <= 0:
             Memory.MEM[_offset]  = None
-            print("DELETED: %d" % _offset)
 
     @staticmethod
     def makeSlot():
@@ -199,17 +201,18 @@ class CSVirtualMachine(
                 return CSVirtualMachine\
                     .store_name(_instruction)
             
-            # ================ UNARY EXPR
-            # ===========================
+            # OK!!!
+            # ================ UNARY EXPR|
+            # ===========================|
             case CSOpCode.UNARY_OP:
                 return CSVirtualMachine\
                     .unary_op(_instruction)
-            # =============== END =======
+            # =============== END ========
 
 
             # OK!!!
-            # =============== BINARY EXPR
-            # ===========================
+            # =============== BINARY EXPR|
+            # ===========================|
             case CSOpCode.BINARY_MUL:
                 return CSVirtualMachine\
                     .binary_mul(_instruction)
@@ -240,7 +243,84 @@ class CSVirtualMachine(
             case CSOpCode.BINARY_OR:
                 return CSVirtualMachine\
                     .binary_or(_instruction)
-            # =============== END =======
+            # =============== END ========
+
+
+            # ============== COMPARE EXPR|
+            # ===========================|
+            case CSOpCode.COMPARE_OP:
+                return CSVirtualMachine\
+                    .compare_op(_instruction)
+            # =============== END ========
+
+
+
+            # ================ INPLACE OP|
+            # ===========================|
+            case CSOpCode.INPLACE_POW:
+                return CSVirtualMachine\
+                    .inplace_pow(_instruction)
+            case CSOpCode.INPLACE_MUL:
+                return CSVirtualMachine\
+                    .inplace_mul(_instruction)
+            case CSOpCode.INPLACE_DIV:
+                return CSVirtualMachine\
+                    .inplace_div(_instruction)
+            case CSOpCode.INPLACE_MOD:
+                return CSVirtualMachine\
+                    .inplace_mod(_instruction)
+            case CSOpCode.INPLACE_ADD:
+                return CSVirtualMachine\
+                    .inplace_add(_instruction)
+            case CSOpCode.INPLACE_SUB:
+                return CSVirtualMachine\
+                    .inplace_sub(_instruction)
+            case CSOpCode.INPLACE_LSHIFT:
+                return CSVirtualMachine\
+                    .inplace_lshift(_instruction)
+            case CSOpCode.INPLACE_RSHIFT:
+                return CSVirtualMachine\
+                    .inplace_rshift(_instruction)
+            case CSOpCode.INPLACE_AND:
+                return CSVirtualMachine\
+                    .inplace_and(_instruction)
+            case CSOpCode.INPLACE_XOR:
+                return CSVirtualMachine\
+                    .inplace_xor(_instruction)
+            case CSOpCode.INPLACE_OR:
+                return CSVirtualMachine\
+                    .inplace_or(_instruction)
+            # =============== END ========
+
+            
+            # =================== JUMP OP|
+            # ===========================|
+            case CSOpCode.POP_JUMP_IF_FALSE:
+                return CSVirtualMachine\
+                    .pop_jump_if_false(_instruction)
+            case CSOpCode.POP_JUMP_IF_TRUE:
+                return CSVirtualMachine\
+                    .pop_jump_if_true(_instruction)
+            case CSOpCode.JUMP_IF_FALSE_OR_POP:
+                return CSVirtualMachine\
+                    .jump_if_false_or_pop(_instruction)
+            case CSOpCode.JUMP_IF_TRUE_OR_POP:
+                return CSVirtualMachine\
+                    .jump_if_true_or_pop(_instruction)
+            case CSOpCode.JUMP_EQUAL:
+                return CSVirtualMachine\
+                    .jump_equal(_instruction)
+            case CSOpCode.ABSOLUTE_JUMP:
+                return CSVirtualMachine\
+                    .absolute_jump(_instruction)
+            case CSOpCode.JUMP_TO:
+                return CSVirtualMachine\
+                    .jump_to(_instruction)
+            # =============== END ========
+
+            case CSOpCode.PRINT_OBJECT:
+                return CSVirtualMachine\
+                    .print_object(_instruction)
 
             # OK!!!
             case CSOpCode.POP_TOP:
@@ -282,8 +362,8 @@ class CSVirtualMachine(
         _val = EvalStack.pop()
         Memory.memSet(_instruction.get("offset"), _val)
     
-    # ================ UNARY OPERATION
-    # ================================
+    # ================ UNARY OPERATION|
+    # ================================|
     @staticmethod
     def unary_op(_instruction:Instruction):
         _opt = _instruction.get("opt")
@@ -292,18 +372,18 @@ class CSVirtualMachine(
             case "~":
                 return EvalStack.push(_rhs.bit_not(_opt))
             case "!":
-                return EvalStack.push(_rhs.binary_not(_opt))
+                return EvalStack.push(_rhs.bin_not(_opt))
             case "+":
                 return EvalStack.push(_rhs.positive(_opt))
             case "-":
                 return EvalStack.push(_rhs.negative(_opt))
         # error operator
         raise ValueError("invalid or not implemented op \"%s\"" % _opt.token)
-    # ============================ END
+    # ============================= END
     
 
-    # =============== BINARY OPERATION
-    # ================================
+    # =============== BINARY OPERATION|
+    # ================================|
     
     @staticmethod
     def binary_mul(_instruction:Instruction):
@@ -364,9 +444,130 @@ class CSVirtualMachine(
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
         EvalStack.push(_lhs.bit_or(_instruction.get("opt"), _rhs))
-    # ============================ END
+    # ============================= END
+
+    
+    # ===================== COMPARE OP|
+    # ================================|
+    @staticmethod
+    def compare_op(_instruction:Instruction):
+        _opt = _instruction.get("opt")
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        match _opt.token:
+            case "<":
+                return EvalStack.push(_lhs.lt(_opt, _rhs))
+            case "<=":
+                return EvalStack.push(_lhs.lte(_opt, _rhs))
+            case ">":
+                return EvalStack.push(_lhs.gt(_opt, _rhs))
+            case ">=":
+                return EvalStack.push(_lhs.gte(_opt, _rhs))
+            case "==":
+                return EvalStack.push(_lhs.eq(_opt, _rhs))
+            case "!=":
+                return EvalStack.push(_lhs.neq(_opt, _rhs))
+        # error operator
+        raise ValueError("invalid or not implemented op \"%s\"" % _opt.token)
+    # ============================= END
 
 
+
+    # ======================== JUMP OP|
+    # ================================|
+    # NOTE: divide target by 2 to get the exact index
+    @staticmethod
+    def pop_jump_if_false(_instruction:Instruction):
+        _target = _instruction.get("target") // 2
+
+        _top = EvalStack.pop()
+
+        if not (_top.get("this")):
+            CSVirtualMachine\
+                .peek_frame()\
+                    .setPointer(_target)
+
+    @staticmethod
+    def pop_jump_if_true(_instruction:Instruction):
+        _target = _instruction.get("target") // 2
+
+        _top = EvalStack.pop()
+
+        if _top.get("this"):
+            CSVirtualMachine\
+                .peek_frame()\
+                    .setPointer(_target)
+    
+    @staticmethod
+    def jump_if_false_or_pop(_instruction:Instruction):
+        _target = _instruction.get("target") // 2
+
+        _top = EvalStack.peek()
+
+        if not _top.get("this"):
+            CSVirtualMachine\
+                .peek_frame()\
+                    .setPointer(_target)
+            return
+
+        EvalStack.pop()
+    
+    @staticmethod
+    def jump_if_true_or_pop(_instruction:Instruction):
+        _target = _instruction.get("target") // 2
+
+        _top = EvalStack.peek()
+
+        if _top.get("this"):
+            CSVirtualMachine\
+                .peek_frame()\
+                    .setPointer(_target)
+            return
+            
+        EvalStack.pop()
+
+    @staticmethod
+    def jump_equal(_instruction:Instruction):
+        _target = _instruction.get("target") // 2
+
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+
+        if _lhs.equals(_rhs):
+            CSVirtualMachine\
+                .peek_frame()\
+                    .setPointer(_target)
+
+    @staticmethod
+    def absolute_jump(_instruction:Instruction):
+        _target = _instruction.get("target") // 2
+
+        CSVirtualMachine\
+            .peek_frame()\
+                .setPointer(_target)
+
+    @staticmethod
+    def jump_to(_instruction:Instruction):
+        _target = _instruction.get("target") // 2
+
+        CSVirtualMachine\
+            .peek_frame()\
+                .setPointer(_target)
+
+    # ============================= END
+
+    @staticmethod
+    def print_object(_instruction:Instruction):
+        _size = _instruction.get("size")
+
+        _fmt = ""
+        for count in range(_size):
+            _fmt += EvalStack.pop().__str__()
+            if  count < (_size - 1):
+                _fmt += " "
+
+        # TODO: use cscript stdout instead of python print
+        print(_fmt)
 
     @staticmethod
     def pop_top(_instruction:Instruction):
