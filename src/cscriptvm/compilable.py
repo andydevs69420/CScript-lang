@@ -306,6 +306,16 @@ class Compilable(object):
         )
     
     @staticmethod
+    def inplace_pow(_opt:CSToken):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.INPLACE_POW, opt=_opt
+            )
+        )
+
+    @staticmethod
     def inplace_mul(_opt:CSToken):
         Compilable.INSTRUCTIONS[-1]\
         .append(

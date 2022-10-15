@@ -188,10 +188,15 @@ class CSVirtualMachine(
             case CSOpCode.PUSH_NAME:
                 return CSVirtualMachine\
                     .push_name(_instruction)
+            
+            case CSOpCode.MAKE_ARRAY:
+                return CSVirtualMachine\
+                    .make_array(_instruction)
 
             case CSOpCode.MAKE_CLASS:
                 return CSVirtualMachine\
                     .make_class(_instruction)
+
             case CSOpCode.MAKE_MODULE:
                 return CSVirtualMachine\
                     .make_module(_instruction)
@@ -245,7 +250,7 @@ class CSVirtualMachine(
                     .binary_or(_instruction)
             # =============== END ========
 
-
+            # OK!!!
             # ============== COMPARE EXPR|
             # ===========================|
             case CSOpCode.COMPARE_OP:
@@ -254,7 +259,7 @@ class CSVirtualMachine(
             # =============== END ========
 
 
-
+            # OK!!!
             # ================ INPLACE OP|
             # ===========================|
             case CSOpCode.INPLACE_POW:
@@ -292,7 +297,8 @@ class CSVirtualMachine(
                     .inplace_or(_instruction)
             # =============== END ========
 
-            
+
+            # OK!!!
             # =================== JUMP OP|
             # ===========================|
             case CSOpCode.POP_JUMP_IF_FALSE:
@@ -341,6 +347,16 @@ class CSVirtualMachine(
     def push_name(_instruction:Instruction):
         EvalStack.push(Memory.memGet(_instruction.get("offset")))
     
+    @staticmethod
+    def make_array(_instruction:Instruction):
+        _size = _instruction.get("size")
+
+        _array = CSObject.new_array()
+        for idx in range(_size):
+            _array.push(EvalStack.pop())
+        
+        EvalStack.push(_array)
+
     @staticmethod
     def make_class(_instruction:Instruction):
         print(_instruction)
@@ -469,6 +485,47 @@ class CSVirtualMachine(
                 return EvalStack.push(_lhs.neq(_opt, _rhs))
         # error operator
         raise ValueError("invalid or not implemented op \"%s\"" % _opt.token)
+    # ============================= END
+
+
+
+    # ===================== INPLACE OP|
+    # ================================|
+    @staticmethod
+    def inplace_pow(_instruction:Instruction):
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        EvalStack.push(_lhs.pow(_instruction.get("opt"), _rhs))
+    @staticmethod
+    def inplace_mul(_instruction:Instruction):
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        EvalStack.push(_lhs.mul(_instruction.get("opt"), _rhs))
+    @staticmethod
+    def inplace_div(_instruction:Instruction):
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        EvalStack.push(_lhs.div(_instruction.get("opt"), _rhs))
+    @staticmethod
+    def inplace_add(_instruction:Instruction):
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        EvalStack.push(_lhs.add(_instruction.get("opt"), _rhs))
+    @staticmethod
+    def inplace_sub(_instruction:Instruction):
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        EvalStack.push(_lhs.sub(_instruction.get("opt"), _rhs))
+    @staticmethod
+    def inplace_lshift(_instruction:Instruction):
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        EvalStack.push(_lhs.lshift(_instruction.get("opt"), _rhs))
+    @staticmethod
+    def inplace_rshift(_instruction:Instruction):
+        _lhs = EvalStack.pop()
+        _rhs = EvalStack.pop()
+        EvalStack.push(_lhs.rshift(_instruction.get("opt"), _rhs))
     # ============================= END
 
 

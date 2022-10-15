@@ -750,7 +750,7 @@ class LogicalExprNode(CompareExprNode):
 
 
 
-class Assignment(CSAst):
+class Assignment(CSAst, Evaluator):
     """ Holds assignment
 
         Parameters
@@ -769,6 +769,11 @@ class Assignment(CSAst):
     
     def compile(self):
         return super().compile()
+    
+    def evaluate(self):
+        """ Leave None!!!
+        """
+        return None
 
 
 class SimpleAssignment(Assignment):
@@ -798,7 +803,7 @@ class SimpleAssignment(Assignment):
 
 
 
-
+# OK!!! | COMPILED | PASSED
 class AugmentedAssignment(Assignment):
     """ Holds augmented assignment
 
@@ -825,7 +830,9 @@ class AugmentedAssignment(Assignment):
         self.lhs.compile()
 
         # compile by op
-        if  self.opt.matches("*="):
+        if  self.opt.matches("^^="):
+            self.inplace_pow(self.opt)
+        elif self.opt.matches("*="):
             self.inplace_mul(self.opt)
         elif self.opt.matches("/="):
             self.inplace_div(self.opt)
@@ -1303,6 +1310,27 @@ class SwitchNode(CSAst):
         for _jump in _jump_end:
             _jump.kwargs["target"] = self.getLine()
         
+# OK!!! | COMPILED | PASSED
+class BlockNode(CSAst):
+    """ Holds block of statement
+
+        Parameters
+        ----------
+        _statements : tuple
+    """
+
+    @match_typing
+    def __init__(self, _statements:tuple):
+        super().__init__()
+        self.statements = _statements
+    
+    def compile(self):
+        ST.newScope()
+        for stmnt in self.statements:
+            stmnt.compile()
+        ST.endScope()
+
+
 
 # OK!!! | COMPILED | PASSED
 class VarNode(CSAst):

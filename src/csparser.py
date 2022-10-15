@@ -1,4 +1,4 @@
-from csAst import AccessNode, AllocDeallocNode, ArrayNode, AugmentedAssignment, BinaryExprNode, BoolNode, CallNode, ClassNode, CompareExprNode, DoWileNode, EqualityExprNode, ExprStmntNode, IfStatementNode, IntegerNode, DoubleNode, LetNode, LogicalExprNode, ModuleNode, NullNode, ObjectNode, PrintNode, ReferenceNode, SimpleAssignment, StaticAccessNode, StringNode, SubscriptNode, SwitchNode, TernaryNode, UnaryExprNode, VarNode, WhileNode
+from csAst import AccessNode, AllocDeallocNode, ArrayNode, AugmentedAssignment, BinaryExprNode, BlockNode, BoolNode, CallNode, ClassNode, CompareExprNode, DoWileNode, EqualityExprNode, ExprStmntNode, IfStatementNode, IntegerNode, DoubleNode, LetNode, LogicalExprNode, ModuleNode, NullNode, ObjectNode, PrintNode, ReferenceNode, SimpleAssignment, StaticAccessNode, StringNode, SubscriptNode, SwitchNode, TernaryNode, UnaryExprNode, VarNode, WhileNode
 from cstoken import TokenType, CSToken
 from cslexer import CSLexer
 from errortoken import show_error
@@ -577,7 +577,8 @@ class CSParser(object):
             _node = simple_assignment()
             if not _node: return _node
 
-            while self.token.matches("*=" ) or\
+            while self.token.matches("^^=") or\
+                  self.token.matches("*=" ) or\
                   self.token.matches("/=" ) or\
                   self.token.matches("%=" ) or\
                   self.token.matches("+=" ) or\
@@ -797,11 +798,18 @@ class CSParser(object):
             return array_elements()
 
         def block_stmnt():
+            _statements = []
             self.eat("{")
 
-
+            _stmntN = compound_stmnt()
+            while _stmntN:
+                _statements.append(_stmntN)
+                _stmntN = compound_stmnt()
 
             self.eat("}")
+
+            # return as block node
+            return BlockNode(tuple(_statements))
         
 
         def compound_stmnt():
@@ -889,7 +897,10 @@ class CSParser(object):
 
 
         def expression_stmnt():
-            _expr = non_nullable_expression()
+            _expr = nullable_expression()
+            if not _expr: return _expr
+
+            # eat
             self.eat(";")
 
             # return as expr stmnt

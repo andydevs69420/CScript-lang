@@ -110,6 +110,19 @@ class CSObject(HashMap):
         del csnulltype
         return _null
     
+    @staticmethod
+    def new_array():
+        """ Creates array object
+
+            Returns
+            -------
+            CSArray
+        """
+        import csarray
+        _array = csarray.CSArray()
+        del csarray
+        return _array
+    
     # ================= DUNDER METHODS
     # must be private!. do not include as attribute
         
