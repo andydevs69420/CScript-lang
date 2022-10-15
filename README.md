@@ -5,12 +5,12 @@ cscript programming language
 # TODO:
 
 ## Statements
-[/] var declairation
-[/] if statement
-[/] while statement
-[/] do|while statement
-[/] switch|case statement
+[x] var declairation
+[x] if statement
+[x] while statement
+[x] do|while statement
+[x] switch|case statement
 
 ## Other feature
-[/] operator overloading(few)
+[ ] operator overloading(few)
 
