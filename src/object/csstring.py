@@ -20,10 +20,12 @@ class CSString(CSObject):
     def toString(self):
         return self
     
+    
     def __str__(self):
         return self.get("this")
     
-    # =============================== MAGIC METHODS
+    # =========================== MAGIC METHODS|
+    # =========================================|
     def add(self, _opt:CSToken, _object:CSObject):
         if  _object.dtype != "CSString":
             # TODO: error!

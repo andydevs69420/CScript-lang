@@ -1,5 +1,8 @@
 
+
 from object.csobject import CSObject
+
+from .csmemory2 import CSMemory, ObjectWrapper
 from .compilable import Instruction
 from .csOpcode import CSOpCode
 
@@ -47,10 +50,13 @@ class EvalStack:
 class Frame(object):
 
     def __init__(self, _instructions:list[Instruction]):
+        self.localmem:list[CSObject] = []
         self.returned = False
         self.ipointer = 0
-        self.locals = []
-        self.instructions = _instructions
+
+        # ======== LIST OF INTRUCTIONS|
+        # ============================|
+        self.instructions:list[Instruction] = _instructions
 
     def setPointer(self, _index:int):
         self.ipointer = _index
@@ -109,55 +115,63 @@ class CallStack:
         return CallStack.CALL_STACK.pop()
 
 
+#| obj0 , obj1, obj2, obj3, obj4, obj5
+#|  ^            ^           ^
+#|  |            |           |
+#|  +--+   +-----+           |
+#|     |   |                 |
+#| +---+---+-----------------+
+#| |   |   |
+#| x   y   z
 
 
+class GarbageCollector(object):
 
-class Memory:
+    def __init__(self):
+        self.refcounter = ({
+            # [cell_index|ofset]: count
+        })
 
-    MEM:list[CSObject] = {
-        # object
-    }
-
-    REF:dict = ({
-        # [offset|index] : count
-    })
-
-    @staticmethod
-    def makeSlot():
-        # make slot
-        _idx = len(Memory.MEM)
-        Memory.MEM[_idx] = None
-
-        # add initial ref count
-        Memory.REF[_idx] = 1
-        return _idx
-
-    @staticmethod
-    def incRef(_offset:int):
-        Memory.REF[_offset] += 1
+    def alloc(self):
+        self.allocc += 1
+        # collect|reset every 1000 alloc
+        if  self.allocc >= 1000:
+            self.allocc  = 0
+            self.collect()
     
-    @staticmethod
-    def decRef(_offset:int):
-        Memory.REF[_offset] -= 1
-    
-    @staticmethod
-    def collect():
+    def collect(self):
         _deleted = []
-        for k, v in zip(Memory.REF.keys(), Memory.REF.values()):
+        for k, v in zip(self.refcounter.keys(), self.refcounter.values()):
             if v <= 0:
                 _deleted.append(k)
-                del Memory.MEM[k]
+                del self.bucket[k]
 
         # remove indexes
         for k in _deleted:
-            del Memory.REF[k]
+            del self.refcounter[k]
+
+class Memory:
+
+    VHEAP:CSMemory = CSMemory()
+    NAMES:dict[int:int] = ({
+
+    })
+
     @staticmethod
-    def memGet(_offset:int):
-        return Memory.MEM[_offset]
+    def makeSlot() -> int:
+        _idx = len(Memory.NAMES)
+        Memory.NAMES[_idx] = None
+        return _idx
     
     @staticmethod
-    def memSet(_offset:int, _obj:CSObject):
-        Memory.MEM[_offset] = _obj
+    def memSet(_offset_index:int, _csobject:ObjectWrapper):
+        Memory.VHEAP.decrementAt(Memory.NAMES[_offset_index])
+        Memory.VHEAP.incrementAt(_csobject.getOffset()      )
+        Memory.NAMES[_offset_index] = _csobject.getOffset()
+
+    @staticmethod
+    def memGet(_offset_index:int):
+        return Memory.VHEAP.getObjectAt(Memory.NAMES[_offset_index])
 
 
 class CSVirtualMachine(
@@ -166,24 +180,28 @@ class CSVirtualMachine(
     Memory        ,
 ):
     
+
+
     @staticmethod
     def run(_instruction:list[Instruction]):
         CallStack.push_frame(_instruction)
 
         # run
-        while CallStack.hasFrame():
-            
-            _top:Frame = CallStack.peek_frame()
+        _top:Frame = CallStack.peek_frame()
 
-            while not _top.isReturned():
-                _bcode = _top.next()
-                CSVirtualMachine.evaluate(_bcode)
+        while not _top.isReturned():
+            _bcode = _top.next()
+            CSVirtualMachine.evaluate(_bcode)
+
+        _top = EvalStack.pop()
+
+        # pop
+        CallStack.pop_frame()
             
-            # pop if done
-            CallStack.pop_frame()
-        Memory.collect()
-        print(Memory.REF)
-        print(Memory.MEM)
+        # Memory.VHEAP.collect()
+        # Memory.HEAP.dump()
+
+        return _top
     
     @staticmethod
     def evaluate(_instruction:Instruction):
@@ -214,10 +232,23 @@ class CSVirtualMachine(
                 return CSVirtualMachine\
                     .make_module(_instruction)
             
+            case CSOpCode.GET_ATTRIB:
+                return CSVirtualMachine\
+                    .get_attrib(_instruction)
+            
+            case CSOpCode.SET_ATTRIB:
+                return CSVirtualMachine\
+                    .set_attrib(_instruction)
+            
             # OK!!!
             case CSOpCode.STORE_NAME:
                 return CSVirtualMachine\
                     .store_name(_instruction)
+            
+            # OK!!!
+            case CSOpCode.CALL:
+                return CSVirtualMachine\
+                    .call(_instruction)
             
             # OK!!!
             # ================ UNARY EXPR|
@@ -366,7 +397,7 @@ class CSVirtualMachine(
 
         _array = CSObject.new_array()
         for idx in range(_size):
-            _array.push(EvalStack.pop())
+            _array.getObject().push(EvalStack.pop())
         
         EvalStack.push(_array)
     
@@ -374,12 +405,14 @@ class CSVirtualMachine(
     def make_object(_instruction:Instruction):
         _size = _instruction.get("size")
 
-        _object = CSObject()
+        _object = CSObject.new()
 
         for idx in range(_size):
             _k = EvalStack.pop()
+            _k.decrement()
+
             _v = EvalStack.pop()
-            _object.put(_k.__str__(), _v)
+            _object.getObject().put(_k.__str__(), _v)
         
         EvalStack.push(_object)
 
@@ -396,13 +429,32 @@ class CSVirtualMachine(
         #     _value = EvalStack.pop()
         #     _module.put(_name.get("this").__str__(), _value)
         
-        # EvalStack.push(_module)
+        EvalStack.push(CSObject.new_nulltype("null"))
         ...
+    
+    @staticmethod
+    def get_attrib(_instruction:Instruction):
+        _top = EvalStack.pop()
+        EvalStack.push(_top.getObject().getAttribute(_instruction.get("attr")))
+
+    @staticmethod
+    def set_attrib(_instruction:Instruction):
+        _top = EvalStack.pop()
+        _att = EvalStack.pop()
+        _att.increment()
+        _top.getObject().setAttribute(_instruction.get("attr"), _att)
+        EvalStack.push(_att)
     
     @staticmethod
     def store_name(_instruction:Instruction):
         _val = EvalStack.pop()
         Memory.memSet(_instruction.get("offset"), _val)
+    
+    @staticmethod
+    def call(_instruction:Instruction):
+        _top = EvalStack.pop()
+        EvalStack.push(_top.getObject().call(_instruction.get("opt"), _instruction.get("size")))
+
     
     # ================ UNARY OPERATION|
     # ================================|
@@ -431,61 +483,61 @@ class CSVirtualMachine(
     def binary_mul(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.mul(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().mul(_instruction.get("opt"), _rhs.getObject()))
     
     @staticmethod
     def binary_div(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.div(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().div(_instruction.get("opt"), _rhs.getObject()))
 
     @staticmethod
     def binary_mod(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.mod(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().mod(_instruction.get("opt"), _rhs.getObject()))
 
     @staticmethod
     def binary_add(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.add(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().add(_instruction.get("opt"), _rhs.getObject()))
 
     @staticmethod
     def binary_sub(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.sub(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().sub(_instruction.get("opt"), _rhs.getObject()))
     
     @staticmethod
     def binary_lshift(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.lshift(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().lshift(_instruction.get("opt"), _rhs.getObject()))
     
     @staticmethod
     def binary_rshift(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.rshift(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().rshift(_instruction.get("opt"), _rhs.getObject()))
     
     @staticmethod
     def binary_and(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.bit_and(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().bit_and(_instruction.get("opt"), _rhs.getObject()))
     
     @staticmethod
     def binary_xor(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.bit_xor(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().bit_xor(_instruction.get("opt"), _rhs.getObject()))
     
     @staticmethod
     def binary_or(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.bit_or(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().bit_or(_instruction.get("opt"), _rhs.getObject()))
     # ============================= END
 
     
@@ -498,17 +550,17 @@ class CSVirtualMachine(
         _rhs = EvalStack.pop()
         match _opt.token:
             case "<":
-                return EvalStack.push(_lhs.lt(_opt, _rhs))
+                return EvalStack.push(_lhs.getObject().lt(_opt, _rhs.getObject()))
             case "<=":
-                return EvalStack.push(_lhs.lte(_opt, _rhs))
+                return EvalStack.push(_lhs.getObject().lte(_opt, _rhs.getObject()))
             case ">":
-                return EvalStack.push(_lhs.gt(_opt, _rhs))
+                return EvalStack.push(_lhs.getObject().gt(_opt, _rhs.getObject()))
             case ">=":
-                return EvalStack.push(_lhs.gte(_opt, _rhs))
+                return EvalStack.push(_lhs.getObject().gte(_opt, _rhs.getObject()))
             case "==":
-                return EvalStack.push(_lhs.eq(_opt, _rhs))
+                return EvalStack.push(_lhs.getObject().eq(_opt, _rhs.getObject()))
             case "!=":
-                return EvalStack.push(_lhs.neq(_opt, _rhs))
+                return EvalStack.push(_lhs.getObject().neq(_opt, _rhs.getObject()))
         # error operator
         raise ValueError("invalid or not implemented op \"%s\"" % _opt.token)
     # ============================= END
@@ -521,37 +573,37 @@ class CSVirtualMachine(
     def inplace_pow(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.pow(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().pow(_instruction.get("opt"), _rhs.getObject()))
     @staticmethod
     def inplace_mul(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.mul(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().mul(_instruction.get("opt"), _rhs.getObject()))
     @staticmethod
     def inplace_div(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.div(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().div(_instruction.get("opt"), _rhs.getObject()))
     @staticmethod
     def inplace_add(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.add(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().add(_instruction.get("opt"), _rhs.getObject()))
     @staticmethod
     def inplace_sub(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.sub(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().sub(_instruction.get("opt"), _rhs.getObject()))
     @staticmethod
     def inplace_lshift(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.lshift(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().lshift(_instruction.get("opt"), _rhs.getObject()))
     @staticmethod
     def inplace_rshift(_instruction:Instruction):
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
-        EvalStack.push(_lhs.rshift(_instruction.get("opt"), _rhs))
+        EvalStack.push(_lhs.getObject().rshift(_instruction.get("opt"), _rhs.getObject()))
     # ============================= END
 
 
@@ -565,7 +617,7 @@ class CSVirtualMachine(
 
         _top = EvalStack.pop()
 
-        if not (_top.get("this")):
+        if not (_top.getObject().get("this")):
             CSVirtualMachine\
                 .peek_frame()\
                     .setPointer(_target)
@@ -576,7 +628,7 @@ class CSVirtualMachine(
 
         _top = EvalStack.pop()
 
-        if _top.get("this"):
+        if _top.getObject().get("this"):
             CSVirtualMachine\
                 .peek_frame()\
                     .setPointer(_target)
@@ -587,7 +639,7 @@ class CSVirtualMachine(
 
         _top = EvalStack.peek()
 
-        if not _top.get("this"):
+        if not _top.getObject().get("this"):
             CSVirtualMachine\
                 .peek_frame()\
                     .setPointer(_target)
@@ -601,7 +653,7 @@ class CSVirtualMachine(
 
         _top = EvalStack.peek()
 
-        if _top.get("this"):
+        if _top.getObject().get("this"):
             CSVirtualMachine\
                 .peek_frame()\
                     .setPointer(_target)
@@ -616,7 +668,7 @@ class CSVirtualMachine(
         _lhs = EvalStack.pop()
         _rhs = EvalStack.pop()
 
-        if _lhs.equals(_rhs):
+        if _lhs.getObject().equals(_rhs.getObject()):
             CSVirtualMachine\
                 .peek_frame()\
                     .setPointer(_target)
@@ -645,7 +697,7 @@ class CSVirtualMachine(
 
         _fmt = ""
         for count in range(_size):
-            _fmt += EvalStack.pop().__str__()
+            _fmt += EvalStack.pop().getObject().toString().__str__()
             if  count < (_size - 1):
                 _fmt += " "
 

@@ -1,10 +1,12 @@
 
 
 from cstoken import CSToken
+from errortoken import show_error
 from hashmap import hasher, HashMap
 
-class CSObject(HashMap):pass
+from cscriptvm.csmemory2 import CSMemory
 
+class CSObject(HashMap):pass
 class CSObject(HashMap):
     """ Represents Object in CScript
     """
@@ -15,7 +17,7 @@ class CSObject(HashMap):
         # initilize
         self.dtype  = type(self).__name__
         self.static = []
-
+ 
     # ![bound::toString]
     def toString(self):
         """ toString
@@ -39,29 +41,20 @@ class CSObject(HashMap):
             return self
         return super().get(_key)
     
-    def hasAttribute(self, _key:str):
-        _bucket_index = hasher(_key) % self.bcount
-
-        if  self.bucket[_bucket_index] == None:
-            return False
-
-        _head = self.bucket[_bucket_index]
-        
-        while _head:
-            if  _head.nkey == _key:
-                return True
-            _head = _head.tail
-        return False
-    
     def __str__(self):
         return self.toString().__str__()
+    
+    @staticmethod
+    def new():
+        _object = CSObject()
+        return CSMemory.CSMalloc(_object)
 
     @staticmethod
     def new_integer(_data:int):
         import csinteger
         _int = csinteger.CSInteger(_data)
         del csinteger
-        return _int
+        return CSMemory.CSMalloc(_int)
 
     @staticmethod
     def new_double(_data:float):
@@ -74,7 +67,7 @@ class CSObject(HashMap):
         import csdouble
         _flt = csdouble.CSDouble(_data)
         del csdouble
-        return _flt
+        return CSMemory.CSMalloc(_flt)
 
     @staticmethod
     def new_string(_data:str):
@@ -87,7 +80,7 @@ class CSObject(HashMap):
         import csstring
         _str = csstring.CSString(_data)
         del csstring
-        return _str
+        return CSMemory.CSMalloc(_str)
     
     @staticmethod
     def new_boolean(_data:str):
@@ -100,7 +93,7 @@ class CSObject(HashMap):
         import csboolean
         _bool = csboolean.CSBoolean(_data)
         del csboolean
-        return _bool
+        return CSMemory.CSMalloc(_bool)
 
     @staticmethod
     def new_nulltype(_data:str):
@@ -113,7 +106,7 @@ class CSObject(HashMap):
         import csnulltype
         _null = csnulltype.CSNullType(_data)
         del csnulltype
-        return _null
+        return CSMemory.CSMalloc(_null)
     
     @staticmethod
     def new_array():
@@ -126,10 +119,62 @@ class CSObject(HashMap):
         import csarray
         _array = csarray.CSArray()
         del csarray
-        return _array
+        return CSMemory.CSMalloc(_array)
+
+    @staticmethod
+    def new_callable(_name:str, _parameters:list, _instructions:list):
+        """ Creates callable
+
+            Returns
+            -------
+            CSCallable
+        """
+        import cscallable
+        _function = cscallable.CSCallable(_name,_parameters, _instructions)
+        del cscallable
+        return CSMemory.CSMalloc(_function)
     
-    # ================= DUNDER METHODS
+    # ================= DUNDER METHODS|
+    # ================================|
     # must be private!. do not include as attribute
+    def hasAttribute(self, _key:str):
+        _bucket_index = hasher(_key) % self.bcount
+        if  self.bucket[_bucket_index] == None:
+            return False
+        _head = self.bucket[_bucket_index]
+        while _head:
+            if  _head.nkey == _key:
+                return True
+            _head = _head.tail
+        return False
+
+    def getAttribute(self, _attr:CSToken):
+        """ Called when "object->property"
+
+            Parameters
+            ----------
+            _attr : CSToken
+        """
+        # throws error
+        if  not self.hasAttribute(_attr.token):
+            raise AttributeError(f"{type(self).__name__} has no attribute '{_attr.token}'")
+        
+        return self.get(_attr.token)
+    
+    def setAttribute(self, _attr:CSToken, _value:CSObject):
+        """ Called when "csobject->property = csobject"
+
+            Parameters
+            ----------
+            _attr  : CSToken
+            _value : CSObject
+        """
+        # throws error
+        if  not self.hasAttribute(_attr.token):
+            raise AttributeError(f"{type(self).__name__} has no attribute '{_attr.token}'")
+        
+        self.put(_attr.token, _value)
+        return _value
         
     def subscript(self, _opt:CSToken, _expr:CSObject):
         """ Called when [...](subscript) operation
@@ -140,13 +185,15 @@ class CSObject(HashMap):
         """
         raise NotImplementedError("%s::subscript method must be overritten!" % self.dtype)
     
-    def call(self, _opt:CSToken, _args:CSObject):
+    def call(self, _opt:CSToken, _arg_count:int):
         """ Called when (...)(call) operation
 
             Returns
             -------
             CSObject
         """
+        print(_opt.fsrce)
+        show_error("%s is not callable" % self.dtype, _opt)
         raise NotImplementedError("%s::call method must be overritten!" % self.dtype)
 
     # ================= MAGIC METHODS|

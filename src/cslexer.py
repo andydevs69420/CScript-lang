@@ -1,7 +1,7 @@
 
-from cstoken import TokenType, CSToken
+from cstoken import (TokenType, CSToken)
 from errortoken import show_error
-from strongtyping.strong_typing import match_typing
+
 
 class LexUtils(object):
     """ Lexer utilities
@@ -499,9 +499,6 @@ class TokenBuilder(LexUtils):
         
         elif self.clook == ':':
             _part += append()
-
-            if self.clook == ':':
-                _part += append()
         
         if  len(_part) <= 0:
             _builder.concat(self.error_part())
@@ -551,7 +548,6 @@ class CSLexer(TokenBuilder):
     """ Lexical analyzer for CScript
     """
     
-    @match_typing
     def __init__(self, _source:str="<stdin>", _code:str=""):
         self.fpath = _source
         self.scode = _code

@@ -1,8 +1,8 @@
-
 from cstoken import CSToken
 
-# core
+# object
 from object.csobject import CSObject
+# core
 from cscriptvm.csOpcode import CSOpCode
 
 

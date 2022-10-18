@@ -1,7 +1,6 @@
 
 from enum import Enum
 from unicodedata import normalize
-from strongtyping.strong_typing import match_typing
 
 
 
@@ -23,7 +22,6 @@ class CSToken(object):
     """ Token handler for CScript
     """
 
-    @match_typing
     def __init__(self, _ttype:TokenType=TokenType.IDENTIFIER):
         self.fsrce = ...
         self.ttype = _ttype
@@ -34,7 +32,6 @@ class CSToken(object):
         self.yE    = ...
         self.trace = ...
     
-    @match_typing
     def setType(self, _ttype:TokenType):
         """ Sets token type
 
@@ -48,7 +45,7 @@ class CSToken(object):
         """
         self.ttype = _ttype
 
-    @match_typing
+
     def concat(self, chunk:str):
         """ Concat chunk
 
@@ -60,8 +57,8 @@ class CSToken(object):
         self.token  = normalize("NFKC", self.token)
         return self.token
     
-    @match_typing
-    def update(self, _lexer):
+   
+    def update(self, _cslexer):
         """ Updates token position
 
             Parameters
@@ -73,20 +70,23 @@ class CSToken(object):
             None
         """
         if  self.xS == ... and self.xE == ...:
-            self.xS = _lexer.xAxis
+            self.xS = _cslexer.xAxis
             self.xE = self.xS + len(self.token)
         
         else:
-            self.xE = _lexer.xAxis
+            self.xE = _cslexer.xAxis
 
         if  self.yS == ... and self.yE == ...:
-            self.yS = _lexer.yAxis
+            self.yS = _cslexer.yAxis
             self.yE = self.yS
         
         else:
-            self.yE = _lexer.yAxis
-        self.fsrce  = _lexer.fpath
-        self.trace  = trace_location(self, _lexer)
+            self.yE = _cslexer.yAxis
+        self.fsrce  = _cslexer.fpath
+        self.trace  = trace_location(self, _cslexer)
+    
+    def addTrace(self, _cslexer_or_parser):
+        self.trace  = trace_location(self, _cslexer_or_parser)
     
     def toDict(self):
         """ Produces instance to dict
@@ -101,7 +101,6 @@ class CSToken(object):
         })
     
     @staticmethod
-    @match_typing
     def fromDict(_cstokendict:dict):
         """ Converts dictionary to CSToken
 
@@ -122,7 +121,6 @@ class CSToken(object):
         new.yE    = _cstokendict[ "yE"  ]
         return new
     
-    @match_typing
     def matches(self, _match:TokenType|str):
         if  type(_match) == TokenType:
             return (self.ttype == _match)
@@ -152,12 +150,18 @@ def trace_location(self:CSToken, _lexer):
     for line in _lines:
         _num  = str(_paddS + (_idx + 1))
         _num  = ((len(str(_paddE)) - len(_num)) * " ") + _num
-        _fmt += _num + " | " + line
+        _fmt += _num + " | "
+
+        if  (self.yS != self.yE) and (_paddS + (_idx + 1)) >= self.yS and _paddS + (_idx + 1) <= self.yE:
+            _fmt += " ~ "
+
+
+        _fmt += line
 
         if  _idx < (len(_lines) - 1):
             _fmt += "\n"
 
-        if  _paddS + (_idx + 1) == self.yS:
+        if  (self.yS == self.yE) and _paddS + (_idx + 1) == self.yS:
             if  not (_idx < (len(_lines) - 1)):
                 _fmt += "\n"
             ####

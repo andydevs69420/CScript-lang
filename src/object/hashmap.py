@@ -33,7 +33,7 @@ class LinkedList(Node):
     def append(self, _data:Node):
         
         _last = self
-        while _last.tail != None:
+        while _last != None:
 
             if _last.nkey == _data.nkey:
                 # update
@@ -123,6 +123,7 @@ if  __name__ == "__main__":
     hashmap = HashMap()
 
     hashmap.put("andy", "Philipp")
+    hashmap.put("andy", "Philipp2")
     hashmap.put("andy2", "Philipp222")
 
     print(hashmap.get("andy"))

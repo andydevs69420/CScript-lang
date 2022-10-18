@@ -1,68 +1,75 @@
-from csAst import AccessNode, AllocDeallocNode, ArrayNode, AugmentedAssignment, BinaryExprNode, BlockNode, BoolNode, CallNode, ClassNode, CompareExprNode, DoWileNode, EqualityExprNode, ExprStmntNode, IfStatementNode, IntegerNode, DoubleNode, LetNode, LogicalExprNode, ModuleNode, NullNode, ObjectNode, PrintNode, ReferenceNode, SimpleAssignment, StaticAccessNode, StringNode, SubscriptNode, SwitchNode, TernaryNode, UnaryExprNode, VarNode, WhileNode
-from cstoken import TokenType, CSToken
-from cslexer import CSLexer
-from errortoken import show_error
-from strongtyping.strong_typing import match_typing
+from astnode import *
+from cslexer import (
+    TokenType, 
+    CSToken  , 
+    CSLexer  , 
+    show_error
+)
 
 class CSParser(object):
+    """ CSParser
 
-    @match_typing
+        Parameters
+        ----------
+        _fpath : str
+        _scode : str
+    """
+
     def __init__(self, _fpath:str, _scode:str):
         self.fpath:str = _fpath 
         self.scode:str = _scode
-        self.lexer:CSLexer = CSLexer(self.fpath, self.scode)
-        self.token:CSToken = self.lexer.getNext()
+        self.cslexer   = CSLexer(self.fpath, self.scode)
+        self.cstoken   = self.cslexer.getNext()
 
-    @match_typing
-    def eat(self, _token:TokenType|str):
-        """ consumes current token
+    def eat(self, _token):
+        """ Consumes current token
 
-            Parametrs
-            --------
+            Parameters
+            ----------
             _token : TokenType|str
 
             Returns
             -------
             None
         """
-        if  self.token.matches(_token):
-            self.token = self.lexer.getNext()
+        if  self.cstoken.matches(_token):
+            self.cstoken = self.cslexer.getNext()
             return
         
         # error
         _unpack = (
-            self.token.token,
+            self.cstoken.token,
             _token if type(_token) == str else _token.name.lower()
         )
-        return show_error("unexpected token \"%s\". Did you mean \"%s\"?" % _unpack, self.token)
+        return show_error("unexpected token \"%s\". Did you mean \"%s\"?" % _unpack, self.cstoken)
 
 
     def parse(self):
 
         def invalid_keyword():
-            if  self.token.matches(TokenType.IDENTIFIER) and \
-                (self.token.matches("import"  ) or \
-                 self.token.matches("class"   ) or \
-                 self.token.matches("function") or \
-                 self.token.matches("return"  ) or \
-                 self.token.matches("assert"  ) or \
-                 self.token.matches("throw"   ) or \
-                 self.token.matches("if"      ) or \
-                 self.token.matches("else"    ) or \
-                 self.token.matches("do"      ) or \
-                 self.token.matches("while"   ) or \
-                 self.token.matches("switch"  ) or \
-                 self.token.matches("var"     ) or \
-                 self.token.matches("let"     ) or \
-                 self.token.matches("print"   )):
+            if  self.cstoken.matches(TokenType.IDENTIFIER) and \
+                (self.cstoken.matches("import"  ) or \
+                 self.cstoken.matches("class"   ) or \
+                 self.cstoken.matches("function") or \
+                 self.cstoken.matches("return"  ) or \
+                 self.cstoken.matches("assert"  ) or \
+                 self.cstoken.matches("throw"   ) or \
+                 self.cstoken.matches("if"      ) or \
+                 self.cstoken.matches("else"    ) or \
+                 self.cstoken.matches("do"      ) or \
+                 self.cstoken.matches("while"   ) or \
+                 self.cstoken.matches("switch"  ) or \
+                 self.cstoken.matches("var"     ) or \
+                 self.cstoken.matches("let"     ) or \
+                 self.cstoken.matches("print"   )):
                 # throw
-                return show_error("unexpected keyword for expresion \"%s\"" % self.token.token, self.token)
+                return show_error("unexpected keyword for expresion \"%s\"" % self.cstoken.token, self.cstoken)
             
             return None
         
         
         def boolean():
-            _bool = self.token
+            _bool = self.cstoken
             if  not (_bool.matches("true") or _bool.matches("false")):
                 return None
             
@@ -73,7 +80,7 @@ class CSParser(object):
             return BoolNode(_bool)
         
         def nulltype():
-            _null = self.token
+            _null = self.cstoken
             if  not _null.matches("null"):
                 return None
             
@@ -86,7 +93,7 @@ class CSParser(object):
         def raw_identifier():
             invalid_keyword()
             
-            _idn = self.token
+            _idn = self.cstoken
             if  not _idn.matches(TokenType.IDENTIFIER):
                 return show_error("expected identifier, got \"%s\"" % _idn.token, _idn)
 
@@ -99,7 +106,7 @@ class CSParser(object):
         def identifier():
             invalid_keyword()
 
-            _idn = self.token
+            _idn = self.cstoken
             if  not _idn.matches(TokenType.IDENTIFIER):
                 return None
             
@@ -110,7 +117,7 @@ class CSParser(object):
             return ReferenceNode(_idn)
    
         def integer():
-            _int = self.token
+            _int = self.cstoken
             if  not _int.matches(TokenType.INTEGER):
                 return None
             
@@ -121,7 +128,7 @@ class CSParser(object):
             return IntegerNode(_int)
 
         def double():
-            _flt = self.token
+            _flt = self.cstoken
             if  not _flt.matches(TokenType.DOUBLE):
                 return None
             
@@ -132,7 +139,7 @@ class CSParser(object):
             return DoubleNode(_flt)
 
         def string():
-            _str = self.token
+            _str = self.cstoken
             if  not _str.matches(TokenType.STRING):
                 return None
             
@@ -147,19 +154,19 @@ class CSParser(object):
 
             invalid_keyword()
 
-            if  self.token.matches(TokenType.IDENTIFIER) and \
-                (self.token.matches("true" ) or \
-                 self.token.matches("false")):
+            if  self.cstoken.matches(TokenType.IDENTIFIER) and \
+                (self.cstoken.matches("true" ) or \
+                 self.cstoken.matches("false")):
                 return boolean()
-            elif  self.token.matches("null"):
+            elif  self.cstoken.matches("null"):
                 return nulltype()
-            elif  self.token.matches(TokenType.IDENTIFIER):
+            elif  self.cstoken.matches(TokenType.IDENTIFIER):
                 return identifier()
-            elif self.token.matches(TokenType.INTEGER):
+            elif self.cstoken.matches(TokenType.INTEGER):
                 return integer()
-            elif self.token.matches(TokenType.DOUBLE):
+            elif self.cstoken.matches(TokenType.DOUBLE):
                 return double()
-            elif self.token.matches(TokenType.STRING):
+            elif self.cstoken.matches(TokenType.STRING):
                 return string()
             
             return None
@@ -182,9 +189,9 @@ class CSParser(object):
             if not _el0: return tuple(_elements)
 
             _elements.append(_el0)
-            while self.token.matches(","):
+            while self.cstoken.matches(","):
 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _elN = nullable_expression()
@@ -213,9 +220,9 @@ class CSParser(object):
                 return tuple(_elements)
             
             _elements.append(_attr0)
-            while self.token.matches(","):
+            while self.cstoken.matches(","):
 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _attrN = single_attribute()
@@ -227,7 +234,7 @@ class CSParser(object):
             return tuple(_elements)
         
         def single_attribute():
-            if  not self.token.matches(TokenType.IDENTIFIER):
+            if  not self.cstoken.matches(TokenType.IDENTIFIER):
                 return None
             
             _key = raw_identifier()
@@ -247,53 +254,45 @@ class CSParser(object):
             _node = atom()
             if _node: return _node
 
-            if  self.token.matches("["):
+            if  self.cstoken.matches("["):
                 return array()
-            elif self.token.matches("{"):
+            elif self.cstoken.matches("{"):
                 return csobject()
 
             return _node
         
         def call_args():
-            return csobject_element()
+            return array_elements()
 
         def member_access():
+            _o = self.cstoken
             _node = other_type()
             if not _node: return _node
 
-            while self.token.matches("->") or \
-                  self.token.matches("::") or \
-                  self.token.matches("[" ) or \
-                  self.token.matches("(" ):
+            while self.cstoken.matches("->") or \
+                  self.cstoken.matches("::") or \
+                  self.cstoken.matches("[" ) or \
+                  self.cstoken.matches("(" ):
 
-                if  self.token.matches("->"):
+                if  self.cstoken.matches("->"):
                     # eat type
-                    self.eat(self.token.ttype)
+                    self.eat(self.cstoken.ttype)
 
                     # attrib
                     _attr = raw_identifier()
 
                     _node = AccessNode(_node, _attr)
 
-                elif self.token.matches("::"):
-                    # eat type
-                    self.eat(self.token.ttype)
-
-                    # attrib
-                    _attr = raw_identifier()
-                    
-                    _node = StaticAccessNode(_node, _attr)
-
-                elif self.token.matches("["):
-                    _o = self.token
+                elif self.cstoken.matches("["):
                     self.eat("[")
 
                     _expr = non_nullable_expression()
 
-                    _c = self.token
+                    _c = self.cstoken
                     self.eat("]")
 
                     _subscript = CSToken(TokenType.DYNAMIC_OPERATOR)
+                    _subscript.fsrce = self.fpath
                     _subscript.token = "[...]"
                     # xAxis
                     _subscript.xS = _o.xS
@@ -301,19 +300,20 @@ class CSParser(object):
                     # yAxis
                     _subscript.yS = _o.yS
                     _subscript.yE = _c.yE
+                    _subscript.addTrace(self)
                 
                     _node = SubscriptNode(_node, _expr, _subscript)
 
-                elif self.token.matches("("):
-                    _o = self.token
+                elif self.cstoken.matches("("):
                     self.eat("(")
 
                     _args = call_args()
 
-                    _c = self.token
+                    _c = self.cstoken
                     self.eat(")")
 
                     _call = CSToken(TokenType.DYNAMIC_OPERATOR)
+                    _call.fsrce = self.fpath
                     _call.token = "(...)"
                     # xAxis
                     _call.xS = _o.xS
@@ -321,13 +321,14 @@ class CSParser(object):
                     # yAxis
                     _call.yS = _o.yS
                     _call.yE = _c.yE
+                    _call.addTrace(self)
 
                     _node = CallNode(_node, _args, _call)
 
             return _node
         
         def parenthesis():
-            if  self.token.matches("("):
+            if  self.cstoken.matches("("):
                 self.eat("(")
                 _expr = non_nullable_expression()
                 self.eat(")")
@@ -339,7 +340,7 @@ class CSParser(object):
             _node = parenthesis()
             if not _node: return _node
 
-            if not self.token.matches("?"):
+            if not self.cstoken.matches("?"):
                 return _node
             
             # eat operator
@@ -356,22 +357,22 @@ class CSParser(object):
         
         def unary_op():
 
-            if  self.token.matches("del") or \
-                self.token.matches("new"):
+            if  self.cstoken.matches("del") or \
+                self.cstoken.matches("new"):
 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _exp = unary_op()
 
                 return AllocDeallocNode(_opt, _exp)
 
-            if  self.token.matches("~") or \
-                self.token.matches("!") or \
-                self.token.matches("+") or \
-                self.token.matches("-"):
+            if  self.cstoken.matches("~") or \
+                self.cstoken.matches("!") or \
+                self.cstoken.matches("+") or \
+                self.cstoken.matches("-"):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _exp = unary_op()
@@ -386,9 +387,9 @@ class CSParser(object):
             _node = unary_op()
             if not _node: return _node
             
-            while self.token.matches("^^"):
+            while self.cstoken.matches("^^"):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = unary_op()
@@ -406,11 +407,11 @@ class CSParser(object):
             _node = power()
             if not _node: return _node
             
-            while self.token.matches("*") or \
-                  self.token.matches("/") or \
-                  self.token.matches("%"):
+            while self.cstoken.matches("*") or \
+                  self.cstoken.matches("/") or \
+                  self.cstoken.matches("%"):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = power()
@@ -428,10 +429,10 @@ class CSParser(object):
             _node = multiplicative()
             if not _node: return _node
 
-            while self.token.matches("+") or \
-                  self.token.matches("-"):
+            while self.cstoken.matches("+") or \
+                  self.cstoken.matches("-"):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = multiplicative()
@@ -449,10 +450,10 @@ class CSParser(object):
             _node = addetive()
             if not _node: return _node
 
-            while self.token.matches("<<") or \
-                  self.token.matches(">>"):
+            while self.cstoken.matches("<<") or \
+                  self.cstoken.matches(">>"):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = addetive()
@@ -470,12 +471,12 @@ class CSParser(object):
             _node = shift()
             if not _node: return _node
 
-            while self.token.matches("<" ) or \
-                  self.token.matches("<=") or \
-                  self.token.matches(">" ) or \
-                  self.token.matches(">="):
+            while self.cstoken.matches("<" ) or \
+                  self.cstoken.matches("<=") or \
+                  self.cstoken.matches(">" ) or \
+                  self.cstoken.matches(">="):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = shift()
@@ -493,10 +494,10 @@ class CSParser(object):
             _node = relational()
             if not _node: return _node
 
-            while self.token.matches("==" ) or \
-                  self.token.matches("!="):
+            while self.cstoken.matches("==" ) or \
+                  self.cstoken.matches("!="):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = relational()
@@ -514,11 +515,11 @@ class CSParser(object):
             _node = equality()
             if not _node: return _node
 
-            while self.token.matches("&") or \
-                  self.token.matches("^") or \
-                  self.token.matches("|"):
+            while self.cstoken.matches("&") or \
+                  self.cstoken.matches("^") or \
+                  self.cstoken.matches("|"):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = equality()
@@ -536,10 +537,10 @@ class CSParser(object):
             _node = bitwise()
             if not _node: return _node
 
-            while self.token.matches("&&") or \
-                  self.token.matches("||"):
+            while self.cstoken.matches("&&") or \
+                  self.cstoken.matches("||"):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = bitwise()
@@ -558,9 +559,9 @@ class CSParser(object):
             _node = logical()
             if not _node: return _node
 
-            while self.token.matches("="):
+            while self.cstoken.matches("="):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = logical()
@@ -577,19 +578,19 @@ class CSParser(object):
             _node = simple_assignment()
             if not _node: return _node
 
-            while self.token.matches("^^=") or\
-                  self.token.matches("*=" ) or\
-                  self.token.matches("/=" ) or\
-                  self.token.matches("%=" ) or\
-                  self.token.matches("+=" ) or\
-                  self.token.matches("-=" ) or\
-                  self.token.matches("<<=") or\
-                  self.token.matches(">>=") or\
-                  self.token.matches("&=" ) or\
-                  self.token.matches("^=" ) or\
-                  self.token.matches("|=" ):
+            while self.cstoken.matches("^^=") or\
+                  self.cstoken.matches("*=" ) or\
+                  self.cstoken.matches("/=" ) or\
+                  self.cstoken.matches("%=" ) or\
+                  self.cstoken.matches("+=" ) or\
+                  self.cstoken.matches("-=" ) or\
+                  self.cstoken.matches("<<=") or\
+                  self.cstoken.matches(">>=") or\
+                  self.cstoken.matches("&=" ) or\
+                  self.cstoken.matches("^=" ) or\
+                  self.cstoken.matches("|=" ):
                 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _rhs = logical()
@@ -610,7 +611,7 @@ class CSParser(object):
             _exp = nullable_expression()
             if  not _exp:
                 # error
-                return show_error("expression is required, got \"%s\"" % self.token.token, self.token)
+                return show_error("expression is required, got \"%s\"" % self.cstoken.token, self.cstoken)
             
             return _exp
         
@@ -625,7 +626,7 @@ class CSParser(object):
 
             _base = None
 
-            if  self.token.matches(":"):
+            if  self.cstoken.matches(":"):
                 self.eat(":")
                 _base = raw_identifier()
 
@@ -647,9 +648,9 @@ class CSParser(object):
             
             _member.append(_id0)
 
-            while self.token.matches(","):
+            while self.cstoken.matches(","):
 
-                _opt = self.token
+                _opt = self.cstoken
                 self.eat(_opt.ttype)
 
                 _idN = class_member_pair()
@@ -665,7 +666,7 @@ class CSParser(object):
         
 
         def class_member_pair():
-            if  not self.token.matches(TokenType.IDENTIFIER):
+            if  not self.cstoken.matches(TokenType.IDENTIFIER):
                 return None
             
             _name  = raw_identifier()
@@ -678,7 +679,7 @@ class CSParser(object):
 
         
         def class_member_expression():
-            if  self.token.matches("function"):
+            if  self.cstoken.matches("function"):
                 return function_expression()
 
             return non_nullable_expression()
@@ -690,6 +691,58 @@ class CSParser(object):
             self.eat("(")
 
             self.eat(")")
+
+            _func_body = block_stmnt()
+        
+
+        def function_dec():
+            self.eat("function")
+
+            _func_name = raw_identifier()
+
+            self.eat("(")
+
+            _parameters = function_parameters()
+
+            self.eat(")")
+
+            _func_body = block_stmnt()
+
+            # return as function
+            return FunctionNode(_func_name, _parameters, _func_body)
+        
+
+        # multi-purpose
+        def function_parameters():
+            _parameters = []
+
+            _paramN = valid_parameters()
+
+            if  not _paramN:
+                return tuple(_parameters)
+
+            _parameters.append(_paramN)
+            
+            while (self.cstoken.matches(",")):
+
+                _opt = self.cstoken
+                self.eat(_opt.ttype)
+
+                _paramN = valid_parameters()
+
+                if  not _paramN:
+                    return show_error("unexpected end of list", _opt)
+
+                _parameters.append(_paramN)
+
+            return tuple(_parameters)
+
+            
+        def valid_parameters():
+            if  not self.cstoken.matches(TokenType.IDENTIFIER):
+                return None
+            
+            return raw_identifier()
 
 
         def if_stmnt():
@@ -703,7 +756,7 @@ class CSParser(object):
 
             _statement = compound_stmnt()
 
-            if  not self.token.matches("else"):
+            if  not self.cstoken.matches("else"):
                 # return as if
                 return IfStatementNode(_condition, _statement, None)
 
@@ -744,7 +797,7 @@ class CSParser(object):
             self.eat(")")
 
             # return as do while
-            return DoWileNode(_condition, _body)
+            return DoWhileNode(_condition, _body)
 
 
         def switch_stmnt():
@@ -769,7 +822,7 @@ class CSParser(object):
             })
             self.eat("{")
 
-            while self.token.matches("case"):
+            while self.cstoken.matches("case"):
 
                 self.eat("case")
 
@@ -784,7 +837,7 @@ class CSParser(object):
                     "stmnt": _statement
                 })
             
-            if  self.token.matches("else"):
+            if  self.cstoken.matches("else"):
                 self.eat("else")
                 self.eat(":")
 
@@ -813,17 +866,19 @@ class CSParser(object):
         
 
         def compound_stmnt():
-            if  self.token.matches("class"):
+            if  self.cstoken.matches("class"):
                 return class_dec()
-            elif self.token.matches("if"):
+            elif self.cstoken.matches("function"):
+                return function_dec()
+            elif self.cstoken.matches("if"):
                 return if_stmnt()
-            elif self.token.matches("do"):
+            elif self.cstoken.matches("do"):
                 return do_while_stmnt()
-            elif self.token.matches("while"):
+            elif self.cstoken.matches("while"):
                 return while_stmnt()
-            elif self.token.matches("switch"):
+            elif self.cstoken.matches("switch"):
                 return switch_stmnt()
-            elif self.token.matches("{"):
+            elif self.cstoken.matches("{"):
                 return block_stmnt()
             
             return simple_stmnt()
@@ -858,7 +913,7 @@ class CSParser(object):
                 assignment_pair()
             )
 
-            while self.token.matches(","):
+            while self.cstoken.matches(","):
 
                 self.eat(",")
 
@@ -873,7 +928,7 @@ class CSParser(object):
             # identifier
             _id = raw_identifier()
             
-            if not self.token.matches("="):
+            if not self.cstoken.matches("="):
                 return ({"var": _id, "val": None })
             
             # eat operator
@@ -909,11 +964,11 @@ class CSParser(object):
 
 
         def simple_stmnt():
-            if  self.token.matches("var"):
+            if  self.cstoken.matches("var"):
                 return var_stmnt()
-            elif self.token.matches("let"):
+            elif self.cstoken.matches("let"):
                 return let_stmnt()
-            elif self.token.matches("print"):
+            elif self.cstoken.matches("print"):
                 return print_stmnt()
             return expression_stmnt()
         
@@ -922,7 +977,7 @@ class CSParser(object):
         def module():
             _nodes = []
             
-            while not self.token.matches(TokenType.ENDOFFILE):
+            while not self.cstoken.matches(TokenType.ENDOFFILE):
                 _nodes.append(compound_stmnt())
             
             # return as module
