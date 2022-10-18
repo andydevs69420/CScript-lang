@@ -11,9 +11,9 @@ cscript programming language
 - [x] do|while statement
 - [x] switch|case statement
 - [x] print (print is a statement here.)
-- [ ] class declairation
+- [x] class declairation
 - [ ] enum declairation
-- [ ] function declairation
+- [x] function declairation
 - [x] statement block
 - [x] expression statement
 
@@ -26,7 +26,7 @@ cscript programming language
 - [x] CSBoolean
 - [x] CSNullType(to be re-implemented using singleton)
 - [x] CSArray
-- [ ] CSCallable
+- [x] CSCallable
 
 ## Other feature(s)
 - [x] operator overloading(few)
