@@ -1,10 +1,4 @@
-
-from cstoken import CSToken
-from csAst import CSAst
-
-# object
-from object.csobject import CSObject
-from cscriptvm.csevaluator import Evaluatable
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 # OK!!! | COMPILED | PASSED 
 class IntegerNode(CSAst, Evaluatable):
@@ -23,6 +17,8 @@ class IntegerNode(CSAst, Evaluatable):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        return CSObject.new_integer(int(self.integer.token))
+        _integer = CSObject.new_integer(int(self.integer.token))
+        _integer.cleanLast()
+        return _integer
 
 

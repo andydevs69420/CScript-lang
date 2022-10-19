@@ -1,6 +1,18 @@
+# ==========global|
+# ================|
+from cstoken import CSToken
+from errortoken import show_error
+# ============ end|
 
-# core
-from cscriptvm.compilable import Compilable
+
+# =========== core|
+# ================|
+from cscriptvm.csvm import CSVirtualMachine as VM
+from cscriptvm.compilable import CSObject, Compilable
+from cscriptvm.cssymboltable import CSSymbolTable as ST
+from cscriptvm.csevaluator import Evaluatable, Evaluator
+# ============ end|
+
 
 class CSAst(Compilable):pass
 class CSAst(Compilable):

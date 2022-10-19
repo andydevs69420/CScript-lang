@@ -1,12 +1,4 @@
-
-from cstoken import CSToken
-from csAst import CSAst
-from errortoken import show_error
-
-# core
-from cscriptvm.csvm import CSVirtualMachine as VM
-from cscriptvm.cssymboltable import CSSymbolTable as ST
-
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 
 class ReferenceNode(CSAst):
@@ -31,7 +23,10 @@ class ReferenceNode(CSAst):
         _props = ST.lookup(self.reference.token)
 
         # compile
-        self.push_name(self.reference, _props["_slot"])
+        if  _props["_global"]:
+            self.push_name(self.reference, _props["_slot"])
+        else:
+            self.push_local(self.reference, _props["_slot"])
 
     
     def assignTo(self):
@@ -41,11 +36,14 @@ class ReferenceNode(CSAst):
         # ============ COMPILE|
         # ====================|
         # compile
-        self.store_name(self.reference, _props["_slot"])
+        if  _props["_global"]:
+            self.store_name(self.reference, _props["_slot"])
+        else:
+            self.store_local(self.reference, _props["_slot"])
 
 
         # push to stack new value
-        self.push_name (self.reference, _props["_slot"])
+        self.compile()
     
     def isAssignable(self):
         return True

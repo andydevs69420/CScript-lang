@@ -1,5 +1,4 @@
-from csAst import CSAst
-
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 
 # OK!!! | COMPILED | PASSED
@@ -14,7 +13,7 @@ class IfStatementNode(CSAst):
     def compile(self):
         _evaluated = self.condition.evaluate()
         if  _evaluated:
-            if  _evaluated.get("this"):
+            if  _evaluated.getObject().get("this"):
                 # condition met|true|satisfiable
                 self.statement.compile()
             else:
@@ -33,7 +32,7 @@ class IfStatementNode(CSAst):
 
         # extract rhs and compile
         _rhs_evaluated = self.condition.rhs.evaluate()
-        _rhs_evaluated = _rhs_evaluated.get("this") if _rhs_evaluated else False
+        _rhs_evaluated = _rhs_evaluated.getObject().get("this") if _rhs_evaluated else False
 
         if  not _rhs_evaluated:
             self.condition.rhs.compile()
@@ -49,7 +48,7 @@ class IfStatementNode(CSAst):
             _jump_t0 = self.peekLast()
         
         _lhs_evaluated = self.condition.lhs.evaluate()
-        _lhs_evaluated = _lhs_evaluated.get("this") if _lhs_evaluated else False
+        _lhs_evaluated = _lhs_evaluated.getObject().get("this") if _lhs_evaluated else False
 
         if  not _lhs_evaluated:
             # extract lhs and compile

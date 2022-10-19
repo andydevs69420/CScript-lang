@@ -1,11 +1,4 @@
-from cstoken import CSToken
-from csAst import CSAst
-
-# object
-from object.csobject import CSObject
-
-# core
-from cscriptvm.csevaluator import Evaluatable
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 # OK!!! | COMPILED | PASSED
 class NullNode(CSAst, Evaluatable):

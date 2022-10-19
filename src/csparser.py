@@ -50,7 +50,6 @@ class CSParser(object):
             if  self.cstoken.matches(TokenType.IDENTIFIER) and \
                 (self.cstoken.matches("import"  ) or \
                  self.cstoken.matches("class"   ) or \
-                 self.cstoken.matches("function") or \
                  self.cstoken.matches("return"  ) or \
                  self.cstoken.matches("assert"  ) or \
                  self.cstoken.matches("throw"   ) or \
@@ -59,6 +58,9 @@ class CSParser(object):
                  self.cstoken.matches("do"      ) or \
                  self.cstoken.matches("while"   ) or \
                  self.cstoken.matches("switch"  ) or \
+                 self.cstoken.matches("try"     ) or \
+                 self.cstoken.matches("except"  ) or \
+                 self.cstoken.matches("finally" ) or \
                  self.cstoken.matches("var"     ) or \
                  self.cstoken.matches("let"     ) or \
                  self.cstoken.matches("print"   )):
@@ -66,8 +68,19 @@ class CSParser(object):
                 return show_error("unexpected keyword for expresion \"%s\"" % self.cstoken.token, self.cstoken)
             
             return None
+
+        def invalid_raw_identifier():
+            if  self.cstoken.matches(TokenType.IDENTIFIER) and \
+                (self.cstoken.matches("false"  ) or \
+                 self.cstoken.matches("true"   ) or \
+                 self.cstoken.matches("null"   )):
+                # throw
+                return show_error("unexpected keyword for identifier \"%s\"" % self.cstoken.token, self.cstoken)
+            
+            return None
         
         
+        # bool: true|false
         def boolean():
             _bool = self.cstoken
             if  not (_bool.matches("true") or _bool.matches("false")):
@@ -79,6 +92,7 @@ class CSParser(object):
             # return as bool
             return BoolNode(_bool)
         
+        # null:
         def nulltype():
             _null = self.cstoken
             if  not _null.matches("null"):
@@ -90,8 +104,24 @@ class CSParser(object):
             # return as null
             return NullNode(_null)
         
+        # function(){...}
+        def function_expression():
+            self.eat("function")
+
+            self.eat("(")
+
+            _parameters = function_parameters()
+
+            self.eat(")")
+
+            _func_body = block_stmnt()
+
+            # return as headless function
+            return HeadlessFunctionNode(_parameters, _func_body)
+        
+        # cstoken: identifier
         def raw_identifier():
-            invalid_keyword()
+            invalid_raw_identifier()
             
             _idn = self.cstoken
             if  not _idn.matches(TokenType.IDENTIFIER):
@@ -103,6 +133,7 @@ class CSParser(object):
             # return as raw
             return _idn
 
+        # identifier
         def identifier():
             invalid_keyword()
 
@@ -115,7 +146,8 @@ class CSParser(object):
 
             # return as ref
             return ReferenceNode(_idn)
-   
+
+        # ineteger
         def integer():
             _int = self.cstoken
             if  not _int.matches(TokenType.INTEGER):
@@ -127,6 +159,7 @@ class CSParser(object):
             # return as int
             return IntegerNode(_int)
 
+        # float|double
         def double():
             _flt = self.cstoken
             if  not _flt.matches(TokenType.DOUBLE):
@@ -138,6 +171,7 @@ class CSParser(object):
             # return as double
             return DoubleNode(_flt)
 
+        # string
         def string():
             _str = self.cstoken
             if  not _str.matches(TokenType.STRING):
@@ -148,19 +182,28 @@ class CSParser(object):
 
             # return as str
             return StringNode(_str)
-            
-
+        
+        # atom: boolean
+        # | nulltype
+        # | function_expression
+        # | identifier
+        # | integer
+        # | double
+        # | string
+        # | null(epsilon)
+        # ;
         def atom():
-
             invalid_keyword()
 
             if  self.cstoken.matches(TokenType.IDENTIFIER) and \
                 (self.cstoken.matches("true" ) or \
                  self.cstoken.matches("false")):
                 return boolean()
-            elif  self.cstoken.matches("null"):
+            elif self.cstoken.matches("null"):
                 return nulltype()
-            elif  self.cstoken.matches(TokenType.IDENTIFIER):
+            elif self.cstoken.matches("function"):
+                return function_expression()
+            elif self.cstoken.matches(TokenType.IDENTIFIER):
                 return identifier()
             elif self.cstoken.matches(TokenType.INTEGER):
                 return integer()
@@ -171,7 +214,7 @@ class CSParser(object):
             
             return None
 
-        
+        # array: '[' array_elements ']'
         def array():
             self.eat("[")
 
@@ -182,6 +225,8 @@ class CSParser(object):
             # return as array
             return ArrayNode(_el)
         
+        # multi-purpose: used in: ["call_args", "array", "switch_matches", "print_stmnt"]
+        # array_elements: nullable_expression (',' non_nullable_expression)*;
         def array_elements():
             _elements = []
 
@@ -202,6 +247,7 @@ class CSParser(object):
 
             return tuple(_elements)
         
+        # csobject: '{' csobject_element '}';
         def csobject():
             self.eat("{")
 
@@ -212,6 +258,7 @@ class CSParser(object):
             # return as object
             return ObjectNode(_elements)
         
+        # csobject_element: single_attribute*;
         def csobject_element():
             _elements = []
 
@@ -233,6 +280,7 @@ class CSParser(object):
             
             return tuple(_elements)
         
+        # single_attribute: raw_identifier ':' non_nullable_expression ;
         def single_attribute():
             if  not self.cstoken.matches(TokenType.IDENTIFIER):
                 return None
@@ -249,7 +297,7 @@ class CSParser(object):
                 "val": _val,
             })
 
-        
+        # other_type: array | csobject;
         def other_type():
             _node = atom()
             if _node: return _node
@@ -261,16 +309,21 @@ class CSParser(object):
 
             return _node
         
+        # call_args: array_elements;
         def call_args():
             return array_elements()
 
+        # member_access: other_type
+        # | other_type->raw_identifier
+        # | other_type '[' non_nullable_expression ']'
+        # | other_type '(' call_args ')'
+        # ;
         def member_access():
-            _o = self.cstoken
+            _open = self.cstoken
             _node = other_type()
             if not _node: return _node
 
             while self.cstoken.matches("->") or \
-                  self.cstoken.matches("::") or \
                   self.cstoken.matches("[" ) or \
                   self.cstoken.matches("(" ):
 
@@ -291,14 +344,14 @@ class CSParser(object):
                     _c = self.cstoken
                     self.eat("]")
 
-                    _subscript = CSToken(TokenType.DYNAMIC_OPERATOR)
+                    _subscript = CSToken(TokenType.DYNAMIC_LOCATION)
                     _subscript.fsrce = self.fpath
                     _subscript.token = "[...]"
                     # xAxis
-                    _subscript.xS = _o.xS
+                    _subscript.xS = _open.xS
                     _subscript.xE = _c.xE
                     # yAxis
-                    _subscript.yS = _o.yS
+                    _subscript.yS = _open.yS
                     _subscript.yE = _c.yE
                     _subscript.addTrace(self)
                 
@@ -312,14 +365,14 @@ class CSParser(object):
                     _c = self.cstoken
                     self.eat(")")
 
-                    _call = CSToken(TokenType.DYNAMIC_OPERATOR)
+                    _call = CSToken(TokenType.DYNAMIC_LOCATION)
                     _call.fsrce = self.fpath
                     _call.token = "(...)"
                     # xAxis
-                    _call.xS = _o.xS
+                    _call.xS = _open.xS
                     _call.xE = _c.xE
                     # yAxis
-                    _call.yS = _o.yS
+                    _call.yS = _open.yS
                     _call.yE = _c.yE
                     _call.addTrace(self)
 
@@ -327,6 +380,7 @@ class CSParser(object):
 
             return _node
         
+        # parethesis: '(' non_nullable_expression ')' | member_access
         def parenthesis():
             if  self.cstoken.matches("("):
                 self.eat("(")
@@ -336,6 +390,7 @@ class CSParser(object):
             
             return member_access()
         
+        # ternary: parenthesis ('?'non_nullable_expression ':' non_nullable_expression)? 
         def ternary():
             _node = parenthesis()
             if not _node: return _node
@@ -355,6 +410,9 @@ class CSParser(object):
             # return as ternary
             return TernaryNode(_node, _tv, _fv)
         
+        # unary_op: ternary
+        # | ("del" | "new" | '~' | '!' | '+' | '-') unary_op
+        # ;
         def unary_op():
 
             if  self.cstoken.matches("del") or \
@@ -382,7 +440,9 @@ class CSParser(object):
 
             return ternary()
         
-        
+        # power: unary_op 
+        # | unary_op "^^" unary_op
+        # ;
         def power():
             _node = unary_op()
             if not _node: return _node
@@ -403,6 +463,11 @@ class CSParser(object):
             # return node
             return _node
 
+        # multiplicative: power
+        # | power '*' power
+        # | power '/' power
+        # | power '%' power
+        # ;
         def multiplicative():
             _node = power()
             if not _node: return _node
@@ -425,6 +490,10 @@ class CSParser(object):
             # return node
             return _node
 
+        # addetive: multiplicative 
+        # | multiplicative '+' multiplicative
+        # | multiplicative '-' multiplicative
+        # ;
         def addetive():
             _node = multiplicative()
             if not _node: return _node
@@ -446,6 +515,10 @@ class CSParser(object):
             # return node
             return _node
         
+        # shift: addetive
+        # | addetive "<<" addetive
+        # | addetive ">>" addetive
+        # ;
         def shift():
             _node = addetive()
             if not _node: return _node
@@ -467,6 +540,12 @@ class CSParser(object):
             # return node
             return _node
         
+        # relational: shift
+        # | shift '<'  shift
+        # | shift "<=" shift
+        # | shift '>'  shift
+        # | shift ">=" shift
+        # ;
         def relational():
             _node = shift()
             if not _node: return _node
@@ -490,6 +569,10 @@ class CSParser(object):
             # return node
             return _node
         
+        # equality: relational
+        # | relational "=="  relational
+        # | relational "!=" relational
+        # ;
         def equality():
             _node = relational()
             if not _node: return _node
@@ -511,6 +594,11 @@ class CSParser(object):
             # return node
             return _node
         
+        # bitwise: equality
+        # | equality '&' equality 
+        # | equality '^' equality 
+        # | equality '|' equality 
+        # ;
         def bitwise():
             _node = equality()
             if not _node: return _node
@@ -533,6 +621,10 @@ class CSParser(object):
             # return node
             return _node
         
+        # logical: bitwise
+        # | bitwise "&&" bitwise
+        # | bitwise "||" bitwise
+        # ;
         def logical():
             _node = bitwise()
             if not _node: return _node
@@ -554,7 +646,9 @@ class CSParser(object):
             # return node
             return _node
     
-        
+        # simple_assignment: logical
+        # | logical '=' logical
+        # ;
         def simple_assignment():
             _node = logical()
             if not _node: return _node
@@ -574,6 +668,19 @@ class CSParser(object):
 
             return _node
         
+        # augmented_assignment: simple_assignment
+        # | simple_assignment "^^=" simple_assignment
+        # | simple_assignment "*="  simple_assignment
+        # | simple_assignment "/="  simple_assignment
+        # | simple_assignment "%="  simple_assignment
+        # | simple_assignment "+="  simple_assignment
+        # | simple_assignment "-="  simple_assignment
+        # | simple_assignment "<<="  simple_assignment
+        # | simple_assignment ">>="  simple_assignment
+        # | simple_assignment "&="  simple_assignment
+        # | simple_assignment "^="  simple_assignment
+        # | simple_assignment "|="  simple_assignment
+        # ;
         def augmented_assignment():
             _node = simple_assignment()
             if not _node: return _node
@@ -603,10 +710,11 @@ class CSParser(object):
 
             return _node
 
-        
+        # nullable_expression: augmented_assignment?;
         def nullable_expression():
             return augmented_assignment()
-        
+
+        # non_nullable_expression: nullable_expression;
         def non_nullable_expression():
             _exp = nullable_expression()
             if  not _exp:
@@ -618,6 +726,7 @@ class CSParser(object):
         # ===================== STATEMENT
         # ===============================
 
+        # class declairation: "class" raw_identifier (':' raw_identifier)? class_body;
         def class_dec():
             self.eat("class")
 
@@ -636,7 +745,7 @@ class CSParser(object):
             # return as class
             return ClassNode(_name, _base, _member)
         
-
+        # class_body: '{' class_member_pair* '}';
         def class_body():
             _member = []
 
@@ -664,7 +773,7 @@ class CSParser(object):
 
             return tuple(_member)
         
-
+        # class_member_pair: raw_identifier ':' non_nullable_expression
         def class_member_pair():
             if  not self.cstoken.matches(TokenType.IDENTIFIER):
                 return None
@@ -673,28 +782,11 @@ class CSParser(object):
 
             self.eat(":")
 
-            _value = class_member_expression()
+            _value = non_nullable_expression()
 
             return ({"name": _name, "value": _value})
 
-        
-        def class_member_expression():
-            if  self.cstoken.matches("function"):
-                return function_expression()
-
-            return non_nullable_expression()
-
-        
-        def function_expression():
-            self.eat("function")
-
-            self.eat("(")
-
-            self.eat(")")
-
-            _func_body = block_stmnt()
-        
-
+        # function_dec: "function" raw_identifier '(' function_parameters ')' block_stmnt;
         def function_dec():
             self.eat("function")
 
@@ -712,7 +804,7 @@ class CSParser(object):
             return FunctionNode(_func_name, _parameters, _func_body)
         
 
-        # multi-purpose
+        # multi-purpose: used in: ["functin_dec", "function_expression"]
         def function_parameters():
             _parameters = []
 
@@ -737,14 +829,14 @@ class CSParser(object):
 
             return tuple(_parameters)
 
-            
+        # valid_parameters: raw_identifier
         def valid_parameters():
             if  not self.cstoken.matches(TokenType.IDENTIFIER):
                 return None
             
             return raw_identifier()
 
-
+        # if_stmnt: "if" '(' non_nullable_expression ')' compound_stmnt ("else" compound_stmnt)?;
         def if_stmnt():
             self.eat("if")
 
@@ -768,6 +860,7 @@ class CSParser(object):
             # return as if|else node
             return IfStatementNode(_condition, _statement, _else_stmnt)
 
+        # while_stmnt: "while" '(' non_nullable_expression ')' compound_stmnt ;
         def while_stmnt():
             self.eat("while")
             
@@ -782,7 +875,7 @@ class CSParser(object):
             # return as while
             return WhileNode(_condition, _statement)
         
-
+        # do_while_stmnt: "do" compound_stmnt "while" '(' non_nullable_expression ')';
         def do_while_stmnt():
             self.eat("do")
 
@@ -799,7 +892,7 @@ class CSParser(object):
             # return as do while
             return DoWhileNode(_condition, _body)
 
-
+        # switch_stmnt: "switch" '(' non_nullable_expression ')' switch_body;
         def switch_stmnt():
             self.eat("switch")
 
@@ -814,7 +907,7 @@ class CSParser(object):
             # return as switch
             return SwitchNode(_condition, _body)
         
-
+        # switch_body: '{' ("case" switch_matches ':' compound_stmnt)* ("else" ':' compound_stmnt)? '}'
         def switch_body():
             _body = ({
                 "cases": [],
@@ -847,9 +940,41 @@ class CSParser(object):
 
             return _body
         
+        # switch_matches: array_elements;
         def switch_matches():
             return array_elements()
+        
 
+        # try/except
+        def try_except():
+            self.eat("try")
+
+            _try_body = compound_stmnt()
+
+            self.eat("except")
+
+            self.eat("(")
+
+            _parameter = raw_identifier()
+            
+            self.eat(")")
+
+            _except_body = compound_stmnt()
+            
+
+            _finally_body = None
+            if  self.cstoken.matches("finally"):
+                self.eat("finally")
+
+                _finally_body = compound_stmnt()
+            
+            
+            # return as try/except node
+            return TryExceptNode(_try_body, _parameter, _except_body, _finally_body)
+
+
+        # block_stmnt: '{' compound_stmnt* '}';
+        # multi-purpose: used in: ["function_expression", "function_dec"]
         def block_stmnt():
             _statements = []
             self.eat("{")
@@ -864,7 +989,15 @@ class CSParser(object):
             # return as block node
             return BlockNode(tuple(_statements))
         
-
+        # compound_stmnt: class_dec
+        # | function_dec
+        # | if_stmnt
+        # | do_while_stmnt
+        # | while_stmnt
+        # | switch_stmnt
+        # | block_stmnt
+        # | simple_stmnt
+        # ;
         def compound_stmnt():
             if  self.cstoken.matches("class"):
                 return class_dec()
@@ -878,12 +1011,14 @@ class CSParser(object):
                 return while_stmnt()
             elif self.cstoken.matches("switch"):
                 return switch_stmnt()
+            elif self.cstoken.matches("try"):
+                return try_except()
             elif self.cstoken.matches("{"):
                 return block_stmnt()
             
             return simple_stmnt()
         
-
+        # var_stmnt: "var" assignment_list;
         def var_stmnt():
             self.eat("var")
 
@@ -894,7 +1029,7 @@ class CSParser(object):
             # return as var node
             return VarNode(_assignments)
 
-
+        # let_stmnt: "let" assignment_list;
         def let_stmnt():
             self.eat("let")
 
@@ -905,7 +1040,7 @@ class CSParser(object):
             # retu as let node
             return LetNode(_assignments)
 
-        
+        # assignment_list: assignment_pair+;
         def assignment_list():
             _assignment = []
 
@@ -923,7 +1058,7 @@ class CSParser(object):
 
             return tuple(_assignment)
         
-
+        # assignment_pair: raw_identifier ('=' non_nullable_epxression)? ;
         def assignment_pair():
             # identifier
             _id = raw_identifier()
@@ -938,7 +1073,18 @@ class CSParser(object):
 
             return ({"var": _id, "val": _val })
 
+        # return_stmnt: "return" nullable_expression ';';
+        def return_stmnt():
+            self.eat("return")
+
+            _expr = nullable_expression()
+
+            self.eat(";")
+
+            return ReturnNode(_expr)
         
+        # yes! print is a statement here!
+        # print_stmnt: "print" ':' array_elements ';';
         def print_stmnt():
             self.eat("print")
             self.eat(":")
@@ -950,7 +1096,7 @@ class CSParser(object):
             # return as print node
             return PrintNode(_expr_list)
 
-
+        # expression_stmnt: (nullable_expression ';')? ;
         def expression_stmnt():
             _expr = nullable_expression()
             if not _expr: return _expr
@@ -962,23 +1108,31 @@ class CSParser(object):
             return ExprStmntNode(_expr)
         
 
-
+        # simple_stmnt: var_stmnt
+        # | let_stmnt
+        # | return_stmnt
+        # | print_stmnt
+        # | expression_stmnt
+        # ;
         def simple_stmnt():
             if  self.cstoken.matches("var"):
                 return var_stmnt()
             elif self.cstoken.matches("let"):
                 return let_stmnt()
+            elif self.cstoken.matches("return"):
+                return return_stmnt()
             elif self.cstoken.matches("print"):
                 return print_stmnt()
             return expression_stmnt()
         
-
-
+        # module: compound_stmnt* EOF;
         def module():
             _nodes = []
             
             while not self.cstoken.matches(TokenType.ENDOFFILE):
                 _nodes.append(compound_stmnt())
+            
+            self.eat(TokenType.ENDOFFILE)
             
             # return as module
             return ModuleNode(tuple(_nodes))

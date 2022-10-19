@@ -1,6 +1,5 @@
 
 from csnumber import CSNumber
-from csobject import CSObject
 
 
 class CSDouble(CSNumber):

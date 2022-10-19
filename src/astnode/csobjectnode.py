@@ -1,9 +1,4 @@
-
-from csAst import CSAst
-
-# object
-from object.csobject import CSObject
-
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 # OK!!! | COMPILED | PASSED
 class ObjectNode(CSAst):

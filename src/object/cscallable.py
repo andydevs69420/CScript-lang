@@ -1,16 +1,13 @@
+from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
 
-from cstoken import CSToken
-from csobject import CSObject
-
-# core
-from cscriptvm.csvm import CSVirtualMachine as VM
 
 class CSCallable(CSObject):
 
-    def __init__(self, _name:str, _parameters:list, _instructions:list):
+    def __init__(self, _name:str, _param_count:int, _parameters:list, _instructions:list):
         super().__init__()
-        self.name = _name
-        self.parameters = _parameters
+        self.name         = _name
+        self.paramcount   = _param_count
+        self.parameters   = _parameters
         self.instructions = _instructions
     
     #![bound:: toString]
@@ -31,4 +28,13 @@ class CSCallable(CSObject):
     # ================ DUNDER METHODS|
     # ===============================|
     def call(self, _opt:CSToken, _arg_count:int):
-        return VM.run(self.instructions)
+        # core
+        from cscriptvm.csvm import CSVirtualMachine as VM
+
+        if  _arg_count != self.paramcount:
+            raise Exception("ParameterError: expected %d, got %d" % (self.paramcount, _arg_count))
+        
+        _obj = VM.run(self.instructions)
+        
+        del VM
+        return _obj

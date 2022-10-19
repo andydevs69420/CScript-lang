@@ -1,6 +1,5 @@
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
-from cstoken import CSToken
-from csAst import CSAst
 
 # OK!!! | COMPILED
 class CallNode(CSAst):
@@ -13,16 +12,13 @@ class CallNode(CSAst):
         _opt       : CSToken
     """
 
-    def __init__(self, _lefthand:CSAst, _arguments:tuple, _opt:CSToken):
+    def __init__(self, _lefthand:CSAst, _arguments:tuple, _call_location:CSToken):
         super().__init__()
         self.lefthand  = _lefthand
         self.arguments = _arguments
-        self.opt = _opt
+        self.location  = _call_location
     
     def compile(self):
-        # compile left
-        self.lefthand.compile()
-
         # compile right most first!
         for node in self.arguments[::-1]:
 
@@ -33,8 +29,11 @@ class CallNode(CSAst):
             else:
                 node.compile()
         
+        # compile left
+        self.lefthand.compile()
+        
         # call opcode
-        self.call(self.opt, len(self.arguments))
+        self.call(self.location, len(self.arguments))
 
 
 

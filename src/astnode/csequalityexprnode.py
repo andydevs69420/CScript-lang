@@ -1,8 +1,6 @@
 
 
-from cstoken import CSToken
-from csAst import CSAst
-from cscompareexprnode import CompareExprNode
+from cscompareexprnode import CSToken, CSAst, CompareExprNode
 
 
 # OK!!! | COMPILED | PASSED

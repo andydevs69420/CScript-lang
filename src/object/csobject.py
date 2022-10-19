@@ -1,12 +1,18 @@
 
 
+
 from cstoken import CSToken
 from errortoken import show_error
 from hashmap import hasher, HashMap
 
-from cscriptvm.csmemory2 import CSMemory
 
+# for typing
 class CSObject(HashMap):pass
+def CSMalloc(_csobject:CSObject):pass
+def reformatError(_message:str, _token:CSToken):pass
+def ThrowError(_csexceptionobject:CSObject, _error_token:CSToken):pass
+
+
 class CSObject(HashMap):
     """ Represents Object in CScript
     """
@@ -47,14 +53,14 @@ class CSObject(HashMap):
     @staticmethod
     def new():
         _object = CSObject()
-        return CSMemory.CSMalloc(_object)
+        return CSMalloc(_object)
 
     @staticmethod
     def new_integer(_data:int):
         import csinteger
         _int = csinteger.CSInteger(_data)
         del csinteger
-        return CSMemory.CSMalloc(_int)
+        return CSMalloc(_int)
 
     @staticmethod
     def new_double(_data:float):
@@ -67,7 +73,7 @@ class CSObject(HashMap):
         import csdouble
         _flt = csdouble.CSDouble(_data)
         del csdouble
-        return CSMemory.CSMalloc(_flt)
+        return CSMalloc(_flt)
 
     @staticmethod
     def new_string(_data:str):
@@ -80,7 +86,7 @@ class CSObject(HashMap):
         import csstring
         _str = csstring.CSString(_data)
         del csstring
-        return CSMemory.CSMalloc(_str)
+        return CSMalloc(_str)
     
     @staticmethod
     def new_boolean(_data:str):
@@ -93,7 +99,7 @@ class CSObject(HashMap):
         import csboolean
         _bool = csboolean.CSBoolean(_data)
         del csboolean
-        return CSMemory.CSMalloc(_bool)
+        return CSMalloc(_bool)
 
     @staticmethod
     def new_nulltype(_data:str):
@@ -106,7 +112,7 @@ class CSObject(HashMap):
         import csnulltype
         _null = csnulltype.CSNullType(_data)
         del csnulltype
-        return CSMemory.CSMalloc(_null)
+        return CSMalloc(_null)
     
     @staticmethod
     def new_array():
@@ -119,7 +125,7 @@ class CSObject(HashMap):
         import csarray
         _array = csarray.CSArray()
         del csarray
-        return CSMemory.CSMalloc(_array)
+        return CSMalloc(_array)
 
     @staticmethod
     def new_callable(_name:str, _parameters:list, _instructions:list):
@@ -130,13 +136,14 @@ class CSObject(HashMap):
             CSCallable
         """
         import cscallable
-        _function = cscallable.CSCallable(_name,_parameters, _instructions)
+        _function = cscallable.CSCallable(_name, len(_parameters), _parameters, _instructions)
         del cscallable
-        return CSMemory.CSMalloc(_function)
+        return CSMalloc(_function)
     
-    # ================= DUNDER METHODS|
-    # ================================|
+    # ======================================== DUNDER METHODS|
+    # =======================================================|
     # must be private!. do not include as attribute
+    
     def hasAttribute(self, _key:str):
         _bucket_index = hasher(_key) % self.bcount
         if  self.bucket[_bucket_index] == None:
@@ -176,25 +183,43 @@ class CSObject(HashMap):
         self.put(_attr.token, _value)
         return _value
         
-    def subscript(self, _opt:CSToken, _expr:CSObject):
+    def subscript(self, _subscript_location:CSToken, _expr:CSObject):
         """ Called when [...](subscript) operation
 
             Returns
             -------
             CSObject
         """
-        raise NotImplementedError("%s::subscript method must be overritten!" % self.dtype)
+        # format string
+        _error = reformatError(
+            "%s is not subscriptible" % self.dtype,
+            _subscript_location
+        )
+
+        # throw
+        ThrowError(_error)
+
+        # return error
+        return _error
     
-    def call(self, _opt:CSToken, _arg_count:int):
+    def call(self, _call_location:CSToken, _arg_count:int):
         """ Called when (...)(call) operation
 
             Returns
             -------
             CSObject
         """
-        print(_opt.fsrce)
-        show_error("%s is not callable" % self.dtype, _opt)
-        raise NotImplementedError("%s::call method must be overritten!" % self.dtype)
+        # format string
+        _error = reformatError(
+            "%s is not callable" % self.dtype,
+            _call_location
+        )
+
+        # throw
+        ThrowError(_error)
+
+        # return error
+        return _error
 
     # ================= MAGIC METHODS|
     # ===============================|
@@ -220,7 +245,17 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::bit_not method must be overritten!" % self.dtype)
+        # format string
+        _error = reformatError(
+            "unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype),
+            _opt
+        )
+
+        # throw
+        ThrowError(_error)
+
+        # return error
+        return _error
 
     def bin_not(self, _opt:CSToken):
         """ Called when unary ! operation
@@ -229,7 +264,17 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::bin_not method must be overritten!" % self.dtype)
+        # format string
+        _error = reformatError(
+            "unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype),
+            _opt
+        )
+
+        # throw
+        ThrowError(_error)
+
+        # return error
+        return _error
     
     def positive(self, _opt:CSToken):
         """ Called when unary + operation
@@ -238,7 +283,17 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::positive method must be overritten!" % self.dtype)
+        # format string
+        _error = reformatError(
+            "unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype),
+            _opt
+        )
+
+        # throw
+        ThrowError(_error)
+
+        # return error
+        return _error
     
     def negative(self, _opt:CSToken):
         """ Called when unary - operation
@@ -247,7 +302,17 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::negaive method must be overritten!" % self.dtype)
+        # format string
+        _error = reformatError(
+            "unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype),
+            _opt
+        )
+
+        # throw
+        ThrowError(_error)
+
+        # return error
+        return _error
 
     def pow(self, _opt:CSToken, _object:CSObject):
         """ Called when power operation
@@ -256,7 +321,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::pow method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
 
     def mul(self, _opt:CSToken, _object:CSObject):
         """ Called when mul operation
@@ -265,7 +339,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::mul method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def div(self, _opt:CSToken, _object:CSObject):
         """ Called when div operation
@@ -274,7 +357,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::div method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def mod(self, _opt:CSToken, _object:CSObject):
         """ Called when mod operation
@@ -283,7 +375,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::mod method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
 
     def add(self, _opt:CSToken, _object:CSObject):
         """ Called when add operation
@@ -292,7 +393,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::add method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def sub(self, _opt:CSToken, _object:CSObject):
         """ Called when sub operation
@@ -301,7 +411,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::sub method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def lshift(self, _opt:CSToken, _object:CSObject):
         """ Called when left shift operation
@@ -310,7 +429,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::lshift method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def rshift(self, _opt:CSToken, _object:CSObject):
         """ Called when right shift operation
@@ -319,7 +447,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::rshift method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def lt(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan operation
@@ -328,7 +465,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::lt method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
 
     def lte(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan equal operation
@@ -337,7 +483,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::lte method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def gt(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan operation
@@ -346,7 +501,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::gt method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
 
     def gte(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan equal operation
@@ -355,7 +519,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::gte method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def equals(self, _object:CSObject):
         """ Raw equals
@@ -373,7 +546,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::eq method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def neq(self, _opt:CSToken, _object:CSObject):
         """ Called when not equal
@@ -382,7 +564,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::neq method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
 
     def bit_and(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise and operation
@@ -391,7 +582,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::bit_and method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def bit_xor(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise xor operation
@@ -400,7 +600,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::bit_xor method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     def bit_or(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise or operation
@@ -409,7 +618,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::bit_or method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     # for compile time constant evaluation
     def log_and(self, _opt:CSToken, _object:CSObject):
@@ -419,7 +637,16 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::log_and method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
     
     # for compile time constant evaluation
     def log_or(self, _opt:CSToken, _object:CSObject):
@@ -429,4 +656,48 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        raise NotImplementedError("%s::log_or method must be overritten!" % self.dtype)
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
+
+
+# malloc
+def CSMalloc(_csobject:CSObject):
+    # import
+    from cscriptvm.csmemory2 import CSMemory
+
+    _object = CSMemory.CSMalloc(_csobject)
+    del CSMemory
+
+    # return object
+    return _object
+
+
+def reformatError(_message:str, _token:CSToken):
+    """ By default, the entire error is string, not an exception.
+
+        Prameters
+        ---------
+        _csexceptionobject : CSObject
+        _token             : CSToken
+    """
+    _error = CSObject.new_string(
+        ("[%s:%d:%d] CSTypeError: %s" % (_token.fsrce, _token.xS, _token.yS, _message))
+        + "\n" 
+        + _token.trace
+    )
+    return _error
+
+
+def ThrowError(_csexceptionobject:CSObject):
+    from cscriptvm.csvm import CSVirtualMachine as VM
+    VM.throw_error(_csexceptionobject)
+    # delete vm locally
+    del VM

@@ -1,6 +1,5 @@
-from csobject import CSObject
-from csnumber import CSNumber
-from cstoken import CSToken
+
+from csnumber import CSToken, CSObject, CSNumber, CSMalloc, ThrowError
 
 
 class CSInteger(CSNumber):
@@ -15,8 +14,8 @@ class CSInteger(CSNumber):
         super().__init__()
         self.put("this", int(_int))
     
-    # ==================== MAGIC METHODS
-    # ==================================
+    # ==================== MAGIC METHODS|
+    # ==================================|
     """ CSInteger specific operation
     """
     def bit_not(self, _opt:CSToken):

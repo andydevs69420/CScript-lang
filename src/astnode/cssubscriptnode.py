@@ -1,7 +1,4 @@
-from cstoken import CSToken
-from csAst import CSAst
-
-
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 # OK!!! | COMPILED | PASSED
 class SubscriptNode(CSAst):
@@ -14,11 +11,11 @@ class SubscriptNode(CSAst):
         _opt      : CSToken
     """
 
-    def __init__(self, _lefthand:CSAst, _expr:CSAst, _opt:CSToken):
+    def __init__(self, _lefthand:CSAst, _expr:CSAst, _subscript_location:CSToken):
         super().__init__()
         self.lefthand   = _lefthand
         self.expression = _expr
-        self.opt = _opt
+        self.subscript_location = _subscript_location
     
     def compile(self):
         # compile left
@@ -28,7 +25,7 @@ class SubscriptNode(CSAst):
         self.expression.compile()
 
         # subscript opcode
-        self.binary_subscript(self.opt)
+        self.binary_subscript(self.subscript_location)
     
 
     def assignTo(self):
@@ -39,7 +36,7 @@ class SubscriptNode(CSAst):
         self.expression.compile()
 
         # subscript opcode
-        self.set_subscript(self.opt)
+        self.set_subscript(self.subscript_location)
 
 
 

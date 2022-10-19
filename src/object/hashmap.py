@@ -123,8 +123,9 @@ if  __name__ == "__main__":
     hashmap = HashMap()
 
     hashmap.put("andy", "Philipp")
-    hashmap.put("andy", "Philipp2")
-    hashmap.put("andy2", "Philipp222")
+    hashmap.put("Marielle", "Philipp2")
+    hashmap.put("Philipp", "Marielle")
 
     print(hashmap.get("andy"))
-    print(hashmap.get("andy2"))
+    print(hashmap.get("Marielle"))
+    print(hashmap.get("Philipp"))

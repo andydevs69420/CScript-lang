@@ -1,5 +1,4 @@
-
-from csAst import CSAst
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 
 # OK!!! | COMPILED | PASSED
@@ -20,7 +19,7 @@ class WhileNode(CSAst):
     def compile(self):
         _evaluated = self.condition.evaluate()
         if  _evaluated:
-            if  not _evaluated.get("this"):
+            if  not _evaluated.getObject().get("this"):
                 # false condition|no operation
                 self.no_operation()
                 return
@@ -37,7 +36,7 @@ class WhileNode(CSAst):
         _begin = self.getLine()
         
         _rhs_evaluated = self.condition.rhs.evaluate()
-        _rhs_evaluated = _rhs_evaluated.get("this") if _rhs_evaluated else False
+        _rhs_evaluated = _rhs_evaluated.getObject().get("this") if _rhs_evaluated else False
 
         if  not _rhs_evaluated:
             # compile rhs
@@ -53,7 +52,7 @@ class WhileNode(CSAst):
             _jump_t0 = self.peekLast()
 
         _lhs_evaluated = self.condition.lhs.evaluate()
-        _lhs_evaluated = _lhs_evaluated.get("this") if _lhs_evaluated else False
+        _lhs_evaluated = _lhs_evaluated.getObject().get("this") if _lhs_evaluated else False
 
         if  not _lhs_evaluated:
             # compile rhs

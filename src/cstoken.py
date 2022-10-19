@@ -13,7 +13,7 @@ class TokenType(Enum):
     DOUBLE     = 0x02
     STRING     = 0x03
     OPERATOR   = 0x04
-    DYNAMIC_OPERATOR = 0x05
+    DYNAMIC_LOCATION = 0x05
     ENDOFFILE  = 0x06
 
 

@@ -1,6 +1,4 @@
-
-from csobject import CSObject
-from cstoken import CSToken
+from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
 
 
 class CSNumber(CSObject):
@@ -28,8 +26,16 @@ class CSNumber(CSObject):
         elif _rhs.dtype == "CSDouble":
             _class = CSObject.new_double
         else:
-            # TODO: error!
-            raise TypeError("unsupported op '%s' for type(s) %s and %s" % (_opt.token, _lhs.dtype, _rhs.dtype))
+            # = format string|
+            _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, _lhs.dtype, _rhs.dtype), _opt)
+
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
+
+            # == return error|
+            # ===============|
+            return _error
         
         # follow left-hand if double
         if  self.dtype == "CSDouble":\

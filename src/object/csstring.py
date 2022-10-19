@@ -1,7 +1,4 @@
-
-from csobject import CSObject
-from cstoken import CSToken
-
+from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
 
 class CSString(CSObject):
     """ String backend for CScript
@@ -28,7 +25,15 @@ class CSString(CSObject):
     # =========================================|
     def add(self, _opt:CSToken, _object:CSObject):
         if  _object.dtype != "CSString":
-            # TODO: error!
-            return
+           # = format string|
+            _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+            # == throw error|
+            # ==============|
+            ThrowError(_error)
+
+            # = return error|
+            # ==============|
+            return _error
         
         return CSObject.new_string(self.get("this") + _object.get("this"))

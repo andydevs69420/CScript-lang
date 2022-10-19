@@ -4,6 +4,7 @@ from sys import path, setrecursionlimit
 path.append("./src/object"  )
 path.append("./src/astnode" )
 path.append("./src/csriptvm")
+path.append("./src/clss_typing")
 
 setrecursionlimit(15000)
 

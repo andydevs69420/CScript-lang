@@ -1,9 +1,5 @@
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
-from csAst import CSAst
-
-# core
-from cscriptvm.csvm import CSVirtualMachine as VM
-from cscriptvm.cssymboltable import CSSymbolTable as ST
 
 # OK!!! | COMPILED | PASSED
 class BlockNode(CSAst):

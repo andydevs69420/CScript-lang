@@ -1,9 +1,5 @@
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
-from cstoken import CSToken
-from csAst import CSAst
-
-# core
-from cscriptvm.csevaluator import Evaluator
 
 # OK!!! | COMPILED | PASSED
 class BinaryExprNode(CSAst, Evaluator):

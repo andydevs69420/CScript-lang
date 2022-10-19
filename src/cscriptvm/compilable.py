@@ -1,11 +1,20 @@
+
+# ======= global|
+# ==============|
 from cstoken import CSToken
+# ========== end|
 
-# object
+
+# ======= object|
+# ==============|
 from object.csobject import CSObject
-# core
-from cscriptvm.csOpcode import CSOpCode
+# ==============|
 
 
+
+from .csOpcode import CSOpCode
+
+__all__ = __ALL__ = ["Instruction", "Compilable"]
 
 class Instruction(object):
     """ Holds cscript instruction|bytecode
@@ -62,6 +71,16 @@ class Compilable(object):
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
                 CSOpCode.PUSH_NAME, name=_name, offset=_offset
+            )
+        )
+    
+    @staticmethod
+    def push_local(_name:CSToken, _offset:int):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.PUSH_LOCAL, name=_name, offset=_offset
             )
         )
 
@@ -146,12 +165,22 @@ class Compilable(object):
         )
     
     @staticmethod
-    def call(_opt:CSToken, _size:int):
+    def store_local(_name:CSToken, _offset:int):
         Compilable.INSTRUCTIONS[-1]\
         .append(
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
-                CSOpCode.CALL, opt=_opt, size=_size
+                CSOpCode.STORE_LOCAL, name=_name, offset=_offset
+            )
+        )
+    
+    @staticmethod
+    def call(_location:CSToken, _size:int):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.CALL, location=_location, size=_size
             )
         )
     
@@ -276,22 +305,22 @@ class Compilable(object):
         )
     
     @staticmethod
-    def binary_subscript(_opt:CSToken):
+    def binary_subscript(_subscript_location:CSToken):
         Compilable.INSTRUCTIONS[-1]\
         .append(
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
-                CSOpCode.BINARY_SUBSCRIPT, opt=_opt
+                CSOpCode.BINARY_SUBSCRIPT, location=_subscript_location
             )
         )
     
     @staticmethod
-    def set_subscript(_opt:CSToken):
+    def set_subscript(_subscript_location:CSToken):
         Compilable.INSTRUCTIONS[-1]\
         .append(
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
-                CSOpCode.SET_SUBSCRIPT, opt=_opt
+                CSOpCode.SET_SUBSCRIPT, location=_subscript_location
             )
         )
     
@@ -494,6 +523,26 @@ class Compilable(object):
             Instruction(
                 len(Compilable.INSTRUCTIONS[-1]) * 2,
                 CSOpCode.ABSOLUTE_JUMP, target=_target
+            )
+        )
+    
+    @staticmethod
+    def setup_try(_target:int):
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.SETUP_TRY, target=_target
+            )
+        )
+
+    @staticmethod
+    def pop_try():
+        Compilable.INSTRUCTIONS[-1]\
+        .append(
+            Instruction(
+                len(Compilable.INSTRUCTIONS[-1]) * 2,
+                CSOpCode.POP_TRY
             )
         )
     

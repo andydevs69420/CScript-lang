@@ -1,10 +1,4 @@
-
-
-
-from cstoken import CSToken
-from csAst import CSAst
-from errortoken import show_error
-
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 class SimpleAssignment(CSAst):
     """ Holds simple assignment

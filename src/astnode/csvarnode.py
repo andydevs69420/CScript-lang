@@ -1,14 +1,4 @@
-
-from csAst import CSAst
-from errortoken import show_error
-
-# object
-from object.csobject import CSObject
-
-# core
-from cscriptvm.cssymboltable import CSSymbolTable as ST
-from cscriptvm.csvm import CSVirtualMachine as VM
-
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 
 # OK!!! | COMPILED | PASSED
 class VarNode(CSAst):

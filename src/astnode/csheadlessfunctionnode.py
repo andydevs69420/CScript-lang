@@ -1,43 +1,29 @@
 
-
-
 from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
+
 from csspitcode import SpitsCode
 from csblocknode import BlockNode
 
 
 
-class FunctionNode(SpitsCode):
+class HeadlessFunctionNode(SpitsCode):
     """ Handles function node
 
         Parameters
         ----------
-        _func_name  : CSToken
         _parameters : tuple
         _body       : BlockNode
     """
 
-    def __init__(self, _func_name:CSToken, _parameters:tuple, _body:BlockNode):
+    def __init__(self, _parameters:tuple, _body:BlockNode):
         super().__init__()
-        self.funcname   = _func_name
         self.parameters = _parameters
         self.body = _body
     
     def compile(self):
         self.newSet()
         
-        # ================= RECORDING PURPOSE|
-        # ===================================|
-        # check existence
-        if  ST.islocal(self.funcname.token):
-            return show_error("variable \"%s\" is already defined" % self.funcname.token, self.funcname)
-        
-        _s = VM.makeSlot()
         _parameters:list[str] = []
-        
-        # save var_name
-        ST.insert(self.funcname.token, _slot=_s, _global=True)
-
         ST.newScope()
 
         for tok in self.parameters:
@@ -69,13 +55,7 @@ class FunctionNode(SpitsCode):
 
         _instructions = self.popSet()
 
-        self.push_constant(CSObject.new_callable(self.funcname.token, _parameters, _instructions))
-
-        # ============ MEMORY SETTING PURPOSE|
-        # ===================================|
-        # store name
-        self.store_name(self.funcname, _s)
-
+        self.push_constant(CSObject.new_callable("headless", _parameters, _instructions))
         return _instructions
 
 

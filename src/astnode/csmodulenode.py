@@ -1,10 +1,7 @@
 
 
-
+from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
 from csspitcode import SpitsCode
-
-# core
-from cscriptvm.cssymboltable import CSSymbolTable as ST
 
 
 class ModuleNode(SpitsCode):

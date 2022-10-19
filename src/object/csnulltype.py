@@ -1,7 +1,4 @@
-
-from types import NoneType
-from csobject import CSObject
-from cstoken import CSToken
+from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
 
 
 class CSNullType(CSObject):
@@ -12,7 +9,7 @@ class CSNullType(CSObject):
         _null : NoneType
     """
 
-    def __init__(self, _null:NoneType):
+    def __init__(self, _null:None):
         super().__init__()
         self.put("this", None)
 

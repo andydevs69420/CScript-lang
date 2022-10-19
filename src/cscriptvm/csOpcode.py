@@ -1,8 +1,8 @@
 from enum import Enum
-
 class CSOpCode(Enum):
 
    PUSH_NAME  = 0x00
+   PUSH_LOCAL  = 0x201
    PUSH_CONST = 0x01
    MAKE_ARRAY = 0x02
    MAKE_OBJECT = 0x03
@@ -11,6 +11,7 @@ class CSOpCode(Enum):
    GET_ATTRIB  = 0x06
    SET_ATTRIB  = 0x07
    STORE_NAME  = 0x08
+   STORE_LOCAL = 0x200
    CALL       = 0x09
    UNARY_OP   = 0x0a
    BINARY_POW = 0x0b
@@ -48,6 +49,10 @@ class CSOpCode(Enum):
    JUMP_EQUAL = 0x2a
    JUMP_TO = 0x2b
    ABSOLUTE_JUMP = 0x2c
+
+   SETUP_TRY = 0x202
+   POP_TRY = 0x203
+
    PRINT_OBJECT = 0x2d
    NO_OPERATION = 0x2e
    POP_TOP = 0x2f

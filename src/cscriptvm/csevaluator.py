@@ -1,8 +1,18 @@
 
 """
-    Compile time evaluator!
+    Compile time evaluator.
+    For code optimization purposes!
+
+    author: andydevs69420
 """
+
+# ======= global|
+# ==============|
 from cstoken import CSToken
+# ========== end|
+
+class Evaluatable(object):pass
+class Evaluator(object):pass
 
 class Evaluatable(object):
     """ Interface for evaluatable node
@@ -18,7 +28,6 @@ class Evaluatable(object):
         raise NotImplementedError("evaluate method must be overitten!")
 
 
-class Evaluator(object):pass
 class Evaluator(object):
     """ Arithmetic Node Evaluator
     """
@@ -63,8 +72,6 @@ class Evaluator(object):
     def evaluate_bin_op(_opt:CSToken, _lhs:Evaluatable|Evaluator, _rhs:Evaluatable|Evaluator):
         if  not(isinstance(_lhs, (Evaluatable, Evaluator)) and isinstance(_rhs, (Evaluatable, Evaluator))):
             return None
-
-        print("called!")
 
         _lhs = _lhs.evaluate()
         _rhs = _rhs.evaluate()
