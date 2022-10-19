@@ -17,7 +17,11 @@ class VarNode(CSAst):
             # compile value
             _val = assignment["val"]
             if  not _val:
-                self.push_constant(CSObject.new_nulltype("null"))
+                # unstable | not appropriate
+                _null = CSObject.new_nulltype("null")
+                _null.cleanLast()
+                
+                self.push_constant(_null)
             else:
                 _val.compile()
             

@@ -55,7 +55,10 @@ class HeadlessFunctionNode(SpitsCode):
 
         _instructions = self.popSet()
 
-        self.push_constant(CSObject.new_callable("headless", _parameters, _instructions))
+        _function = CSObject.new_callable("headless", _parameters, _instructions)
+        _function.cleanLast()
+
+        self.push_constant(_function)
         return _instructions
 
 

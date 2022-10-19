@@ -16,11 +16,32 @@ class LetNode(CSAst):
         for assignment in self.assignments:
             # compile value
             if  not assignment["val"]:
-                self.push_constant(CSObject.new_nulltype("null"))
+                # unstable | not appropriate
+                _null = CSObject.new_nulltype("null")
+                _null.cleanLast()
+
+                self.push_constant(_null)
             else:
                 assignment["val"].compile()
             
-            # push name
-            self.push_constant(CSObject.new_string(assignment["var"].token))
+
+            _var = assignment["var"]
+
+            # ================= RECORDING PURPOSE|
+            # ===================================|
+            # check existence
+            if  ST.islocal(_var.token):
+                return show_error("local variable \"%s\" is already defined" % _var.token, _var)
+            
+            # possible ok!
+            _s = self.newlocal()
+
+            # save var_name
+            ST.insert(_var.token, _slot=_s, _global=True)
+
+            # ============ MEMORY SETTING PURPOSE|
+            # ===================================|
+            # store name
+            self.store_name(_var, _s)
 
 
