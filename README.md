@@ -14,6 +14,7 @@ cscript programming language
 - [x] class declairation
 - [ ] enum declairation
 - [x] function declairation
+- [x] function expression
 - [x] statement block
 - [x] expression statement
 
@@ -31,3 +32,6 @@ cscript programming language
 ## Other feature(s)
 - [x] operator overloading(few)
 
+# TODO:
+- Rewrite evaluator
+- fix grabage collector(missing compile time objects)
