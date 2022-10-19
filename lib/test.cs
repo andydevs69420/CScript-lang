@@ -14,4 +14,10 @@ print: x;
 
 var yy = [1,2,3,4];
 
+var gg = true && 1000;
 
+print: gg;
+
+{
+    var x = 22;
+}

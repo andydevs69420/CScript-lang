@@ -25,7 +25,7 @@ class ObjectWrapper(object):
         self.__cleanl = True
     
     def safeClean(self):
-        return not self.__cleanl
+        return (self.__rcount <= 0) and (not self.__cleanl)
     
     def increment(self):
         self.__rcount += 1
@@ -86,8 +86,8 @@ class CSMemory:
     def onAllocate():
         CSMemory.ALLOCATIONS += 1
 
-        # run every 500 or over allocation
-        if  CSMemory.ALLOCATIONS >= 500:
+        # run every 1000 or over allocation
+        if  CSMemory.ALLOCATIONS >= 1000:
             from cscriptvm.csvm import CSVirtualMachine as VM
             if  VM.isrunning():
                 CSMemory.collect()
@@ -100,7 +100,7 @@ class CSMemory:
         _collected = 0
         for idx in range(len(CSMemory.MEMORY)):
             if  CSMemory.MEMORY[idx] != None:
-                if  CSMemory.MEMORY[idx].getRcount() <= 0 and CSMemory.MEMORY[idx].safeClean():
+                if  CSMemory.MEMORY[idx].safeClean():
                     CSMemory.MEMORY[idx] = None
                     _collected += 1
         
@@ -120,12 +120,13 @@ class CSMemory:
     @staticmethod
     def collectdump():
         _collected = CSMemory.collectForce()
+        print("-----------------" + ("-" * (len(str(_collected)) + 1)))
         print("GarbageCollected: %d" % _collected)
-        
-        _memory = []
-        for i in CSMemory.MEMORY:
-            if  i:
-                if  i.getRcount() > 0:
-                    _memory.append(i.getObject().toString().__str__())
-        print("Mem:", _memory)
+        _memory_view = []
+        for idx in range(len(CSMemory.MEMORY)):
+            if  CSMemory.MEMORY[idx]:
+                _memory_view.append(CSMemory.MEMORY[idx].getObject().__str__())
+        print("Mem:", _memory_view)
+     
+
         

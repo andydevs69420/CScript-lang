@@ -18,5 +18,7 @@ class DoubleNode(CSAst):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        return CSObject.new_double(float(self.double.token))
+        _double = CSObject.new_double(float(self.double.token))
+        _double.cleanLast()
+        return _double
 

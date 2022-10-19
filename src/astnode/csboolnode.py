@@ -17,7 +17,9 @@ class BoolNode(CSAst, Evaluatable):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        return CSObject.new_boolean(self.boolean.token)
+        _bool = CSObject.new_boolean(self.boolean.token)
+        _bool.cleanLast()
+        return _bool
 
 
 

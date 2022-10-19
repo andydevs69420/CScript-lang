@@ -59,5 +59,8 @@ class BinaryExprNode(CSAst, Evaluator):
         raise NotImplementedError("invalid operator \"%s\"" % self.opt.token)
     
     def evaluate(self):
-        return self.evaluate_bin_op(self.opt, self.lhs, self.rhs)
+        _binary = self.evaluate_bin_op(self.opt, self.lhs, self.rhs)
+        if  _binary:
+            _binary.cleanLast()
+        return _binary
 

@@ -17,4 +17,6 @@ class NullNode(CSAst, Evaluatable):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        return CSObject.new_nulltype(self.nulltype.token)
+        _null = CSObject.new_nulltype(self.nulltype.token)
+        _null.cleanLast()
+        return _null

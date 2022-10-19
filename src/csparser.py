@@ -1,3 +1,4 @@
+from enum import Enum
 from astnode import *
 from cslexer import (
     TokenType, 
@@ -6,7 +7,38 @@ from cslexer import (
     show_error
 )
 
-class CSParser(object):
+
+
+class ContextType(Enum):
+
+    GLOBAL = 0x00
+    LOCAL  = 0x01
+    FUNCTION = 0x02
+    LOOP = 0x03
+
+class ContextUtils(object):
+
+    def __init__(self):
+        self.contextStack:list[ContextType] = []
+
+    def enter(self, _context_type:ContextType):
+        self.contextStack.append(_context_type)
+
+    def leave(self):
+        self.contextStack.pop()
+    
+    def bind(self, _context_type:ContextType, _immediate=False):
+        _binded = False
+        if  _immediate:
+            _binded = _context_type == self.contextStack[-1]
+        else:
+            # check if in stack
+            _binded = _context_type in self.contextStack
+
+        if  not _binded:
+            return show_error("invalid \"%s\" outside %s scope" % (self.cstoken.token, _context_type.name.lower()), self.cstoken)
+
+class CSParser(ContextUtils):
     """ CSParser
 
         Parameters
@@ -16,6 +48,7 @@ class CSParser(object):
     """
 
     def __init__(self, _fpath:str, _scode:str):
+        super().__init__()
         self.fpath:str = _fpath 
         self.scode:str = _scode
         self.cslexer   = CSLexer(self.fpath, self.scode)
@@ -106,6 +139,8 @@ class CSParser(object):
         
         # function(){...}
         def function_expression():
+            self.enter(ContextType.FUNCTION)
+
             self.eat("function")
 
             self.eat("(")
@@ -115,6 +150,8 @@ class CSParser(object):
             self.eat(")")
 
             _func_body = block_stmnt()
+
+            self.leave()
 
             # return as headless function
             return HeadlessFunctionNode(_parameters, _func_body)
@@ -728,6 +765,7 @@ class CSParser(object):
 
         # class declairation: "class" raw_identifier (':' raw_identifier)? class_body;
         def class_dec():
+            self.bind(ContextType.GLOBAL, _immediate=True)
             self.eat("class")
 
             # class name
@@ -788,6 +826,10 @@ class CSParser(object):
 
         # function_dec: "function" raw_identifier '(' function_parameters ')' block_stmnt;
         def function_dec():
+            self.bind(ContextType.GLOBAL, _immediate=True)
+
+            self.enter(ContextType.FUNCTION)
+
             self.eat("function")
 
             _func_name = raw_identifier()
@@ -799,6 +841,8 @@ class CSParser(object):
             self.eat(")")
 
             _func_body = block_stmnt()
+
+            self.leave()
 
             # return as function
             return FunctionNode(_func_name, _parameters, _func_body)
@@ -862,6 +906,8 @@ class CSParser(object):
 
         # while_stmnt: "while" '(' non_nullable_expression ')' compound_stmnt ;
         def while_stmnt():
+            self.enter(ContextType.LOOP)
+
             self.eat("while")
             
             self.eat("(")
@@ -872,11 +918,15 @@ class CSParser(object):
 
             _statement = compound_stmnt()
 
+            self.leave()
+
             # return as while
             return WhileNode(_condition, _statement)
         
         # do_while_stmnt: "do" compound_stmnt "while" '(' non_nullable_expression ')';
         def do_while_stmnt():
+            self.enter(ContextType.LOOP)
+
             self.eat("do")
 
             _body = compound_stmnt()
@@ -888,6 +938,8 @@ class CSParser(object):
             _condition = non_nullable_expression()
 
             self.eat(")")
+
+            self.leave()
 
             # return as do while
             return DoWhileNode(_condition, _body)
@@ -977,6 +1029,9 @@ class CSParser(object):
         # multi-purpose: used in: ["function_expression", "function_dec"]
         def block_stmnt():
             _statements = []
+
+            self.enter(ContextType.LOCAL)
+
             self.eat("{")
 
             _stmntN = compound_stmnt()
@@ -985,6 +1040,8 @@ class CSParser(object):
                 _stmntN = compound_stmnt()
 
             self.eat("}")
+
+            self.leave()
 
             # return as block node
             return BlockNode(tuple(_statements))
@@ -1020,6 +1077,10 @@ class CSParser(object):
         
         # var_stmnt: "var" assignment_list;
         def var_stmnt():
+            # ===== check context|
+            # ===================|
+            self.bind(ContextType.GLOBAL, _immediate=True)
+
             self.eat("var")
 
             _assignments = assignment_list()
@@ -1031,6 +1092,8 @@ class CSParser(object):
 
         # let_stmnt: "let" assignment_list;
         def let_stmnt():
+            self.bind(ContextType.LOCAL, _immediate=True)
+
             self.eat("let")
 
             _assignments = assignment_list()
@@ -1075,6 +1138,8 @@ class CSParser(object):
 
         # return_stmnt: "return" nullable_expression ';';
         def return_stmnt():
+            self.bind(ContextType.FUNCTION)
+
             self.eat("return")
 
             _expr = nullable_expression()
@@ -1127,12 +1192,15 @@ class CSParser(object):
         
         # module: compound_stmnt* EOF;
         def module():
+            self.enter(ContextType.GLOBAL)
             _nodes = []
             
             while not self.cstoken.matches(TokenType.ENDOFFILE):
                 _nodes.append(compound_stmnt())
             
             self.eat(TokenType.ENDOFFILE)
+
+            self.leave()
             
             # return as module
             return ModuleNode(tuple(_nodes))

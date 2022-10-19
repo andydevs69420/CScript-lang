@@ -17,4 +17,6 @@ class StringNode(CSAst, Evaluatable):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        return CSObject.new_string(self.string.token)
+        _string = CSObject.new_string(self.string.token)
+        _string.cleanLast()
+        return _string
