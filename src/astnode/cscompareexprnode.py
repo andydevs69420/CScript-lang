@@ -36,9 +36,6 @@ class CompareExprNode(CSAst, Evaluator):
         self.compare_op(self.opt)
 
     def evaluate(self):
-        _compare = self.evaluate_comp_op(self.opt, self.lhs, self.rhs)
-        if  _compare:
-            _compare.cleanLast()
-        return _compare
+        return self.evaluate_comp_op(self.opt, self.lhs, self.rhs)
 
 

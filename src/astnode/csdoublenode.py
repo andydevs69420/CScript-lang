@@ -1,4 +1,5 @@
 from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
+from object import CSDouble
 
 
 # OK!!! | COMPILED | PASSED
@@ -18,7 +19,5 @@ class DoubleNode(CSAst):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        _double = CSObject.new_double(float(self.double.token))
-        _double.cleanLast()
-        return _double
+        return CSDouble(self.double.token)
 

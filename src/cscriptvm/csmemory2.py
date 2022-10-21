@@ -17,13 +17,6 @@ class ObjectWrapper(object):
         self.__offset:int      = _offset
         self.__cleanl:bool     = False
     
-    def cleanLast(self):
-        """ HACK!!
-
-            Foooocc!
-        """
-        self.__cleanl = True
-    
     def safeClean(self):
         return (self.__rcount <= 0) and (not self.__cleanl)
     
@@ -53,6 +46,15 @@ class CSMemory:
 
     ALLOCATIONS:int = 0
     MEMORY:list[ObjectWrapper] = []
+    NAMES:dict[int:int] = ({
+        # int: None|int
+    })
+
+    @staticmethod
+    def CSMakeSLot():
+        _idx = len(CSMemory.NAMES)
+        CSMemory.NAMES[_idx] = None
+        return _idx
 
     @staticmethod
     def CSMalloc(_csobject:CSObject) -> ObjectWrapper:
@@ -72,9 +74,8 @@ class CSMemory:
 
     @staticmethod
     def incrementAt(_index:int):
-        if  _index != None:
-            if  CSMemory.MEMORY[_index]:
-                CSMemory.MEMORY[_index].increment()
+        if  CSMemory.MEMORY[_index]:
+            CSMemory.MEMORY[_index].increment()
 
     @staticmethod
     def decrementAt(_index:int):
@@ -97,29 +98,20 @@ class CSMemory:
 
     @staticmethod
     def collect():
+        print("Collecting...")
         _collected = 0
         for idx in range(len(CSMemory.MEMORY)):
             if  CSMemory.MEMORY[idx] != None:
-                if  CSMemory.MEMORY[idx].safeClean():
+                if  CSMemory.MEMORY[idx].getRcount() <= 0 and (CSMemory.MEMORY[idx].getOffset() not in CSMemory.NAMES.keys()):
                     CSMemory.MEMORY[idx] = None
                     _collected += 1
         
         return _collected
-    
-    @staticmethod
-    def collectForce():
-        _collected = 0
-        for idx in range(len(CSMemory.MEMORY)):
-            if  CSMemory.MEMORY[idx] != None:
-                if  CSMemory.MEMORY[idx].getRcount() <= 0:
-                    CSMemory.MEMORY[idx] = None
-                    _collected += 1
-        
-        return _collected
+
     
     @staticmethod
     def collectdump():
-        _collected = CSMemory.collectForce()
+        _collected = CSMemory.collect()
         print("-----------------" + ("-" * (len(str(_collected)) + 1)))
         print("GarbageCollected: %d" % _collected)
         _memory_view = []

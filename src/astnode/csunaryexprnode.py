@@ -30,8 +30,5 @@ class UnaryExprNode(CSAst, Evaluator):
         self.unary_op(self.opt)
     
     def evaluate(self):
-        _unary = self.evaluate_unary_op(self.opt, self.rhs)
-        if  _unary:
-            _unary.cleanLast()
-        return _unary
+        return self.evaluate_unary_op(self.opt, self.rhs)
 

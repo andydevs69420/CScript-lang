@@ -1,4 +1,5 @@
 from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
+from object import CSBoolean
 
 # OK!!! | COMPILED | PASSED
 class BoolNode(CSAst, Evaluatable):
@@ -17,9 +18,7 @@ class BoolNode(CSAst, Evaluatable):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        _bool = CSObject.new_boolean(self.boolean.token)
-        _bool.cleanLast()
-        return _bool
+        return CSBoolean(self.boolean.token)
 
 
 

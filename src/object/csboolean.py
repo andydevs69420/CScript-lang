@@ -15,9 +15,8 @@ class CSBoolean(CSObject):
         super().__init__()
         self.put("this", bool(True if _bool == "true" else False))
     
-    # ![bound::toString]
-    def toString(self):
-        return CSObject.new_string("true" if self.get("this") else "false")
+    def __str__(self):
+        return "true" if self.get("this") else "false"
     
     # ================= SUPPORTED MAGIC METHODS
     
@@ -38,7 +37,7 @@ class CSBoolean(CSObject):
         return True
     """ CSBoolean specific operation
     """
-    def bin_not(self, _opt:CSToken):
+    def bin_not(self, _opt:CSToken, _allocate:bool=False):
         return CSObject.new_boolean("true" if not self.get("this") else "false")
     
     def eq(self, _opt: CSToken, _object: CSObject):

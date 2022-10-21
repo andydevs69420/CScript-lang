@@ -176,19 +176,17 @@ class Memory:
 
     @staticmethod
     def makeSlot() -> int:
-        _idx = len(Memory.NAMES)
-        Memory.NAMES[_idx] = None
-        return _idx
+        return Memory.VHEAP.CSMakeSLot()
     
     @staticmethod
     def memSet(_offset_index:int, _csobject:ObjectWrapper):
-        Memory.VHEAP.decrementAt(Memory.NAMES[_offset_index])
-        Memory.VHEAP.incrementAt(_csobject.getOffset()      )
-        Memory.NAMES[_offset_index] = _csobject.getOffset()
+        Memory.VHEAP.decrementAt(Memory.VHEAP.NAMES[_offset_index])
+        Memory.VHEAP.incrementAt(_csobject.getOffset()            )
+        Memory.VHEAP.NAMES[_offset_index] = _csobject.getOffset()
 
     @staticmethod
     def memGet(_offset_index:int):
-        return Memory.VHEAP.getObjectAt(Memory.NAMES[_offset_index])
+        return Memory.VHEAP.getObjectAt(Memory.VHEAP.NAMES[_offset_index])
 
 
 class CSVirtualMachine(ExceptionTable, CallStack, Memory):
@@ -221,25 +219,22 @@ class CSVirtualMachine(ExceptionTable, CallStack, Memory):
         CallStack.cs_pop_frame()\
             .cleanup()
         
-        if not CallStack.cs_hasFrame():Memory.VHEAP.collectdump()
-        
         CSVirtualMachine.ISRUNNING = False
         return _top
     
     @staticmethod
     def throw_error(_csobjectwrapper:ObjectWrapper):
-        
-        if  ExceptionTable.et_is_empty():
-            # TODO: replace with cscript stderr
-            print(_csobjectwrapper)
-            return exit(1)
-        else:
+        if  not ExceptionTable.et_is_empty():
             # if exception table is not empty,
             # jump to whats being returned
             _target = ExceptionTable.et_peek() // 2
             CallStack\
                 .cs_peek_frame()\
                     .setPointer(_target)
+        else:
+            # TODO: replace with cscript stderr
+            print(_csobjectwrapper)
+            return exit(1)
     
     # ==================================== OPCODE EVALUATOR|
     # =====================================================|
@@ -457,7 +452,9 @@ class CSVirtualMachine(ExceptionTable, CallStack, Memory):
 
     @staticmethod
     def push_const(_instruction:Instruction):
-        EvalStack.es_push(_instruction.get("obj"))
+        _obj = CSVirtualMachine.VHEAP.CSMalloc(_instruction.get("obj"))
+        _obj.increment()
+        EvalStack.es_push(_obj)
     
     @staticmethod
     def push_name(_instruction:Instruction):
@@ -503,15 +500,7 @@ class CSVirtualMachine(ExceptionTable, CallStack, Memory):
 
     @staticmethod
     def make_module(_instruction:Instruction):
-        # _module = CSObject()
-
-        # while not EvalStack.isEmpty():
-        #     _name  = EvalStack.es_pop()
-        #     _value = EvalStack.es_pop()
-        #     _module.put(_name.get("this").__str__(), _value)
-        
-        EvalStack.es_push(CSObject.new_nulltype("null"))
-        ...
+        EvalStack.es_push(None)
     
     @staticmethod
     def get_attrib(_instruction:Instruction):
@@ -529,6 +518,7 @@ class CSVirtualMachine(ExceptionTable, CallStack, Memory):
     @staticmethod
     def store_name(_instruction:Instruction):
         _val = EvalStack.es_peek()
+        print(_val)
         Memory.memSet(_instruction.get("offset"), _val)
     
     @staticmethod
@@ -639,6 +629,9 @@ class CSVirtualMachine(ExceptionTable, CallStack, Memory):
         _opt = _instruction.get("opt")
         _lhs = EvalStack.es_pop()
         _rhs = EvalStack.es_pop()
+
+        print(_lhs, _rhs)
+        
         match _opt.token:
             case "<":
                 return EvalStack.es_push(_lhs.getObject().lt(_opt, _rhs.getObject()))
@@ -796,7 +789,7 @@ class CSVirtualMachine(ExceptionTable, CallStack, Memory):
 
         _fmt = ""
         for count in range(_size):
-            _fmt += EvalStack.es_pop().getObject().toString().__str__()
+            _fmt += "%s" % EvalStack.es_pop().getObject().get("this")
             if  count < (_size - 1):
                 _fmt += " "
 

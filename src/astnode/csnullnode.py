@@ -1,4 +1,5 @@
 from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
+from object import CSNullType
 
 # OK!!! | COMPILED | PASSED
 class NullNode(CSAst, Evaluatable):
@@ -17,6 +18,4 @@ class NullNode(CSAst, Evaluatable):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        _null = CSObject.new_nulltype(self.nulltype.token)
-        _null.cleanLast()
-        return _null
+        return CSNullType()

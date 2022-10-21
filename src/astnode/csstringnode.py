@@ -1,4 +1,6 @@
 from csAst import CSToken, CSAst, CSObject, show_error, ST, VM, Evaluator, Evaluatable
+from object import CSString
+
 
 # OK!!! | COMPILED | PASSED
 class StringNode(CSAst, Evaluatable):
@@ -17,6 +19,4 @@ class StringNode(CSAst, Evaluatable):
         self.push_constant(self.evaluate())
     
     def evaluate(self):
-        _string = CSObject.new_string(self.string.token)
-        _string.cleanLast()
-        return _string
+        return CSString(self.string.token)

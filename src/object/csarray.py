@@ -37,8 +37,7 @@ class CSArray(CSObject):
             CSObject
         """
     
-    # ![bound::toString]
-    def toString(self):
+    def __str__(self):
         _elem = ""
         for idx in range(self.size):
             _elem += str(self.elem.get(str(idx)))
@@ -47,7 +46,7 @@ class CSArray(CSObject):
                 _elem += ", "
         
         # return formated string
-        return CSObject.new_string("[" + _elem + "]")
+        return "[" + _elem + "]"
 
     def reBuild(self):
         """ Rebuilds array when pop|del is called

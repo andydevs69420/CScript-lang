@@ -1,8 +1,9 @@
 
+var x = 0;
 
-function add(a,b){
-    return a + b;
+while (x < 1000) {
+
+    x += 1;
 }
 
-print: add(1, 2);
-
+print: x;

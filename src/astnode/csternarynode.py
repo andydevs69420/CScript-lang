@@ -48,8 +48,5 @@ class TernaryNode(CSAst, Evaluator):
 
     
     def evaluate(self):
-        _ternary = self.evaluate_ternary_op(self.condition, self.vtrue, self.vfalse)
-        if  _ternary:
-            _ternary.cleanLast()
-        return _ternary
+        return self.evaluate_ternary_op(self.condition, self.vtrue, self.vfalse)
 

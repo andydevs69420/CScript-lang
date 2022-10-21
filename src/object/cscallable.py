@@ -10,20 +10,19 @@ class CSCallable(CSObject):
         self.parameters   = _parameters
         self.instructions = _instructions
     
-    #![bound:: toString]
-    def toString(self):
+    def get(self, _key: str):
+        if  type(self) == CSCallable and _key == "this":
+            return self
+        return super().get(_key)
+    
+    def __str__(self):
         _fmt_param = ""
         for idx in range(len(self.parameters)):
             _fmt_param += self.parameters[idx]
 
             if  idx < len(self.parameters) - 1:
                 _fmt_param += ", "
-        return CSObject.new_string("function %s(%s){...}" % (self.name, _fmt_param))
-    
-    def get(self, _key: str):
-        if  type(self) == CSCallable and _key == "this":
-            return self
-        return super().get(_key)
+        return "function %s(%s){...}" % (self.name, _fmt_param)
 
     # ================ DUNDER METHODS|
     # ===============================|
