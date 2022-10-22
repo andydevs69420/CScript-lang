@@ -10,10 +10,10 @@ class Node(object):
         self.data = ({
             # data here!
         })
-    
+     
     def insert(self, _symbol:str, **_props:dict):
-        if  self.lookup(_symbol):
-            return self.lookup(_symbol)
+        if  self.vlocal(_symbol):
+            raise Exception("Not catched!!!!!!")
         # insert
         self.data[_symbol] = _props
     
@@ -32,26 +32,6 @@ class Node(object):
             _parent = _parent.head
         return  False
     
-    def countLocal(self):
-        _count = 0
-        if  self.head != None:
-            head = self.head
-            while head:
-                if head.head != None:
-                    _count += len(head.data)
-                head = head.head
-            
-            _count += len(self.data)
-            return _count
-        else:
-            tail = self.tail
-            while tail:
-                _count += len(tail.data)
-                tail = tail.tail
-            
-            _count += len(self.data)
-        
-        return _count
 
 
 class CSSymbolTable:
@@ -83,10 +63,6 @@ class CSSymbolTable:
     def islocal(_symbol:str):
         assert CSSymbolTable.CURRENT, "empty scope!"
         return CSSymbolTable.CURRENT.vlocal(_symbol)
-
-    @staticmethod
-    def countLocal():
-        return CSSymbolTable.CURRENT.countLocal()
     
     @staticmethod
     def newScope():

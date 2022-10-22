@@ -149,7 +149,7 @@ class CSParser(ContextUtils):
 
             self.eat(")")
 
-            _func_body = block_stmnt()
+            _func_body = function_body()
 
             self.leave()
 
@@ -840,7 +840,7 @@ class CSParser(ContextUtils):
 
             self.eat(")")
 
-            _func_body = block_stmnt()
+            _func_body = function_body()
 
             self.leave()
 
@@ -879,6 +879,24 @@ class CSParser(ContextUtils):
                 return None
             
             return raw_identifier()
+        
+        def function_body():
+            _statements = []
+
+            self.enter(ContextType.LOCAL)
+
+            self.eat("{")
+
+            _stmntN = compound_stmnt()
+            while _stmntN:
+                _statements.append(_stmntN)
+                _stmntN = compound_stmnt()
+
+            self.eat("}")
+
+            self.leave()
+
+            return tuple(_statements)
 
         # if_stmnt: "if" '(' non_nullable_expression ')' compound_stmnt ("else" compound_stmnt)?;
         def if_stmnt():
@@ -1026,7 +1044,7 @@ class CSParser(ContextUtils):
 
 
         # block_stmnt: '{' compound_stmnt* '}';
-        # multi-purpose: used in: ["function_expression", "function_dec"]
+        # multi-purpose: used in: ["function_expression"]
         def block_stmnt():
             _statements = []
 

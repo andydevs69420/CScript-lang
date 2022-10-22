@@ -37,7 +37,7 @@ class CSBoolean(CSObject):
         return True
     """ CSBoolean specific operation
     """
-    def bin_not(self, _opt:CSToken, _allocate:bool=False):
+    def bin_not(self, _opt:CSToken):
         return CSObject.new_boolean("true" if not self.get("this") else "false")
     
     def eq(self, _opt: CSToken, _object: CSObject):

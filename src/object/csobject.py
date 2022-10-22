@@ -1,6 +1,4 @@
 
-
-
 from cstoken import CSToken
 from errortoken import show_error
 from hashmap import hasher, HashMap
@@ -21,8 +19,7 @@ class CSObject(HashMap):
     def __init__(self):
         super().__init__()
         # initilize
-        self.dtype  = type(self).__name__
-        self.static = []
+        self.dtype = type(self).__name__
     
     def get(self, _key: str):
         if  type(self) == CSObject and _key == "this":
@@ -38,6 +35,9 @@ class CSObject(HashMap):
             CSString
         """
         return CSObject.new_string(self.__str__())
+    
+    def isPointer(self):
+        return False
     
     def __str__(self):
         """ Modify __str__() if yo want to change how it looks when its printed
@@ -58,17 +58,17 @@ class CSObject(HashMap):
     @staticmethod
     def new():
         _object = CSObject()
-        return CSMalloc(_object)
+        return _object
 
     @staticmethod
-    def new_integer(_data:int, _allocate:bool=True):
+    def new_integer(_data:int):
         import csinteger
         _int = csinteger.CSInteger(_data)
         del csinteger
-        return CSMalloc(_int) if _allocate else _int
+        return CSMalloc(_int)
 
     @staticmethod
-    def new_double(_data:float, _allocate:bool=True):
+    def new_double(_data:float):
         """ Creates raw double object
 
             Returns
@@ -78,10 +78,10 @@ class CSObject(HashMap):
         import csdouble
         _flt = csdouble.CSDouble(_data)
         del csdouble
-        return CSMalloc(_flt) if _allocate else _flt
+        return CSMalloc(_flt)
 
     @staticmethod
-    def new_string(_data:str, _allocate:bool=True):
+    def new_string(_data:str):
         """ Creates raw string object
 
             Returns
@@ -91,10 +91,10 @@ class CSObject(HashMap):
         import csstring
         _str = csstring.CSString(_data)
         del csstring
-        return CSMalloc(_str) if _allocate else _str
+        return CSMalloc(_str)
     
     @staticmethod
-    def new_boolean(_data:str, _allocate:bool=True):
+    def new_boolean(_data:str):
         """ Creates raw boolean object
 
             Returns
@@ -104,10 +104,10 @@ class CSObject(HashMap):
         import csboolean
         _bool = csboolean.CSBoolean(_data)
         del csboolean
-        return CSMalloc(_bool) if _allocate else _bool
+        return CSMalloc(_bool)
 
     @staticmethod
-    def new_nulltype(_allocate:bool=True):
+    def new_nulltype():
         """ Creates raw null object
 
             Returns
@@ -117,7 +117,7 @@ class CSObject(HashMap):
         import csnulltype
         _null = csnulltype.CSNullType()
         del csnulltype
-        return CSMalloc(_null) if _allocate else _null
+        return CSMalloc(_null)
     
     @staticmethod
     def new_array():
@@ -130,7 +130,7 @@ class CSObject(HashMap):
         import csarray
         _array = csarray.CSArray()
         del csarray
-        return CSMalloc(_array)
+        return _array
 
     @staticmethod
     def new_callable(_name:str, _parameters:list, _instructions:list):
@@ -143,7 +143,7 @@ class CSObject(HashMap):
         import cscallable
         _function = cscallable.CSCallable(_name, len(_parameters), _parameters, _instructions)
         del cscallable
-        return CSMalloc(_function)
+        return _function
     
     # ======================================== DUNDER METHODS|
     # =======================================================|
@@ -195,16 +195,15 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # format string
-        _error = reformatError(
-            "%s is not subscriptible" % self.dtype,
-            _subscript_location
-        )
+        # = format string|
+        _error = reformatError("%s is not subscriptible" % self.dtype, _subscript_location)
 
-        # throw
+        # === throw error|
+        # ===============|
         ThrowError(_error)
 
-        # return error
+        # == return error|
+        # ===============|
         return _error
     
     def call(self, _call_location:CSToken, _arg_count:int):
@@ -214,16 +213,15 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # format string
-        _error = reformatError(
-            "%s is not callable" % self.dtype,
-            _call_location
-        )
+        # = format string|
+        _error = reformatError("%s is not callable" % self.dtype, _call_location)
 
-        # throw
+        # === throw error|
+        # ===============|
         ThrowError(_error)
 
-        # return error
+        # == return error|
+        # ===============|
         return _error
 
     # ================= MAGIC METHODS|
@@ -243,7 +241,7 @@ class CSObject(HashMap):
             Any
         """
 
-    def bit_not(self, _opt:CSToken, _allocate:bool=True):
+    def bit_not(self, _opt:CSToken):
         """ Called when unary ~ operation
 
             Returns
@@ -261,7 +259,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def bin_not(self, _opt:CSToken, _allocate:bool=True):
+    def bin_not(self, _opt:CSToken):
         """ Called when unary ! operation
 
             Returns
@@ -279,7 +277,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def positive(self, _opt:CSToken, _allocate:bool=True):
+    def positive(self, _opt:CSToken):
         """ Called when unary + operation
 
             Returns
@@ -297,7 +295,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def negative(self, _opt:CSToken, _allocate:bool=True):
+    def negative(self, _opt:CSToken):
         """ Called when unary - operation
 
             Returns
@@ -315,7 +313,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def pow(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def pow(self, _opt:CSToken, _object:CSObject):
         """ Called when power operation
 
             Returns
@@ -333,7 +331,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def mul(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def mul(self, _opt:CSToken, _object:CSObject):
         """ Called when mul operation
 
             Returns
@@ -351,7 +349,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def div(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def div(self, _opt:CSToken, _object:CSObject):
         """ Called when div operation
 
             Returns
@@ -369,7 +367,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def mod(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def mod(self, _opt:CSToken, _object:CSObject):
         """ Called when mod operation
 
             Returns
@@ -387,7 +385,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def add(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def add(self, _opt:CSToken, _object:CSObject):
         """ Called when add operation
 
             Returns
@@ -405,7 +403,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def sub(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def sub(self, _opt:CSToken, _object:CSObject):
         """ Called when sub operation
 
             Returns
@@ -423,7 +421,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def lshift(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def lshift(self, _opt:CSToken, _object:CSObject):
         """ Called when left shift operation
 
             Returns
@@ -441,7 +439,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def rshift(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def rshift(self, _opt:CSToken, _object:CSObject):
         """ Called when right shift operation
 
             Returns
@@ -459,7 +457,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def lt(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def lt(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan operation
 
             Returns
@@ -477,7 +475,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def lte(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def lte(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan equal operation
 
             Returns
@@ -495,7 +493,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def gt(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def gt(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan operation
 
             Returns
@@ -513,7 +511,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def gte(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def gte(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan equal operation
 
             Returns
@@ -531,7 +529,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def equals(self, _object:CSObject, _allocate:bool=True):
+    def equals(self, _object:CSObject):
         """ Raw equals
 
             Returns
@@ -540,7 +538,7 @@ class CSObject(HashMap):
         """
         return self.get("this") == _object.get("this")
 
-    def eq(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def eq(self, _opt:CSToken, _object:CSObject):
         """ Called when equal
 
             Returns
@@ -558,7 +556,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def neq(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def neq(self, _opt:CSToken, _object:CSObject):
         """ Called when not equal
 
             Returns
@@ -576,7 +574,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def bit_and(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def bit_and(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise and operation
 
             Returns
@@ -594,7 +592,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def bit_xor(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def bit_xor(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise xor operation
 
             Returns
@@ -612,7 +610,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
-    def bit_or(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def bit_or(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise or operation
 
             Returns
@@ -631,7 +629,7 @@ class CSObject(HashMap):
         return _error
     
     # for compile time constant evaluation
-    def log_and(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def log_and(self, _opt:CSToken, _object:CSObject):
         """ Called when logic and operation
 
             Returns
@@ -650,7 +648,7 @@ class CSObject(HashMap):
         return _error
     
     # for compile time constant evaluation
-    def log_or(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def log_or(self, _opt:CSToken, _object:CSObject):
         """ Called when logic or operation
 
             Returns
@@ -672,10 +670,10 @@ class CSObject(HashMap):
 # malloc
 def CSMalloc(_csobject:CSObject):
     # import
-    from cscriptvm.csmemory2 import CSMemory
+    from cscriptvm.csvm import CSVM as VM
 
-    _object = CSMemory.CSMalloc(_csobject)
-    del CSMemory
+    _object = VM.VHEAP.allocate(_csobject)
+    del VM
 
     # return object
     return _object
@@ -690,7 +688,7 @@ def reformatError(_message:str, _token:CSToken):
         _token             : CSToken
     """
     _error = CSObject.new_string(
-        ("[%s:%d:%d] CSTypeError: %s" % (_token.fsrce, _token.xS, _token.yS, _message))
+        ("[%s:%d:%d] CSTypeError: %s" % (_token.fsrce, _token.yS, _token.xS, _message))
         + "\n" 
         + _token.trace
     )
@@ -698,7 +696,7 @@ def reformatError(_message:str, _token:CSToken):
 
 
 def ThrowError(_csexceptionobject:CSObject):
-    from cscriptvm.csvm import CSVirtualMachine as VM
+    from cscriptvm.csvm import CSVM as VM
     VM.throw_error(_csexceptionobject)
     # delete vm locally
     del VM

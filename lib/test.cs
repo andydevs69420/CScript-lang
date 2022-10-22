@@ -1,9 +1,9 @@
 
-var x = 0;
 
-while (x < 1000) {
-
-    x += 1;
+var x = 2;
+if (x == 2) {
+    print: "YEs";
+} else {
+    print: "No";
 }
 
-print: x;

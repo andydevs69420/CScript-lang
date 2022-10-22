@@ -4,7 +4,6 @@ from sys import path, setrecursionlimit
 path.append("./src/object"  )
 path.append("./src/astnode" )
 path.append("./src/csriptvm")
-path.append("./src/clss_typing")
 
 setrecursionlimit(15000)
 
@@ -12,9 +11,9 @@ setrecursionlimit(15000)
 from csparser import CSParser
 
 # core
-from cscriptvm.csvm import CSVirtualMachine
+from cscriptvm.csvm import CSVM
 
-FILE = "lib/test.cs"
+FILE = "lib/ternary_test.csx"
 parser = CSParser(FILE, open(FILE, "r").read())
 x = parser.parse()
 instruct = x.compile()
@@ -23,5 +22,5 @@ for ins in instruct:
     print(ins)
 print("Done!")
 
-CSVirtualMachine.run(instruct)
-CSVirtualMachine.VHEAP.collectdump()
+# CSVM.run(instruct)
+# CSVM.VHEAP.collectlast()

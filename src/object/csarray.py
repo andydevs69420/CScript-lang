@@ -26,7 +26,7 @@ class CSArray(CSObject):
         self.size += 1
     
         # default return
-        return CSObject.new_nulltype("null")
+        return CSObject.new_nulltype()
     
     # ![bound::pop]
     def pop(self, _csobject:CSObject):
@@ -37,6 +37,15 @@ class CSArray(CSObject):
             CSObject
         """
     
+    def getElements(self):
+        _children = []
+        for i in self.elem.keys():
+            _children.append(self.elem.get(i))
+        return _children
+    
+    def isPointer(self):
+        return True
+
     def __str__(self):
         _elem = ""
         for idx in range(self.size):
@@ -49,7 +58,7 @@ class CSArray(CSObject):
         return "[" + _elem + "]"
 
     def reBuild(self):
-        """ Rebuilds array when pop|del is called
+        """ Rebuilds array when pop is called
         """
         ...
 
@@ -61,3 +70,51 @@ class CSArray(CSObject):
             -------
             CSArray
         """
+    
+    # 
+    def subscript(self, _subscript_location: CSToken, _expr: CSObject):
+        if  _expr.dtype != "CSInteger":
+            # = format string|
+            _error = reformatError("CSArray subscript must be a type of CSInteger", _subscript_location)
+
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
+
+            # == return error|
+            # ===============|
+            return _error
+
+        if  not self.elem.hasAttribute(str(_expr.get("this"))):
+            # = format string|
+            _error = reformatError("CSArray index out of range %d < %d" % (self.size, _expr.get("this")), _subscript_location)
+
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
+
+            # == return error|
+            # ===============|
+            return _error
+        
+        return self.elem.get(str(_expr.get("this")))
+            
+
+
+
+def reformatError(_message:str, _token:CSToken):
+    """ By default, the entire error is string, not an exception.
+
+        Prameters
+        ---------
+        _csexceptionobject : CSObject
+        _token             : CSToken
+    """
+    _error = CSObject.new_string(
+        ("[%s:%d:%d] CSError: %s" % (_token.fsrce, _token.yS, _token.xS, _message))
+        + "\n" 
+        + _token.trace
+    )
+    return _error
+
+
