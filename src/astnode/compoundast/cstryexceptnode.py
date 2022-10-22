@@ -31,6 +31,9 @@ class TryExceptNode(CSAst):
         # record jump location  if error
         _will_jump_to.kwargs["target"] = _block.getLine()
 
+        # pop try/except block
+        _block.pop_try()
+
         _block.store_local(self.except_param, _s)
 
         # compile except
@@ -46,6 +49,3 @@ class TryExceptNode(CSAst):
         # compile finally
         if  self.finally_body:
             self.finally_body.compile(_block)
-
-        # pop try/except block
-        _block.pop_try()

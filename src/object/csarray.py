@@ -85,7 +85,7 @@ class CSArray(CSObject):
 
         if  not self.get("elements").hasAttribute(str(_expr.get("this"))):
             # = format string|
-            _error = reformatError("CSArray index out of range %d < %d" % (self.size, _expr.get("this")), _subscript_location)
+            _error = reformatError("CSArray index out of range %d < %d" % (self.get("length").get("this"), _expr.get("this")), _subscript_location)
 
             # === throw error|
             # ===============|

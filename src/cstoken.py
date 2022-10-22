@@ -96,8 +96,14 @@ class CSToken(object):
             dict
         """
         return ({
-            "ttype": self.ttype,
+            "fsrce": self.fsrce,
+            "ttype": self.ttype.name,
             "token": self.token,
+            "xS"   : self.xS,
+            "xE"   : self.xE,
+            "yS"   : self.yS,
+            "yE"   : self.yE,
+            "trace": self.trace
         })
     
     @staticmethod

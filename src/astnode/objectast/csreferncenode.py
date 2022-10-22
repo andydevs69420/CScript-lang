@@ -1,8 +1,9 @@
-from astnode.globalast.csAst import CSToken, CSAst, show_error, ST
+from astnode.globalast.csAst import CSToken, show_error
 from astnode.globalast.cscodeblock import CodeBlock
+from astnode.globalast.csexprast import ExpressionAst
 
 
-class ReferenceNode(CSAst):
+class ReferenceNode(ExpressionAst):
     """ Holds reference
 
         Parameters

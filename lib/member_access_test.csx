@@ -10,21 +10,13 @@ x->a = x->a - x->b;
 print: x, x->a, x->b;
 
 
-var c = 0;
-
-while (c < 1000) {
-    print: "c =", c;
-    c += 1;
-}
-
-var vvvv = [1,2,3, x->a];
-
-print: vvvv->length + 2;
-
-
-function add(a, b, c) {
-
+try {
+    let h = "Hola!";
+    print: !h;
+}except(err) {
+    print: "printed", err->name;
+}finally {
+    print: "Donez!";
 }
 
 
-print: add->parameters[2];

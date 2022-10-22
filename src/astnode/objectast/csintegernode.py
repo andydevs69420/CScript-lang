@@ -1,10 +1,11 @@
-from astnode.globalast.csAst import CSToken, CSAst, Evaluatable
+from astnode.globalast.csAst import CSToken
 from astnode.globalast.cscodeblock import CodeBlock
+from astnode.globalast.csexprast import ExpressionAst
 from object import CSInteger
 
 
 # OK!!! | COMPILED | PASSED 
-class IntegerNode(CSAst, Evaluatable):
+class IntegerNode(ExpressionAst):
     """ Holds integer node
 
         Parameters

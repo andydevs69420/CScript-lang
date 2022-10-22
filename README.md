@@ -34,5 +34,6 @@ cscript programming language
 - [x] operator overloading(few)
 
 # TODO:
-- Rewrite evaluator|status:finished
-- fix grabage collector(missing compile time objects)|status:fixed -> mark/sweep
+- [x] Rewrite evaluator|status:finished
+- [x] fix grabage collector(missing compile time objects)|status:fixed -> mark/sweep
+- [ ] fix try/except

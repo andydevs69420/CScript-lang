@@ -161,6 +161,7 @@ class CSVM(ExceptionTable, CallStack):
     @staticmethod
     def throw_error(_csobject:CSObject):
         if  not ExceptionTable.et_is_empty():
+            print("Called IF")
             # if exception table is not empty,
             # jump to whats being returned
             _target = ExceptionTable.et_peek() // 2

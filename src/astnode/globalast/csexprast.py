@@ -3,7 +3,7 @@
 
 
 from astnode.globalast.cscodeblock import CodeBlock
-from .csAst import CSAst, CSToken
+from .csAst import CSAst, CSToken, show_error
 
 
 # ========= core|
@@ -31,7 +31,7 @@ class ExpressionAst(CSAst, Evaluatable, Evaluator):
             x =  2
             x += 2
         """
-        raise NotImplementedError(f"{type(self).__name__}::assignTo method must be overritten!")
+        raise show_error("left hand expresssion is not assignable", _opt)
 
     def evaluate(self):
         """ Leave None!!!

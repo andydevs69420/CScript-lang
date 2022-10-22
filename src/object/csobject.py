@@ -184,7 +184,6 @@ class CSObject(HashMap):
         _map = CSObject.new_map()
 
         for k, v in zip(_pyDict.keys(), _pyDict.values()):
-
             _value = ...
             if  type(v) == int:
                 _value = CSObject.new_integer(v)
@@ -220,6 +219,46 @@ class CSObject(HashMap):
         del cscallable
         return CSMalloc(_function)
     
+    @staticmethod
+    def new_exception(_message:str, _location:CSToken):
+        """ Creates exception
+
+            Returns
+            -------
+            CSException
+        """
+        import csexception
+        _exception = csexception.CSException(_message, _location)
+        del csexception
+        return CSMalloc(_exception)
+    
+    @staticmethod
+    def new_type_error(_message:str, _location:CSToken):
+        """ Creates typerror|exception
+
+            Returns
+            -------
+            CSTypeError
+        """
+        import csexception
+        _exception = csexception.CSTypeError(_message, _location)
+        del csexception
+        return CSMalloc(_exception)
+    
+    @staticmethod
+    def new_attrib_error(_message:str, _location:CSToken):
+        """ Creates attribute error|exception
+
+            Returns
+            -------
+            CSAttributeError
+        """
+        import csexception
+        _exception = csexception.CSAttributeError(_message, _location)
+        del csexception
+        return CSMalloc(_exception)
+        
+    
     # ========================= EVENT|
     # ===============================|
     # must be private!. do not include as attribute
@@ -244,7 +283,16 @@ class CSObject(HashMap):
         """
         # throws error
         if  not self.hasAttribute(_attr.token):
-            raise AttributeError(f"{type(self).__name__} has no attribute '{_attr.token}'")
+            # = format string|
+            _error = CSObject.new_attrib_error(f"{type(self).__name__} has no attribute '{_attr.token}'", _attr)
+
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
+
+            # == return error|
+            # ===============|
+            return _error
         
         return self.get(_attr.token)
     
@@ -258,7 +306,16 @@ class CSObject(HashMap):
         """
         # throws error
         if  not self.hasAttribute(_attr.token):
-            raise AttributeError(f"{type(self).__name__} has no attribute '{_attr.token}'")
+            # = format string|
+            _error = CSObject.new_attrib_error(f"{type(self).__name__} has no attribute '{_attr.token}'", _attr)
+
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
+
+            # == return error|
+            # ===============|
+            return _error
         
         self.put(_attr.token, _value)
         return _value
@@ -271,7 +328,7 @@ class CSObject(HashMap):
             CSObject
         """
         # = format string|
-        _error = reformatError("%s is not subscriptible" % self.dtype, _subscript_location)
+        _error = CSObject.new_type_error("%s is not subscriptible" % self.dtype, _subscript_location)
 
         # === throw error|
         # ===============|
@@ -289,7 +346,7 @@ class CSObject(HashMap):
             CSObject
         """
         # = format string|
-        _error = reformatError("%s is not callable" % self.dtype, _call_location)
+        _error = CSObject.new_type_error("%s is not subscriptible" % self.dtype, _call_location)
 
         # === throw error|
         # ===============|
@@ -316,8 +373,17 @@ class CSObject(HashMap):
             Any
         """
 
-    def __binary_expr_error():
-        ...
+    def __unary_expr_error(self, _opt:CSToken):
+        # = format string|
+        _error = CSObject.new_type_error("unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
 
     def bit_not(self, _opt:CSToken):
         """ Called when unary ~ operation
@@ -326,16 +392,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        return self.__unary_expr_error(_opt)
 
     def bin_not(self, _opt:CSToken):
         """ Called when unary ! operation
@@ -344,16 +401,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        return self.__unary_expr_error(_opt)
     
     def positive(self, _opt:CSToken):
         """ Called when unary + operation
@@ -362,16 +410,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        return self.__unary_expr_error(_opt)
     
     def negative(self, _opt:CSToken):
         """ Called when unary - operation
@@ -380,23 +419,14 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        return self.__unary_expr_error(_opt)
     
     def __binary_expr_error(self, _opt:CSToken, _object:CSObject):
-        """ Called not implemented operation
+        """ Called if not implemented operation
         """
         # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
+        _error = CSObject.new_type_error("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+    
         # === throw error|
         # ===============|
         ThrowError(_error)
@@ -412,7 +442,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
 
     def mul(self, _opt:CSToken, _object:CSObject):
         """ Called when mul operation
@@ -421,7 +451,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def div(self, _opt:CSToken, _object:CSObject):
         """ Called when div operation
@@ -430,7 +460,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def mod(self, _opt:CSToken, _object:CSObject):
         """ Called when mod operation
@@ -439,7 +469,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
 
     def add(self, _opt:CSToken, _object:CSObject):
         """ Called when add operation
@@ -448,7 +478,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def sub(self, _opt:CSToken, _object:CSObject):
         """ Called when sub operation
@@ -457,7 +487,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def lshift(self, _opt:CSToken, _object:CSObject):
         """ Called when left shift operation
@@ -466,7 +496,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def rshift(self, _opt:CSToken, _object:CSObject):
         """ Called when right shift operation
@@ -475,7 +505,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def lt(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan operation
@@ -484,7 +514,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
 
     def lte(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan equal operation
@@ -493,7 +523,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def gt(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan operation
@@ -502,7 +532,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
 
     def gte(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan equal operation
@@ -511,7 +541,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def equals(self, _object:CSObject):
         """ Raw equals
@@ -529,7 +559,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def neq(self, _opt:CSToken, _object:CSObject):
         """ Called when not equal
@@ -538,7 +568,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
 
     def bit_and(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise and operation
@@ -547,7 +577,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def bit_xor(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise xor operation
@@ -556,7 +586,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     def bit_or(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise or operation
@@ -565,7 +595,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     # for compile time constant evaluation
     def log_and(self, _opt:CSToken, _object:CSObject):
@@ -575,7 +605,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
     
     # for compile time constant evaluation
     def log_or(self, _opt:CSToken, _object:CSObject):
@@ -585,7 +615,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        self.__binary_expr_error(_opt, _object)
+        return self.__binary_expr_error(_opt, _object)
 
 
 # malloc
