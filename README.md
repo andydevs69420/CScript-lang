@@ -10,6 +10,7 @@ cscript programming language
 - [x] while statement
 - [x] do|while statement
 - [x] switch|case statement
+- [x] try/except statement
 - [x] print (print is a statement here.)
 - [x] class declairation
 - [ ] enum declairation
