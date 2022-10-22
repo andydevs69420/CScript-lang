@@ -14,8 +14,12 @@ class CSInteger(CSNumber):
         super().__init__()
         self.put("this", int(_int))
     
-    # ==================== MAGIC METHODS|
-    # ==================================|
+    # ============ PYTHON|
+    # ===================|
+    
+    # ==================== OPERATIONS|
+    # ===============================|
+    # must be private!. do not include as attribte
     """ CSInteger specific operation
     """
     def bit_not(self, _opt:CSToken):

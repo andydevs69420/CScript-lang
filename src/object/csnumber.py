@@ -12,11 +12,15 @@ class CSNumber(CSObject):
     def __init__(self):
         super().__init__()
 
+    # ============ PYTHON|
+    # ===================|
+
     def __str__(self):
         return "%d" % self.get("this")
     
-    # =================== MAGIC METHODS
-    # =================================
+    # ==================== OPERATIONS|
+    # ===============================|
+    # must be private!. do not include as attribte
     def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
         _class = None
 

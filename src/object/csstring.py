@@ -10,18 +10,21 @@ class CSString(CSObject):
 
     def __init__(self, _str:str):
         super().__init__()
-        # 
         self.put("this", str(_str))
 
     # ![bound::toString]
     def toString(self):
         return self
     
+    # ============ PYTHON|
+    # ===================|
+    
     def __str__(self):
         return self.get("this")
     
-    # =========================== MAGIC METHODS|
-    # =========================================|
+    # ==================== OPERATIONS|
+    # ===============================|
+    # must be private!. do not include as attribte
     def add(self, _opt:CSToken, _object:CSObject):
         if  _object.dtype != "CSString":
            # = format string|

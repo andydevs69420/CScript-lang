@@ -12,5 +12,7 @@ class CSDouble(CSNumber):
 
     def __init__(self, _flt:float):
         super().__init__()
-        # 
         self.put("this", float(_flt))
+    
+    # ============ PYTHON|
+    # ===================|

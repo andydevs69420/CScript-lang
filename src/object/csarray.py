@@ -1,7 +1,7 @@
 
 
 
-from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
+from csobject import CSToken, CSObject, ThrowError, reformatError
 
 
 class CSArray(CSObject):pass
@@ -9,10 +9,8 @@ class CSArray(CSObject):
 
     def __init__(self):
         super().__init__()
-        self.size = 0
-        self.elem = CSObject()
-        self.put("length"  , self.size)
-        self.put("elements", self.elem)
+        self.put("length"  , CSObject.new_integer(0))
+        self.put("elements", CSObject())
     
     # ![bound::push]
     def push(self, _csobject:CSObject):
@@ -22,8 +20,15 @@ class CSArray(CSObject):
             -------
             CSObject
         """
-        self.elem.put(str(self.size), _csobject)
-        self.size += 1
+        _old_size = self.get("length")\
+            .get("this")
+
+        # put element
+        self.get("elements")\
+            .put(_old_size.__str__(), _csobject)
+
+        # update size
+        self.put("length", CSObject.new_integer(_old_size + 1))
     
         # default return
         return CSObject.new_nulltype()
@@ -37,21 +42,21 @@ class CSArray(CSObject):
             CSObject
         """
     
-    def getElements(self):
-        _children = []
-        for i in self.elem.keys():
-            _children.append(self.elem.get(i))
-        return _children
+    # ============ PYTHON|
+    # ===================|
+    
+    def all(self):
+        return self.get("elements").all()
     
     def isPointer(self):
         return True
 
     def __str__(self):
         _elem = ""
-        for idx in range(self.size):
-            _elem += str(self.elem.get(str(idx)))
+        for idx in range(self.get("length").get("this")):
+            _elem += str(self.get("elements").get(str(idx)))
 
-            if  idx < (self.size - 1):
+            if  idx < (self.get("length").get("this") - 1):
                 _elem += ", "
         
         # return formated string
@@ -60,18 +65,11 @@ class CSArray(CSObject):
     def reBuild(self):
         """ Rebuilds array when pop is called
         """
-        ...
-
-    @staticmethod
-    def fromArray(_array:CSArray):
-        """ Creates a new array from existing array
-
-            Returns
-            -------
-            CSArray
-        """
+        return
     
-    # 
+    # ========================= EVENT|
+    # ===============================|
+    # must be private!. do not include as attribte
     def subscript(self, _subscript_location: CSToken, _expr: CSObject):
         if  _expr.dtype != "CSInteger":
             # = format string|
@@ -85,7 +83,7 @@ class CSArray(CSObject):
             # ===============|
             return _error
 
-        if  not self.elem.hasAttribute(str(_expr.get("this"))):
+        if  not self.get("elements").hasAttribute(str(_expr.get("this"))):
             # = format string|
             _error = reformatError("CSArray index out of range %d < %d" % (self.size, _expr.get("this")), _subscript_location)
 
@@ -97,7 +95,7 @@ class CSArray(CSObject):
             # ===============|
             return _error
         
-        return self.elem.get(str(_expr.get("this")))
+        return self.get("elements").get(str(_expr.get("this")))
             
 
 

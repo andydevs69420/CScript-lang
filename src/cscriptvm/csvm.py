@@ -7,7 +7,7 @@ from object.csobject import CSObject
 
 
 from .csOpcode import CSOpCode
-from .csmemory3 import CSMemoryObject, ObjectWrapper
+from .csmemory3 import CSMemoryObject
 from .csframe import Frame
 
 
@@ -37,7 +37,7 @@ class EvalStack:
     """ Evaluation stack for CSCript
     """
     
-    EVAL_STACK:ObjectWrapper = [
+    EVAL_STACK:CSObject = [
         # +-----------------+ ^
         # | ObjectWrapper N | |
         # +-----------------+ |
@@ -159,7 +159,7 @@ class CSVM(ExceptionTable, CallStack):
         return _top
     
     @staticmethod
-    def throw_error(_csobjectwrapper:ObjectWrapper):
+    def throw_error(_csobject:CSObject):
         if  not ExceptionTable.et_is_empty():
             # if exception table is not empty,
             # jump to whats being returned
@@ -169,7 +169,7 @@ class CSVM(ExceptionTable, CallStack):
                     .setPointer(_target)
         else:
             # TODO: replace with cscript stderr
-            print(_csobjectwrapper)
+            print(_csobject)
             return exit(1)
     
     # ==================================== OPCODE EVALUATOR|
@@ -412,11 +412,11 @@ class CSVM(ExceptionTable, CallStack):
     def make_object(_instruction:Instruction):
         _size = _instruction.get("size")
 
-        _object = CSObject.new()
+        _object = CSObject.new_map()
 
         for idx in range(_size):
-            _k = EvalStack.es_pop().getObject()
-            _v = EvalStack.es_pop().getObject()
+            _k = EvalStack.es_pop()
+            _v = EvalStack.es_pop()
             _object.put(_k.__str__(), _v)
         
         EvalStack.es_push(_object)
@@ -431,20 +431,20 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def get_attrib(_instruction:Instruction):
-        _top = EvalStack.es_pop().getObject()
+        _top = EvalStack.es_pop()
         EvalStack.es_push(_top.getAttribute(_instruction.get("attr")))
 
     @staticmethod
     def set_attrib(_instruction:Instruction):
-        _top = EvalStack.es_pop().getObject()
-        _att = EvalStack.es_pop().getObject()
+        _top = EvalStack.es_pop()
+        _att = EvalStack.es_pop()
         _top.setAttribute(_instruction.get("attr"), _att)
         EvalStack.es_push(_att)
     
     @staticmethod
     def store_name(_instruction:Instruction):
         _value = EvalStack.es_peek()
-        CSVM.VHEAP.setAddress(_instruction.get("offset"), _value.getOffset())
+        CSVM.VHEAP.setAddress(_instruction.get("offset"), _value.offset)
     
     @staticmethod
     def store_local(_instruction:Instruction):
@@ -452,7 +452,7 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def call(_instruction:Instruction):
-        _top = EvalStack.es_pop().getObject()
+        _top = EvalStack.es_pop()
         EvalStack.es_push(_top.call(_instruction.get("location"), _instruction.get("size")))
 
     
@@ -461,7 +461,7 @@ class CSVM(ExceptionTable, CallStack):
     @staticmethod
     def unary_op(_instruction:Instruction):
         _opt = _instruction.get("opt")
-        _rhs = EvalStack.es_pop().getObject()
+        _rhs = EvalStack.es_pop()
         match _opt.token:
             case "~":
                 return EvalStack.es_push(_rhs.bit_not(_opt))
@@ -481,68 +481,68 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def binary_mul(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.mul(_instruction.get("opt"), _rhs))
     
     @staticmethod
     def binary_div(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.div(_instruction.get("opt"), _rhs))
 
     @staticmethod
     def binary_mod(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.mod(_instruction.get("opt"), _rhs))
 
     @staticmethod
     def binary_add(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.add(_instruction.get("opt"), _rhs))
 
     @staticmethod
     def binary_sub(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.sub(_instruction.get("opt"), _rhs))
     
     @staticmethod
     def binary_lshift(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.lshift(_instruction.get("opt"), _rhs))
     
     @staticmethod
     def binary_rshift(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.rshift(_instruction.get("opt"), _rhs))
     
     @staticmethod
     def binary_and(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.bit_and(_instruction.get("opt"), _rhs))
     
     @staticmethod
     def binary_xor(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.bit_xor(_instruction.get("opt"), _rhs))
     
     @staticmethod
     def binary_or(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.bit_or(_instruction.get("opt"), _rhs))
     
     @staticmethod
     def binary_subscript(_instruction:Instruction):
-        _member = EvalStack.es_pop().getObject()
-        _object = EvalStack.es_pop().getObject()
+        _member = EvalStack.es_pop()
+        _object = EvalStack.es_pop()
         EvalStack.es_push(_object.subscript(_instruction.get("location"), _member))
     # ============================= END
 
@@ -552,8 +552,8 @@ class CSVM(ExceptionTable, CallStack):
     @staticmethod
     def compare_op(_instruction:Instruction):
         _opt = _instruction.get("opt")
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         
         match _opt.token:
             case "<":
@@ -578,38 +578,38 @@ class CSVM(ExceptionTable, CallStack):
     # ================================|
     @staticmethod
     def inplace_pow(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.pow(_instruction.get("opt"), _rhs))
     @staticmethod
     def inplace_mul(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.mul(_instruction.get("opt"), _rhs))
     @staticmethod
     def inplace_div(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.div(_instruction.get("opt"), _rhs))
     @staticmethod
     def inplace_add(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.add(_instruction.get("opt"), _rhs))
     @staticmethod
     def inplace_sub(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.sub(_instruction.get("opt"), _rhs))
     @staticmethod
     def inplace_lshift(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.lshift(_instruction.get("opt"), _rhs))
     @staticmethod
     def inplace_rshift(_instruction:Instruction):
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
         EvalStack.es_push(_lhs.rshift(_instruction.get("opt"), _rhs))
     # ============================= END
 
@@ -622,7 +622,7 @@ class CSVM(ExceptionTable, CallStack):
     def pop_jump_if_false(_instruction:Instruction):
         _target = _instruction.get("target") // 2
 
-        _top = EvalStack.es_pop().getObject()
+        _top = EvalStack.es_pop()
 
         if not (_top.get("this")):
             CallStack\
@@ -633,7 +633,7 @@ class CSVM(ExceptionTable, CallStack):
     def pop_jump_if_true(_instruction:Instruction):
         _target = _instruction.get("target") // 2
 
-        _top = EvalStack.es_pop().getObject()
+        _top = EvalStack.es_pop()
 
         if _top.get("this"):
             CallStack\
@@ -672,8 +672,8 @@ class CSVM(ExceptionTable, CallStack):
     def jump_equal(_instruction:Instruction):
         _target = _instruction.get("target") // 2
 
-        _lhs = EvalStack.es_pop().getObject()
-        _rhs = EvalStack.es_pop().getObject()
+        _lhs = EvalStack.es_pop()
+        _rhs = EvalStack.es_pop()
 
         if _lhs.equals(_rhs):
             CallStack\

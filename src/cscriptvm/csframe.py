@@ -1,10 +1,13 @@
-from astnode.utils.compilable import Instruction
-from .csmemory3 import ObjectWrapper, CSMemoryObject
 
+from .csmemory3 import CSMemoryObject
+
+from astnode.utils.compilable import Instruction
+
+from object.csobject import CSObject
 class Frame(object):
 
     def __init__(self, _instructions:list[Instruction]):
-        self.localmem:list[ObjectWrapper] = []
+        self.localmem:list[CSObject] = []
         self.returned = False
         self.ipointer = 0
 
@@ -12,7 +15,7 @@ class Frame(object):
         # ============================|
         self.instructions:list[Instruction] = _instructions
 
-    def store_local(self, _index:int, _csobject:ObjectWrapper):
+    def store_local(self, _index:int, _csobject:CSObject):
         if  len(self.localmem) <= 0 or _index >= len(self.localmem):
             self.localmem.append(_csobject)
             return

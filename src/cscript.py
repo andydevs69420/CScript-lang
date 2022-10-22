@@ -13,7 +13,7 @@ from csparser import CSParser
 # core
 from cscriptvm.csvm import CSVM
 
-FILE = "lib/ternary_test.csx"
+FILE = "lib/member_access_test.csx"
 parser = CSParser(FILE, open(FILE, "r").read())
 x = parser.parse()
 instruct = x.compile()
@@ -22,5 +22,5 @@ for ins in instruct:
     print(ins)
 print("Done!")
 
-# CSVM.run(instruct)
-# CSVM.VHEAP.collectlast()
+CSVM.run(instruct)
+CSVM.VHEAP.collectlast()

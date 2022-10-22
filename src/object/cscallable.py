@@ -2,30 +2,46 @@ from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
 
 
 class CSCallable(CSObject):
+    """ CSCallable
+
+        Paratemers
+        ----------
+        _name         : str
+        _param_count  : int
+        _parameters   : list
+        _instructions : list
+    """
 
     def __init__(self, _name:str, _param_count:int, _parameters:list, _instructions:list):
         super().__init__()
-        self.name         = _name
-        self.paramcount   = _param_count
-        self.parameters   = _parameters
+        self.put("name"      , CSObject.new_string (_name       ))
+        self.put("paramCount", CSObject.new_integer(_param_count))
+        self.put("parameters", CSObject.new_array_from_PyList(_parameters))
         self.instructions = _instructions
+    
+    # ============ PYTHON|
+    # ===================|
     
     def get(self, _key: str):
         if  type(self) == CSCallable and _key == "this":
             return self
-        return self.get(_key)
+        return super().get(_key)
+    
+    def isPointer(self):
+        return True
     
     def __str__(self):
         _fmt_param = ""
-        for idx in range(len(self.parameters)):
-            _fmt_param += self.parameters[idx]
+        for idx in range(self.get("parameters").get("length").get("this")):
+            _fmt_param += self.get("parameters").get("elements").get(str(idx)).__str__()
 
-            if  idx < len(self.parameters) - 1:
+            if  idx < self.get("parameters").get("length").get("this") - 1:
                 _fmt_param += ", "
-        return "function %s(%s){...}" % (self.name, _fmt_param)
+        return "function %s(%s){...}" % (self.get("name"), _fmt_param)
 
-    # ================ DUNDER METHODS|
+    # ========================= EVENT|
     # ===============================|
+    # must be private!. do not include as attribte
     def call(self, _opt:CSToken, _arg_count:int):
         # core
         from cscriptvm.csvm import CSVM as VM

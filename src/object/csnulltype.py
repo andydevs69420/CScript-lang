@@ -13,11 +13,15 @@ class CSNullType(CSObject):
         super().__init__()
         self.put("this", None)
 
+    # ============ PYTHON|
+    # ===================|
     
     def __str__(self):
         return "null"
     
-    # ==================== MAGIC METHODS
+    # ==================== OPERATIONS|
+    # ===============================|
+    # must be private!. do not include as attribte
     """ CSInteger specific operation
     """
     def bin_not(self, _opt:CSToken):

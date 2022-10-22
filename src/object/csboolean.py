@@ -15,10 +15,15 @@ class CSBoolean(CSObject):
         super().__init__()
         self.put("this", bool(True if _bool == "true" else False))
     
+    # ============ PYTHON|
+    # ===================|
+
     def __str__(self):
         return "true" if self.get("this") else "false"
     
-    # ================= SUPPORTED MAGIC METHODS
+    # ========================= EVENT|
+    # ===============================|
+    # must be private!. do not include as attribte
     
     def assertType(self, _opt: CSToken, _lhs: CSObject, _rhs: CSObject):
         if  _lhs.dtype != _rhs.dtype:
@@ -35,6 +40,10 @@ class CSBoolean(CSObject):
 
         # return success
         return True
+    # ===================== OPERATION|
+    # ===============================|
+    # must be private!. do not include as attribte
+    
     """ CSBoolean specific operation
     """
     def bin_not(self, _opt:CSToken):

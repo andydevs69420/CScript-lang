@@ -1,9 +1,10 @@
 
 from astnode.globalast.csAst import CSToken, CSAst
 from astnode.globalast.cscodeblock import CodeBlock
+from astnode.globalast.csexprast import ExpressionAst
 
 # OK!!! | COMPILED | PASSED
-class AccessNode(CSAst):
+class AccessNode(ExpressionAst):
     """ Holds member access node
 
         Parameters

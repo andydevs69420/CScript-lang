@@ -19,12 +19,10 @@ class CSObject(HashMap):
     def __init__(self):
         super().__init__()
         # initilize
-        self.dtype = type(self).__name__
+        self.dtype    = type(self).__name__
+        self.offset   = -1
+        self.ismarked = False
     
-    def get(self, _key: str):
-        if  type(self) == CSObject and _key == "this":
-            return self
-        return super().get(_key)
     
     # ![bound::toString]
     def toString(self):
@@ -35,6 +33,16 @@ class CSObject(HashMap):
             CSString
         """
         return CSObject.new_string(self.__str__())
+    
+    # ================ PYTHON|
+    # =======================|
+    def all(self):
+        return [self.get(k) for k in self.keys()]
+
+    def get(self, _key: str):
+        if  type(self) == CSObject and _key == "this":
+            return self
+        return super().get(_key)
     
     def isPointer(self):
         return False
@@ -58,7 +66,7 @@ class CSObject(HashMap):
     @staticmethod
     def new():
         _object = CSObject()
-        return _object
+        return CSMalloc(_object)
 
     @staticmethod
     def new_integer(_data:int):
@@ -130,7 +138,74 @@ class CSObject(HashMap):
         import csarray
         _array = csarray.CSArray()
         del csarray
+        return CSMalloc(_array)
+    
+    @staticmethod
+    def new_array_from_PyList(_pyList:list):
+        _array = CSObject.new_array()
+        for v in _pyList:
+            _value = ...
+            if  type(v) == int:
+                _value = CSObject.new_integer(v)
+            elif  type(v) == float:
+                _value = CSObject.new_double(v)
+            elif type(v) == str:
+                _value = CSObject.new_string(v)
+            elif type(v) == bool:
+                _value = CSObject.new_boolean("true" if v else "false")
+            elif type(v) == dict:
+                # watch! recursion error
+                _value = CSObject.new_map_fromDict(v)
+            elif type(v) == list:
+                # watch! recursion error
+                _value = CSObject.new_array_fromPyList(v)
+            else:
+                raise TypeError("unsupported type %s" % type(v).__name__)
+            
+            _array.push(_value)
+
         return _array
+    
+    @staticmethod
+    def new_map():
+        """ Creates map object
+
+            Returns
+            -------
+            CSMap
+        """
+        import csmap
+        _map = csmap.CSMap()
+        del csmap
+        return CSMalloc(_map)
+    
+    @staticmethod
+    def new_map_fromPyDict(_pyDict:dict):
+        _map = CSObject.new_map()
+
+        for k, v in zip(_pyDict.keys(), _pyDict.values()):
+
+            _value = ...
+            if  type(v) == int:
+                _value = CSObject.new_integer(v)
+            elif  type(v) == float:
+                _value = CSObject.new_double(v)
+            elif type(v) == str:
+                _value = CSObject.new_string(v)
+            elif type(v) == bool:
+                _value = CSObject.new_boolean("true" if v else "false")
+            elif type(v) == dict:
+                # watch! recursion error
+                _value = CSObject.new_map_fromDict(v)
+            elif type(v) == list:
+                # watch! recursion error
+                _value = CSObject.new_array_fromPyList(v)
+            else:
+                raise TypeError("unsupported type %s" % type(v).__name__)
+
+            _map.put(k.__str__(), _value)
+
+        return _map
 
     @staticmethod
     def new_callable(_name:str, _parameters:list, _instructions:list):
@@ -143,10 +218,10 @@ class CSObject(HashMap):
         import cscallable
         _function = cscallable.CSCallable(_name, len(_parameters), _parameters, _instructions)
         del cscallable
-        return _function
+        return CSMalloc(_function)
     
-    # ======================================== DUNDER METHODS|
-    # =======================================================|
+    # ========================= EVENT|
+    # ===============================|
     # must be private!. do not include as attribute
     
     def hasAttribute(self, _key:str):
@@ -224,7 +299,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    # ================= MAGIC METHODS|
+    # ==================== OPERATIONS|
     # ===============================|
     # must be private!. do not include as attribte
     def assertType(self, _opt:CSToken, _lhs:CSObject, _rhs:CSObject):
@@ -240,6 +315,9 @@ class CSObject(HashMap):
             -------
             Any
         """
+
+    def __binary_expr_error():
+        ...
 
     def bit_not(self, _opt:CSToken):
         """ Called when unary ~ operation
@@ -312,6 +390,20 @@ class CSObject(HashMap):
         # == return error|
         # ===============|
         return _error
+    
+    def __binary_expr_error(self, _opt:CSToken, _object:CSObject):
+        """ Called not implemented operation
+        """
+        # = format string|
+        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
 
     def pow(self, _opt:CSToken, _object:CSObject):
         """ Called when power operation
@@ -320,16 +412,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
 
     def mul(self, _opt:CSToken, _object:CSObject):
         """ Called when mul operation
@@ -338,16 +421,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def div(self, _opt:CSToken, _object:CSObject):
         """ Called when div operation
@@ -356,16 +430,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def mod(self, _opt:CSToken, _object:CSObject):
         """ Called when mod operation
@@ -374,16 +439,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
 
     def add(self, _opt:CSToken, _object:CSObject):
         """ Called when add operation
@@ -392,16 +448,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def sub(self, _opt:CSToken, _object:CSObject):
         """ Called when sub operation
@@ -410,16 +457,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def lshift(self, _opt:CSToken, _object:CSObject):
         """ Called when left shift operation
@@ -428,16 +466,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def rshift(self, _opt:CSToken, _object:CSObject):
         """ Called when right shift operation
@@ -446,16 +475,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def lt(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan operation
@@ -464,16 +484,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
 
     def lte(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan equal operation
@@ -482,16 +493,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def gt(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan operation
@@ -500,16 +502,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
 
     def gte(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan equal operation
@@ -518,16 +511,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def equals(self, _object:CSObject):
         """ Raw equals
@@ -545,16 +529,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def neq(self, _opt:CSToken, _object:CSObject):
         """ Called when not equal
@@ -563,16 +538,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
 
     def bit_and(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise and operation
@@ -581,16 +547,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def bit_xor(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise xor operation
@@ -599,16 +556,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     def bit_or(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise or operation
@@ -617,16 +565,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     # for compile time constant evaluation
     def log_and(self, _opt:CSToken, _object:CSObject):
@@ -636,16 +575,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
     
     # for compile time constant evaluation
     def log_or(self, _opt:CSToken, _object:CSObject):
@@ -655,16 +585,7 @@ class CSObject(HashMap):
             -------
             CSObject
         """
-        # = format string|
-        _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
-
-        # === throw error|
-        # ===============|
-        ThrowError(_error)
-
-        # == return error|
-        # ===============|
-        return _error
+        self.__binary_expr_error(_opt, _object)
 
 
 # malloc
