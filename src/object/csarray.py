@@ -10,7 +10,7 @@ class CSArray(CSObject):
     def __init__(self):
         super().__init__()
         self.put("length"  , CSObject.new_integer(0))
-        self.put("elements", CSObject())
+        self.put("elements", CSObject.new_map())
     
     # ![bound::push]
     def push(self, _csobject:CSObject):
@@ -46,7 +46,7 @@ class CSArray(CSObject):
     # ===================|
     
     def all(self):
-        return self.get("elements").all()
+        return [self.get(k) for k in self.keys()]
     
     def isPointer(self):
         return True
@@ -54,7 +54,7 @@ class CSArray(CSObject):
     def __str__(self):
         _elem = ""
         for idx in range(self.get("length").get("this")):
-            _elem += str(self.get("elements").get(str(idx)))
+            _elem += self.get("elements").get(str(idx)).__str__()
 
             if  idx < (self.get("length").get("this") - 1):
                 _elem += ", "
@@ -70,22 +70,10 @@ class CSArray(CSObject):
     # ========================= EVENT|
     # ===============================|
     # must be private!. do not include as attribte
-    def subscript(self, _subscript_location: CSToken, _expr: CSObject):
+    def assertSubscriptExpression(self, _subscript_location: CSToken, _expr:CSObject):
         if  _expr.dtype != "CSInteger":
             # = format string|
-            _error = reformatError("CSArray subscript must be a type of CSInteger", _subscript_location)
-
-            # === throw error|
-            # ===============|
-            ThrowError(_error)
-
-            # == return error|
-            # ===============|
-            return _error
-
-        if  not self.get("elements").hasAttribute(str(_expr.get("this"))):
-            # = format string|
-            _error = reformatError("CSArray index out of range %d < %d" % (self.get("length").get("this"), _expr.get("this")), _subscript_location)
+            _error = CSObject.new_type_error("CSArray subscript must be a type of CSInteger", _subscript_location)
 
             # === throw error|
             # ===============|
@@ -95,24 +83,35 @@ class CSArray(CSObject):
             # ===============|
             return _error
         
-        return self.get("elements").get(str(_expr.get("this")))
-            
+        if  not self.get("elements").hasAttribute(_expr.__str__()):
+            _opt = "<" if self.get("length").get("this") < _expr.get("this") else ">"
+            _lhs = self.get("length").get("this") if _opt == "<" else 0
+            # = format string|
+            _error = CSObject.new_index_error("CSArray index out of range %d %s %d" % (_lhs, _opt, _expr.get("this")), _subscript_location)
 
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
 
+            # == return error|
+            # ===============|
+            return _error
+        
+        return False
 
-def reformatError(_message:str, _token:CSToken):
-    """ By default, the entire error is string, not an exception.
+    def subscript(self, _subscript_location: CSToken, _expr: CSObject):
+        _error = self.assertSubscriptExpression(_subscript_location, _expr)
+        if _error: return _error
+        
+        return self.get("elements").get(_expr.__str__())
+    
+    def subscriptSet(self, _subscript_location: CSToken, _attribute: CSObject, _new_value: CSObject):
+        _error = self.assertSubscriptExpression(_subscript_location, _attribute)
+        if _error: return _error
 
-        Prameters
-        ---------
-        _csexceptionobject : CSObject
-        _token             : CSToken
-    """
-    _error = CSObject.new_string(
-        ("[%s:%d:%d] CSError: %s" % (_token.fsrce, _token.yS, _token.xS, _message))
-        + "\n" 
-        + _token.trace
-    )
-    return _error
+        self.get("elements").put(_attribute.__str__(), _new_value)
+
+        return self.get("elements").get(_attribute.__str__())
+
 
 

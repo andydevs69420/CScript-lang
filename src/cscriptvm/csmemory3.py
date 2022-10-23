@@ -25,6 +25,9 @@ class CSMemoryObject(object):
         if  len(self.__freecell) > 0:
             # reuse free space
             _index = self.__freecell.pop()
+            if self.__bucket[_index] != None:
+                raise Exception("invalid exception")
+
             _csobject.offset = _index
             self.__bucket[_index] = _csobject
             return self.__bucket[_index]
@@ -33,7 +36,7 @@ class CSMemoryObject(object):
         _index = len(self.__bucket)
         _csobject.offset = _index
         self.__bucket.append(_csobject)
-        return self.__bucket[-1]
+        return self.__bucket[_index]
     
     def __onallocate(self):
         # ======== INCREMENT ALLOC|
@@ -52,7 +55,7 @@ class CSMemoryObject(object):
         return self.__bucket[self.__nmpntr[_name_pntr]]
         
     def mark(self):
-        _roots:list[CSObject] = [self.__bucket[idx] for idx in filter(lambda x: x != None, self.__nmpntr.values())]
+        _roots:list[CSObject] = [self.__bucket[idx] for idx in filter(lambda x:x != None, self.__nmpntr.values())]
         while len(_roots) > 0:
             _v = _roots.pop()
 
@@ -64,25 +67,27 @@ class CSMemoryObject(object):
                         _roots.append(child)
 
     def sweep(self):
+        # below code not working!!
+        # this implementation is much better! but does not work!
         for idx in range(len(self.__bucket)):
-            if  self.__bucket[idx] != None:
-                if  self.__bucket[idx].ismarked:
-                    # reset
-                    self.__bucket[idx].ismarked = False
-                else:
-                    # delete object
-                    self.__bucket[idx] = None
-                    self.__freecell.append(idx)
+            _obj = self.__bucket[idx]
+            if  _obj != None:
+                if  not _obj.ismarked:
                     self.__total_garbage += 1
+                    self.__bucket[_obj.offset] = None
+                    self.__freecell.append(_obj.offset)
+                else:
+                    _obj.ismarked = False
 
     def collect(self):
         self.mark ()
         self.sweep()
     
     def collectlast(self):
+
         self.collect()
-        print("GarbageCollected: ", len(self.__freecell))
-        print("TotalGarbageCollected: ", self.__total_garbage)
+        print("GarbageCollected:     ", len(self.__freecell))
+        print("TotalGarbageCollected:", self.__total_garbage)
         print("Mem: ", [obj.__str__() for obj in filter(lambda x:x != None, self.__bucket)])
 
 

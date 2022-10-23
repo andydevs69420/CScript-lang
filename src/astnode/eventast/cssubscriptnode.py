@@ -40,4 +40,3 @@ class SubscriptNode(ExpressionAst):
         _block.set_subscript(self.subscript_location)
 
 
-

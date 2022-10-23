@@ -255,6 +255,19 @@ class CSObject(HashMap):
         _exception = csexception.CSAttributeError(_message, _location)
         del csexception
         return CSMalloc(_exception)
+    
+    @staticmethod
+    def new_index_error(_message:str, _location:CSToken):
+        """ Creates index error|exception
+
+            Returns
+            -------
+            CSIndexError
+        """
+        import csexception
+        _exception = csexception.CSIndexError(_message, _location)
+        del csexception
+        return CSMalloc(_exception)
         
     
     # ========================= EVENT|
@@ -282,7 +295,7 @@ class CSObject(HashMap):
         # throws error
         if  not self.hasAttribute(_attr.token):
             # = format string|
-            _error = CSObject.new_attrib_error(f"{type(self).__name__} has no attribute '{_attr.token}'", _attr)
+            _error = CSObject.new_attrib_error(f"{type(self).__name__}({self.__str__()}) has no attribute '{_attr.token}'", _attr)
 
             # === throw error|
             # ===============|
@@ -305,7 +318,7 @@ class CSObject(HashMap):
         # throws error
         if  not self.hasAttribute(_attr.token):
             # = format string|
-            _error = CSObject.new_attrib_error(f"{type(self).__name__} has no attribute '{_attr.token}'", _attr)
+            _error = CSObject.new_attrib_error(f"{type(self).__name__}({self.__str__()}) has no attribute '{_attr.token}'", _attr)
 
             # === throw error|
             # ===============|
@@ -336,6 +349,20 @@ class CSObject(HashMap):
         # ===============|
         return _error
     
+    def subscriptSet(self, _subscript_location:CSToken, _attribute:CSObject, _new_value:CSObject):
+        """ Called when subscript is assigned x[100] = 2
+        """
+        # = format string|
+        _error = CSObject.new_attrib_error(f"{type(self).__name__}({self.__str__()}) has no attribute '%s'" % _attribute.__str__(), _subscript_location)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
+    
     def call(self, _call_location:CSToken, _arg_count:int):
         """ Called when (...)(call) operation
 
@@ -344,7 +371,7 @@ class CSObject(HashMap):
             CSObject
         """
         # = format string|
-        _error = CSObject.new_type_error("%s is not subscriptible" % self.dtype, _call_location)
+        _error = CSObject.new_type_error(f"%s({self.__str__()}) is not callable" % self.dtype, _call_location)
 
         # === throw error|
         # ===============|

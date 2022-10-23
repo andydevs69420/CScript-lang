@@ -279,6 +279,10 @@ class CSVM(ExceptionTable, CallStack):
                     .binary_subscript(_instruction)
             # =============== END ========
 
+            case CSOpCode.SET_SUBSCRIPT:
+                return CSVM\
+                    .set_subscript(_instruction)
+
             # OK!!!
             # ============== COMPARE EXPR|
             # ===========================|
@@ -389,7 +393,7 @@ class CSVM(ExceptionTable, CallStack):
 
     @staticmethod
     def push_const(_instruction:Instruction):
-        EvalStack.es_push(CSVM.VHEAP.allocate(_instruction.get("obj")))
+        EvalStack.es_push(_instruction.get("obj"))
     
     @staticmethod
     def push_name(_instruction:Instruction):
@@ -407,7 +411,7 @@ class CSVM(ExceptionTable, CallStack):
         for idx in range(_size):
             _array.push(EvalStack.es_pop())
         
-        EvalStack.es_push(CSVM.VHEAP.allocate(_array))
+        EvalStack.es_push(_array)
     
     @staticmethod
     def make_object(_instruction:Instruction):
@@ -551,7 +555,7 @@ class CSVM(ExceptionTable, CallStack):
         _member  = EvalStack.es_pop()
         _object  = EvalStack.es_pop()
         _new_val = EvalStack.es_pop()
-        EvalStack.es_push(_object.subscript(_instruction.get("location"), _member))
+        EvalStack.es_push(_object.subscriptSet(_instruction.get("location"), _member, _new_val))
     # ============================= END
 
     

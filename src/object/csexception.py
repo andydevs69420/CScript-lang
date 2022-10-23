@@ -8,6 +8,9 @@ class CSException(CSObject):
         self.put("message" , CSObject.new_string(_message))
         self.put("location", CSObject.new_map_fromPyDict(_token_loc.toDict()))
     
+    def isPointer(self):
+        return True
+    
     # ============ PYTHON|
     # ===================|
 
@@ -23,6 +26,9 @@ class CSAttributeError(CSException):
     def __init__(self, _message: str, _token_loc: CSToken):
         super().__init__(_message, _token_loc)
 
+class CSIndexError(CSException):
+    def __init__(self, _message: str, _token_loc: CSToken):
+        super().__init__(_message, _token_loc)
 
 
 def reformatError(_type, _message:CSObject, _token:CSObject):
