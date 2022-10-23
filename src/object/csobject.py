@@ -12,7 +12,6 @@ def ThrowError(_csexceptionobject:CSObject, _error_token:CSToken):pass
 class CSObject(HashMap):
     """ Represents Object in CScript
     """
-    dtype = "CSObject"
     
     def __init__(self):
         super().__init__()
@@ -20,7 +19,6 @@ class CSObject(HashMap):
         self.dtype    = type(self).__name__
         self.offset   = -69420
         self.ismarked = False
-    
     
     # ![bound::toString]
     def toString(self):
@@ -34,27 +32,25 @@ class CSObject(HashMap):
     
     # ================ PYTHON|
     # =======================|
+    def get(self, _key: str):
+        if type(self) == CSObject and _key == "this": return self
+        return super().get(_key)
+
     def all(self):
         return [self.get(_k) for _k in self.keys()]
-
-    def get(self, _key: str):
-        if  type(self) == CSObject and _key == "this":
-            return self
-        return super().get(_key)
     
     def isPointer(self):
         return False
-    
+
     def __str__(self):
         """ Modify __str__() if yo want to change how it looks when its printed
             | Do not modify tostring()
             ;
         """
-        _keys = self.keys()
+        _keys   = self.keys()
         _attrib = ""
         for k in range(len(_keys)):
-
-            _attrib += f"{_keys[k]}: {self.get(_keys[k]).__str__()}"
+            _attrib += f"{_keys[k]}: {nonRecursiveToSting(self.get(_keys[k]))}"
 
             if  k < (len(_keys) - 1):
                 _attrib += ", "
@@ -62,9 +58,9 @@ class CSObject(HashMap):
         return "{" + f"{_attrib}" + "}"
     
     @staticmethod
-    def new():
+    def new(_allocate:bool=True):
         _object = CSObject()
-        return CSMalloc(_object)
+        return CSMalloc(_object) if _allocate else _object
 
     @staticmethod
     def new_integer(_data:int, _allocate:bool=True):
@@ -110,7 +106,7 @@ class CSObject(HashMap):
         import csboolean
         _bool = csboolean.CSBoolean(_data)
         del csboolean
-        return CSMalloc(_bool) if _bool else _bool
+        return CSMalloc(_bool) if _allocate else _bool
 
     @staticmethod
     def new_nulltype(_allocate:bool=True):
@@ -126,7 +122,7 @@ class CSObject(HashMap):
         return CSMalloc(_null) if _allocate else _null
     
     @staticmethod
-    def new_array():
+    def new_array(_allocate:bool=True):
         """ Creates array object
 
             Returns
@@ -136,27 +132,27 @@ class CSObject(HashMap):
         import csarray
         _array = csarray.CSArray()
         del csarray
-        return CSMalloc(_array)
+        return CSMalloc(_array) if _allocate else _array
     
     @staticmethod
-    def new_array_from_PyList(_pyList:list):
-        _array = CSObject.new_array()
+    def new_array_from_PyList(_pyList:list, _allocate:bool=True):
+        _array = CSObject.new_array(_allocate)
         for v in _pyList:
             _value = ...
             if  type(v) == int:
-                _value = CSObject.new_integer(v)
+                _value = CSObject.new_integer(v, _allocate)
             elif  type(v) == float:
-                _value = CSObject.new_double(v)
+                _value = CSObject.new_double(v, _allocate)
             elif type(v) == str:
-                _value = CSObject.new_string(v)
+                _value = CSObject.new_string(v, _allocate)
             elif type(v) == bool:
-                _value = CSObject.new_boolean("true" if v else "false")
+                _value = CSObject.new_boolean("true" if v else "false", _allocate)
             elif type(v) == dict:
                 # watch! recursion error
-                _value = CSObject.new_map_fromDict(v)
+                _value = CSObject.new_map_fromDict(v, _allocate)
             elif type(v) == list:
                 # watch! recursion error
-                _value = CSObject.new_array_fromPyList(v)
+                _value = CSObject.new_array_fromPyList(v, _allocate)
             else:
                 raise TypeError("unsupported type %s" % type(v).__name__)
             
@@ -165,7 +161,7 @@ class CSObject(HashMap):
         return _array
     
     @staticmethod
-    def new_map():
+    def new_map(_allocate:bool=True):
         """ Creates map object
 
             Returns
@@ -175,28 +171,28 @@ class CSObject(HashMap):
         import csmap
         _map = csmap.CSMap()
         del csmap
-        return CSMalloc(_map)
+        return CSMalloc(_map) if _allocate else _map
     
     @staticmethod
-    def new_map_fromPyDict(_pyDict:dict):
-        _map = CSObject.new_map()
+    def new_map_fromPyDict(_pyDict:dict, _allocate:bool=True):
+        _map = CSObject.new_map(_allocate)
 
         for k, v in zip(_pyDict.keys(), _pyDict.values()):
             _value = ...
             if  type(v) == int:
-                _value = CSObject.new_integer(v)
+                _value = CSObject.new_integer(v, _allocate)
             elif  type(v) == float:
-                _value = CSObject.new_double(v)
+                _value = CSObject.new_double(v, _allocate)
             elif type(v) == str:
-                _value = CSObject.new_string(v)
+                _value = CSObject.new_string(v, _allocate)
             elif type(v) == bool:
-                _value = CSObject.new_boolean("true" if v else "false")
+                _value = CSObject.new_boolean("true" if v else "false", _allocate)
             elif type(v) == dict:
                 # watch! recursion error
-                _value = CSObject.new_map_fromDict(v)
+                _value = CSObject.new_map_fromDict(v, _allocate)
             elif type(v) == list:
                 # watch! recursion error
-                _value = CSObject.new_array_fromPyList(v)
+                _value = CSObject.new_array_fromPyList(v, _allocate)
             else:
                 raise TypeError("unsupported type %s" % type(v).__name__)
 
@@ -205,7 +201,7 @@ class CSObject(HashMap):
         return _map
 
     @staticmethod
-    def new_callable(_name:str, _parameters:list, _instructions:list):
+    def new_callable(_name:str, _parameters:list, _instructions:list, _allocate:bool=True):
         """ Creates callable
 
             Returns
@@ -215,10 +211,10 @@ class CSObject(HashMap):
         import cscallable
         _function = cscallable.CSCallable(_name, len(_parameters), _parameters, _instructions)
         del cscallable
-        return CSMalloc(_function)
+        return CSMalloc(_function) if _allocate else _function
     
     @staticmethod
-    def new_exception(_message:str, _location:CSToken):
+    def new_exception(_message:str, _location:CSToken, _allocate:bool=True):
         """ Creates exception
 
             Returns
@@ -228,10 +224,10 @@ class CSObject(HashMap):
         import csexception
         _exception = csexception.CSException(_message, _location)
         del csexception
-        return CSMalloc(_exception)
+        return CSMalloc(_exception) if _allocate else _exception
     
     @staticmethod
-    def new_type_error(_message:str, _location:CSToken):
+    def new_type_error(_message:str, _location:CSToken, _allocate:bool=True):
         """ Creates typerror|exception
 
             Returns
@@ -241,10 +237,10 @@ class CSObject(HashMap):
         import csexception
         _exception = csexception.CSTypeError(_message, _location)
         del csexception
-        return CSMalloc(_exception)
+        return CSMalloc(_exception) if _allocate else _exception
     
     @staticmethod
-    def new_attrib_error(_message:str, _location:CSToken):
+    def new_attrib_error(_message:str, _location:CSToken, _allocate:bool=True):
         """ Creates attribute error|exception
 
             Returns
@@ -254,10 +250,10 @@ class CSObject(HashMap):
         import csexception
         _exception = csexception.CSAttributeError(_message, _location)
         del csexception
-        return CSMalloc(_exception)
+        return CSMalloc(_exception) if _allocate else _exception
     
     @staticmethod
-    def new_index_error(_message:str, _location:CSToken):
+    def new_index_error(_message:str, _location:CSToken, _allocate:bool=True):
         """ Creates index error|exception
 
             Returns
@@ -267,7 +263,7 @@ class CSObject(HashMap):
         import csexception
         _exception = csexception.CSIndexError(_message, _location)
         del csexception
-        return CSMalloc(_exception)
+        return CSMalloc(_exception) if _allocate else _exception
         
     
     # ========================= EVENT|
@@ -660,3 +656,18 @@ def ThrowError(_csexceptionobject:CSObject):
     VM.throw_error(_csexceptionobject)
     # delete vm locally
     del VM
+
+
+
+def nonRecursiveToSting(_csobject:CSObject):
+    _keys   = _csobject.keys()
+    _attrib = ""
+    for k in range(len(_keys)):
+        _ckey = _csobject.get(_keys[k]).__str__() if _keys[k] != "this" else _csobject.get("this")
+        _attrib += f"{_keys[k]}: {_ckey}"
+
+        if  k < (len(_keys) - 1):
+            _attrib += ", "
+
+    return "{" + f"{_attrib}" + "}"
+

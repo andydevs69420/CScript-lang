@@ -62,7 +62,7 @@ class FunctionNode(CodeBlock):
         for each_node in self.body:
             each_node.compile(self)
 
-        self.push_constant(CSObject.new_nulltype())
+        self.push_constant(CSObject.new_nulltype(_allocate=False))
 
         self.return_op()
 
@@ -71,7 +71,8 @@ class FunctionNode(CodeBlock):
         #     print(i)
 
         # push function to block
-        _block.push_constant(CSObject.new_callable(self.funcname.token, _parameters, _instructions))
+        # let push constant allocate function
+        _block.push_constant(CSObject.new_callable(self.funcname.token, _parameters, _instructions, _allocate=False))
 
         # ============ MEMORY SETTING PURPOSE|
         # ===================================|

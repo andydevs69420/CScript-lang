@@ -399,7 +399,7 @@ class CSVM(ExceptionTable, CallStack):
             # already allocated!|raw
             EvalStack.es_push(_obj)
             return
-
+        # allocate
         EvalStack.es_push(CSVM.VHEAP.allocate(_obj))
     
     @staticmethod

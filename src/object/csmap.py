@@ -10,15 +10,39 @@ from cstoken import CSToken
 class CSMap(CSObject):
     def __init__(self):
         super().__init__()
+        self.elements = CSObject.new(_allocate=True)
     
     # ============ PYTHON|
     # ===================|
 
+    def put(self, _key: str, _data):
+        self.elements.put(_key, _data)
+    
+    def get(self, _key: str):
+        return self.elements.get(_key)
+    
     def all(self):
-        return super().all()
+        return self.elements.all()
 
     def isPointer(self):
         return True
+    
+    def __str__(self):
+        _keys   = self.elements.keys()
+        _attrib = ""
+        for k in range(len(_keys)):
+            _string = ...
+            if  type(self.elements.get(_keys[k])) == CSMap:
+                _string = nonRecursiveToSting(self.elements.get(_keys[k]).elements)
+            else:
+                _string = self.elements.get(_keys[k]).__str__()
+
+            _attrib += f"{_keys[k]}: {_string}"
+
+            if  k < (len(_keys) - 1):
+                _attrib += ", "
+
+        return "{" + f"{_attrib}" + "}"
     
     # ========================= EVENT|
     # ===============================|
@@ -36,9 +60,9 @@ class CSMap(CSObject):
             # ===============|
             return _error
         
-        if  not self.hasAttribute(_expr.__str__()):
+        if  not self.elements.hasAttribute(_expr.__str__()):
             # = format string|
-            _error = CSObject.new_attrib_error(f"CSMap({self.__str__()}) has no attribute %s" % _expr.__str__(), _subscript_location)
+            _error = CSObject.new_attrib_error(f"CSMap({self.elements.__str__()}) has no attribute %s" % _expr.__str__(), _subscript_location)
 
             # === throw error|
             # ===============|
@@ -50,19 +74,43 @@ class CSMap(CSObject):
         
         return False
     
+    def getAttribute(self, _attr: CSToken):
+        return self.elements.getAttribute(_attr)
+    
+    def setAttribute(self, _attr: CSToken, _value: CSObject):
+        return self.elements.setAttribute(_attr, _value)
+    
     def subscript(self, _subscript_location: CSToken, _expr: CSObject):
         _error = self.assertSubscriptExpression(_subscript_location, _expr)
         if _error: return _error
 
-        return self.get(_expr.__str__())
+        return self.elements.get(_expr.__str__())
     
     def subscriptSet(self, _subscript_location: CSToken, _attribute: CSObject, _new_value: CSObject):
         _error = self.assertSubscriptExpression(_subscript_location, _attribute)
         if _error: return _error
 
-        self.put(_attribute.__str__(), _new_value)
-        return self.get(_attribute.__str__())
+        self.elements.put(_attribute.__str__(), _new_value)
+        return self.elements.get(_attribute.__str__())
 
     # ==================== OPERATIONS|
     # ===============================|
     # must be private!. do not include as attribte
+
+def nonRecursiveToSting(_csobject:CSObject):
+    _keys   = _csobject.keys()
+    _attrib = ""
+    for k in range(len(_keys)):
+        _string = ...
+        if  _csobject.get(_keys[k]).offset == _csobject.offset:
+            _string = "{self}"
+        else:
+            _string = _csobject.get(_keys[k]).__str__()
+
+        _attrib += f"{_keys[k]}: {_string}"
+
+        if  k < (len(_keys) - 1):
+            _attrib += ", "
+
+    return "{" + f"{_attrib}" + "}"
+

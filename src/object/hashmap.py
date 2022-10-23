@@ -42,8 +42,7 @@ class LinkedList(Node):
 
             _last = _last.tail
 
-        _last.tail = _data
-
+        self.tail = _data
         return
 
 
@@ -117,6 +116,17 @@ class HashMap(object):
                     _last = _last.tail
         
         return _keys
+    
+    def hasAttribute(self, _key:str):
+        _bucket_index = hasher(_key) % self.bcount
+        if  self.bucket[_bucket_index] == None:
+            return False
+        _head = self.bucket[_bucket_index]
+        while _head:
+            if  _head.nkey == _key:
+                return True
+            _head = _head.tail
+        return False
 
 
 if  __name__ == "__main__":

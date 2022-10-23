@@ -36,4 +36,5 @@ cscript programming language
 # TODO:
 - [x] Rewrite evaluator|status:finished
 - [x] fix grabage collector(missing compile time objects)|status:fixed -> mark/sweep
-- [ ] fix try/except
+- [x] fix try/except
+- [ ] fix recursion error when __str__/toString

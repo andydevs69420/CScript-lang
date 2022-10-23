@@ -9,6 +9,7 @@ from object import CSObject
     Uses array|list (single) as linear memory model where ALL objects are stored
 """
 
+
 class CSMemoryObject(object):
 
     def __init__(self):
@@ -18,9 +19,11 @@ class CSMemoryObject(object):
         self.__allocations:int = 0
         self.__total_garbage = 0
     
-    
     def allocate(self, _csobject:CSObject):
         self.__onallocate()
+
+        if  _csobject.offset != -69420:
+            raise Exception(f"{_csobject.__str__()} is already in memory at {_csobject.offset}!!!")
 
         if  len(self.__freecell) > 0:
             # reuse free space

@@ -19,7 +19,7 @@ class LetNode(CSAst):
             # compile value
             if  not assignment["val"]:
                 # unstable | not appropriate
-                _block.push_constant(CSObject.new_nulltype())
+                _block.push_constant(CSObject.new_nulltype(_allocate=False))
             else:
                 assignment["val"].compile(_block)
             
