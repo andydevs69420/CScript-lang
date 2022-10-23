@@ -1,13 +1,13 @@
 
-
+import gc
 
 from object import CSObject
 
-class ObjectNode(object):
 
-    def __init__(self):
-        self.ismarked = False
+""" CSMemory3
 
+    Uses array|list (single) as linear memory model where ALL objects are stored
+"""
 
 class CSMemoryObject(object):
 
@@ -47,7 +47,6 @@ class CSMemoryObject(object):
             self.collect()
             self.__allocations = 0
 
-    
     def setAddress(self, _name_pntr:int, _offset:int):
         self.__nmpntr[_name_pntr] = _offset
     
@@ -70,24 +69,25 @@ class CSMemoryObject(object):
         # below code not working!!
         # this implementation is much better! but does not work!
         for idx in range(len(self.__bucket)):
-            _obj = self.__bucket[idx]
-            if  _obj != None:
-                if  not _obj.ismarked:
+            if  self.__bucket[idx]:
+                if  not self.__bucket[idx].ismarked:
                     self.__total_garbage += 1
-                    self.__bucket[_obj.offset] = None
-                    self.__freecell.append(_obj.offset)
+                    self.__bucket[idx] = None
+                    self.__freecell.append(idx)
                 else:
-                    _obj.ismarked = False
+                    self.__bucket[idx].ismarked = False
 
     def collect(self):
         self.mark ()
         self.sweep()
     
     def collectlast(self):
-
         self.collect()
-        print("GarbageCollected:     ", len(self.__freecell))
+        print("Finished -------------" + ("-" * (len(str(self.__total_garbage)) + 1)))
+        print("GarbageCollected:     ",  (" " * (len(str(self.__total_garbage)) - len(str(len(self.__freecell))))) + str(len(self.__freecell)))
         print("TotalGarbageCollected:", self.__total_garbage)
-        print("Mem: ", [obj.__str__() for obj in filter(lambda x:x != None, self.__bucket)])
+        print("MemoryView: ", [obj.__str__() for obj in filter(lambda x:x != None, self.__bucket)])
+        # run python gc
+        gc.collect()
 
 

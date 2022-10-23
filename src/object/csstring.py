@@ -25,7 +25,7 @@ class CSString(CSObject):
     # ==================== OPERATIONS|
     # ===============================|
     # must be private!. do not include as attribte
-    def add(self, _opt:CSToken, _object:CSObject):
+    def add(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
         if  _object.dtype != "CSString":
            # = format string|
             _error = CSObject.new_type_error("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, self.dtype, _object.dtype), _opt)
@@ -38,4 +38,4 @@ class CSString(CSObject):
             # ==============|
             return _error
         
-        return CSObject.new_string(self.get("this") + _object.get("this"))
+        return CSObject.new_string(self.get("this") + _object.get("this"), _allocate)

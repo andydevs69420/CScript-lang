@@ -393,7 +393,7 @@ class CSVM(ExceptionTable, CallStack):
 
     @staticmethod
     def push_const(_instruction:Instruction):
-        EvalStack.es_push(_instruction.get("obj"))
+        EvalStack.es_push(CSVM.VHEAP.allocate(_instruction.get("obj")))
     
     @staticmethod
     def push_name(_instruction:Instruction):

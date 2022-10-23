@@ -1,6 +1,5 @@
 
 
-
 from csobject import CSToken, CSObject, ThrowError
 
 

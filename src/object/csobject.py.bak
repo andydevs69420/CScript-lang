@@ -67,14 +67,14 @@ class CSObject(HashMap):
         return CSMalloc(_object)
 
     @staticmethod
-    def new_integer(_data:int, _allocate:bool=True):
+    def new_integer(_data:int):
         import csinteger
         _int = csinteger.CSInteger(_data)
         del csinteger
-        return CSMalloc(_int) if _allocate else _int
+        return CSMalloc(_int)
 
     @staticmethod
-    def new_double(_data:float, _allocate:bool=True):
+    def new_double(_data:float):
         """ Creates raw double object
 
             Returns
@@ -84,10 +84,10 @@ class CSObject(HashMap):
         import csdouble
         _flt = csdouble.CSDouble(_data)
         del csdouble
-        return CSMalloc(_flt) if _allocate else _flt
+        return CSMalloc(_flt)
 
     @staticmethod
-    def new_string(_data:str, _allocate:bool=True):
+    def new_string(_data:str):
         """ Creates raw string object
 
             Returns
@@ -97,10 +97,10 @@ class CSObject(HashMap):
         import csstring
         _str = csstring.CSString(_data)
         del csstring
-        return CSMalloc(_str) if _allocate else _str
+        return CSMalloc(_str)
     
     @staticmethod
-    def new_boolean(_data:str, _allocate:bool=True):
+    def new_boolean(_data:str):
         """ Creates raw boolean object
 
             Returns
@@ -110,10 +110,10 @@ class CSObject(HashMap):
         import csboolean
         _bool = csboolean.CSBoolean(_data)
         del csboolean
-        return CSMalloc(_bool) if _bool else _bool
+        return CSMalloc(_bool)
 
     @staticmethod
-    def new_nulltype(_allocate:bool=True):
+    def new_nulltype():
         """ Creates raw null object
 
             Returns
@@ -123,7 +123,7 @@ class CSObject(HashMap):
         import csnulltype
         _null = csnulltype.CSNullType()
         del csnulltype
-        return CSMalloc(_null) if _allocate else _null
+        return CSMalloc(_null)
     
     @staticmethod
     def new_array():
@@ -410,7 +410,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def bit_not(self, _opt:CSToken, _allocate:bool=True):
+    def bit_not(self, _opt:CSToken):
         """ Called when unary ~ operation
 
             Returns
@@ -419,7 +419,7 @@ class CSObject(HashMap):
         """
         return self.__unary_expr_error(_opt)
 
-    def bin_not(self, _opt:CSToken, _allocate:bool=True):
+    def bin_not(self, _opt:CSToken):
         """ Called when unary ! operation
 
             Returns
@@ -428,7 +428,7 @@ class CSObject(HashMap):
         """
         return self.__unary_expr_error(_opt)
     
-    def positive(self, _opt:CSToken, _allocate:bool=True):
+    def positive(self, _opt:CSToken):
         """ Called when unary + operation
 
             Returns
@@ -437,7 +437,7 @@ class CSObject(HashMap):
         """
         return self.__unary_expr_error(_opt)
     
-    def negative(self, _opt:CSToken, _allocate:bool=True):
+    def negative(self, _opt:CSToken):
         """ Called when unary - operation
 
             Returns
@@ -446,7 +446,7 @@ class CSObject(HashMap):
         """
         return self.__unary_expr_error(_opt)
     
-    def __binary_expr_error(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def __binary_expr_error(self, _opt:CSToken, _object:CSObject):
         """ Called if not implemented operation
         """
         # = format string|
@@ -460,7 +460,7 @@ class CSObject(HashMap):
         # ===============|
         return _error
 
-    def pow(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def pow(self, _opt:CSToken, _object:CSObject):
         """ Called when power operation
 
             Returns
@@ -469,7 +469,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
 
-    def mul(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def mul(self, _opt:CSToken, _object:CSObject):
         """ Called when mul operation
 
             Returns
@@ -478,7 +478,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def div(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def div(self, _opt:CSToken, _object:CSObject):
         """ Called when div operation
 
             Returns
@@ -487,7 +487,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def mod(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def mod(self, _opt:CSToken, _object:CSObject):
         """ Called when mod operation
 
             Returns
@@ -496,7 +496,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
 
-    def add(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def add(self, _opt:CSToken, _object:CSObject):
         """ Called when add operation
 
             Returns
@@ -505,7 +505,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def sub(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def sub(self, _opt:CSToken, _object:CSObject):
         """ Called when sub operation
 
             Returns
@@ -514,7 +514,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def lshift(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def lshift(self, _opt:CSToken, _object:CSObject):
         """ Called when left shift operation
 
             Returns
@@ -523,7 +523,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def rshift(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def rshift(self, _opt:CSToken, _object:CSObject):
         """ Called when right shift operation
 
             Returns
@@ -532,7 +532,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def lt(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def lt(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan operation
 
             Returns
@@ -541,7 +541,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
 
-    def lte(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def lte(self, _opt:CSToken, _object:CSObject):
         """ Called when lessthan equal operation
 
             Returns
@@ -550,7 +550,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def gt(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def gt(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan operation
 
             Returns
@@ -559,7 +559,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
 
-    def gte(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def gte(self, _opt:CSToken, _object:CSObject):
         """ Called when greaterthan equal operation
 
             Returns
@@ -577,7 +577,7 @@ class CSObject(HashMap):
         """
         return self.get("this") == _object.get("this")
 
-    def eq(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def eq(self, _opt:CSToken, _object:CSObject):
         """ Called when equal
 
             Returns
@@ -586,7 +586,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def neq(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def neq(self, _opt:CSToken, _object:CSObject):
         """ Called when not equal
 
             Returns
@@ -595,7 +595,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
 
-    def bit_and(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def bit_and(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise and operation
 
             Returns
@@ -604,7 +604,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def bit_xor(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def bit_xor(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise xor operation
 
             Returns
@@ -613,7 +613,7 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    def bit_or(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def bit_or(self, _opt:CSToken, _object:CSObject):
         """ Called when bitwise or operation
 
             Returns
@@ -623,7 +623,7 @@ class CSObject(HashMap):
         return self.__binary_expr_error(_opt, _object)
     
     # for compile time constant evaluation
-    def log_and(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def log_and(self, _opt:CSToken, _object:CSObject):
         """ Called when logic and operation
 
             Returns
@@ -633,7 +633,7 @@ class CSObject(HashMap):
         return self.__binary_expr_error(_opt, _object)
     
     # for compile time constant evaluation
-    def log_or(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def log_or(self, _opt:CSToken, _object:CSObject):
         """ Called when logic or operation
 
             Returns

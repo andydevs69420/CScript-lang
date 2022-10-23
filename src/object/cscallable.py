@@ -62,23 +62,3 @@ class CSCallable(CSObject):
         
         del VM
         return _obj
-
-
-
-def reformatError(_message:str, _token:CSToken):
-    """ By default, the entire error is string, not an exception.
-
-        Prameters
-        ---------
-        _csexceptionobject : CSObject
-        _token             : CSToken
-    """
-    _error = CSObject.new_string(
-        ("[%s:%d:%d] CSError: %s" % (_token.fsrce, _token.yS, _token.xS, _message))
-        + "\n" 
-        + _token.trace
-    )
-    return _error
-
-
-
