@@ -658,17 +658,3 @@ def ThrowError(_csexceptionobject:CSObject):
     # delete vm locally
     del VM
 
-
-
-def nonRecursiveToSting(_csobject:CSObject):
-    _keys   = _csobject.keys()
-    _attrib = ""
-    for k in range(len(_keys)):
-        _ckey = _csobject.get(_keys[k]).__str__() if _keys[k] != "this" else _csobject.get("this")
-        _attrib += f"{_keys[k]}: {_ckey}"
-
-        if  k < (len(_keys) - 1):
-            _attrib += ", "
-
-    return "{" + f"{_attrib}" + "}"
-
