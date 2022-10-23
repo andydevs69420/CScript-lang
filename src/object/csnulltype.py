@@ -1,4 +1,4 @@
-from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
+from csobject import CSToken, CSObject
 
 
 class CSNullType(CSObject):

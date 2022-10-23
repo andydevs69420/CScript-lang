@@ -29,15 +29,15 @@ class SubscriptNode(ExpressionAst):
         _block.binary_subscript(self.subscript_location)
     
 
-    def assignTo(self):
-        # compile left
-        self.lefthand.compile()
+    def assignTo(self, _block:CodeBlock, _opt:CSToken):
+        # compile lhs
+        self.lefthand.compile(_block)
 
         # compile expression
-        self.expression.compile()
+        self.expression.compile(_block)
 
         # subscript opcode
-        self.set_subscript(self.subscript_location)
+        _block.set_subscript(self.subscript_location)
 
 
 

@@ -1,7 +1,7 @@
 
 
 
-from csobject import CSToken, CSObject, ThrowError, reformatError
+from csobject import CSToken, CSObject, ThrowError
 
 
 class CSArray(CSObject):pass

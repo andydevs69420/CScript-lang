@@ -4,12 +4,9 @@ import dis
 
 code = """
 
-try:
+x = [1,2,3,4]
 
-    2 + "Hola!";
-
-except Exception as e:
-    print(e)
+x[0] = 2
 
 """
 dis.dis(code)

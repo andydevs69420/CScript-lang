@@ -13,7 +13,7 @@ from csparser import CSParser
 # core
 from cscriptvm.csvm import CSVM
 
-FILE = "lib/member_access_test.csx"
+FILE = "lib/subscript_test.csx"
 parser = CSParser(FILE, open(FILE, "r").read())
 x = parser.parse()
 instruct = x.compile()

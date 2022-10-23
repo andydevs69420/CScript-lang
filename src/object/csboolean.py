@@ -1,5 +1,5 @@
 
-from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
+from csobject import CSToken, CSObject, CSMalloc, ThrowError
 
 
 class CSBoolean(CSObject):
@@ -28,7 +28,7 @@ class CSBoolean(CSObject):
     def assertType(self, _opt: CSToken, _lhs: CSObject, _rhs: CSObject):
         if  _lhs.dtype != _rhs.dtype:
             # = format string|
-            _error = reformatError("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, _lhs.dtype, _rhs.dtype), _opt)
+            _error = CSObject.new_type_error("unsupported operator \"%s\" for type(s) %s and %s" % (_opt.token, _lhs.dtype, _rhs.dtype), _opt)
 
             # === throw error|
             # ===============|

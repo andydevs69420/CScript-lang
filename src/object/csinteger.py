@@ -1,5 +1,5 @@
 
-from csnumber import CSToken, CSObject, CSNumber, CSMalloc, ThrowError
+from csnumber import CSToken, CSObject, CSNumber
 
 
 class CSInteger(CSNumber):

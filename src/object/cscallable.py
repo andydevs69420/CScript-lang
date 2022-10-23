@@ -1,4 +1,4 @@
-from csobject import CSToken, CSObject, CSMalloc, ThrowError, reformatError
+from csobject import CSToken, CSObject, ThrowError
 
 
 class CSCallable(CSObject):
@@ -46,9 +46,9 @@ class CSCallable(CSObject):
         # core
         from cscriptvm.csvm import CSVM as VM
 
-        if  _arg_count != self.paramcount:
+        if  _arg_count != self.get("paramCount").get("this"):
             # = format string|
-            _error = reformatError("expected parameter count %d, got %d" % (self.paramcount, _arg_count), _opt)
+            _error = CSObject.new_type_error("expected parameter count %d, got %d" % (self.get("paramCount").get("this"), _arg_count), _opt)
 
             # === throw error|
             # ===============|

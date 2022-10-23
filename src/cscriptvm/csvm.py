@@ -545,6 +545,13 @@ class CSVM(ExceptionTable, CallStack):
         _member = EvalStack.es_pop()
         _object = EvalStack.es_pop()
         EvalStack.es_push(_object.subscript(_instruction.get("location"), _member))
+    
+    @staticmethod
+    def set_subscript(_instruction:Instruction):
+        _member  = EvalStack.es_pop()
+        _object  = EvalStack.es_pop()
+        _new_val = EvalStack.es_pop()
+        EvalStack.es_push(_object.subscript(_instruction.get("location"), _member))
     # ============================= END
 
     

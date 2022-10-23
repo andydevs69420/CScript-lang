@@ -1,13 +1,11 @@
 
 from cstoken import CSToken
-from errortoken import show_error
 from hashmap import hasher, HashMap
 
 
 # for typing
 class CSObject(HashMap):pass
 def CSMalloc(_csobject:CSObject):pass
-def reformatError(_message:str, _token:CSToken):pass
 def ThrowError(_csexceptionobject:CSObject, _error_token:CSToken):pass
 
 
@@ -628,22 +626,6 @@ def CSMalloc(_csobject:CSObject):
 
     # return object
     return _object
-
-
-def reformatError(_message:str, _token:CSToken):
-    """ By default, the entire error is string, not an exception.
-
-        Prameters
-        ---------
-        _csexceptionobject : CSObject
-        _token             : CSToken
-    """
-    _error = CSObject.new_string(
-        ("[%s:%d:%d] CSTypeError: %s" % (_token.fsrce, _token.yS, _token.xS, _message))
-        + "\n" 
-        + _token.trace
-    )
-    return _error
 
 
 def ThrowError(_csexceptionobject:CSObject):
