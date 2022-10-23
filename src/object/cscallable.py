@@ -22,16 +22,6 @@ class CSCallable(CSObject):
     # ============ PYTHON|
     # ===================|
     
-    def get(self, _key: str):
-        if  type(self) == CSCallable and _key == "this":
-            return self
-        return super().get(_key)
-    
-    def isPointer(self):
-        """ Only instructions
-        """
-        return True
-    
     def __str__(self):
         _fmt_param = ""
         for idx in range(self.param_count):

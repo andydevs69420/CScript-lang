@@ -50,7 +50,8 @@ class CSObject(HashMap):
         _keys   = self.keys()
         _attrib = ""
         for k in range(len(_keys)):
-            _attrib += f"{_keys[k]}: {nonRecursiveToSting(self.get(_keys[k]))}"
+
+            _attrib += f"{_keys[k]}: {self.get(_keys[k]).__str__()}"
 
             if  k < (len(_keys) - 1):
                 _attrib += ", "

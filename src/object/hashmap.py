@@ -117,16 +117,6 @@ class HashMap(object):
         
         return _keys
     
-    def hasAttribute(self, _key:str):
-        _bucket_index = hasher(_key) % self.bcount
-        if  self.bucket[_bucket_index] == None:
-            return False
-        _head = self.bucket[_bucket_index]
-        while _head:
-            if  _head.nkey == _key:
-                return True
-            _head = _head.tail
-        return False
 
 
 if  __name__ == "__main__":

@@ -32,8 +32,10 @@ class CSMap(CSObject):
         _attrib = ""
         for k in range(len(_keys)):
             _string = ...
-            if  type(self.elements.get(_keys[k])) == CSMap:
-                _string = nonRecursiveToSting(self.elements.get(_keys[k]).elements)
+            if  self.offset == self.elements.get(_keys[k]).offset:
+                # refering to its self
+                # to avoid recursion
+                _string = "{self}"
             else:
                 _string = self.elements.get(_keys[k]).__str__()
 
@@ -87,8 +89,17 @@ class CSMap(CSObject):
         return self.elements.get(_expr.__str__())
     
     def subscriptSet(self, _subscript_location: CSToken, _attribute: CSObject, _new_value: CSObject):
-        _error = self.assertSubscriptExpression(_subscript_location, _attribute)
-        if _error: return _error
+        if  _attribute.dtype != "CSString":
+            # = format string|
+            _error = CSObject.new_type_error("CSMap subscript must be a type of CSString", _subscript_location)
+
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
+
+            # == return error|
+            # ===============|
+            return _error
 
         self.elements.put(_attribute.__str__(), _new_value)
         return self.elements.get(_attribute.__str__())
@@ -96,21 +107,3 @@ class CSMap(CSObject):
     # ==================== OPERATIONS|
     # ===============================|
     # must be private!. do not include as attribte
-
-def nonRecursiveToSting(_csobject:CSObject):
-    _keys   = _csobject.keys()
-    _attrib = ""
-    for k in range(len(_keys)):
-        _string = ...
-        if  _csobject.get(_keys[k]).offset == _csobject.offset:
-            _string = "{self}"
-        else:
-            _string = _csobject.get(_keys[k]).__str__()
-
-        _attrib += f"{_keys[k]}: {_string}"
-
-        if  k < (len(_keys) - 1):
-            _attrib += ", "
-
-    return "{" + f"{_attrib}" + "}"
-

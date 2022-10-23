@@ -49,7 +49,16 @@ class CSArray(CSObject):
     def __str__(self):
         _elem = ""
         for idx in range(len(self.elements.all())):
-            _elem += self.elements.elements.get(str(idx)).__str__()
+            _string = ...
+            if  self.offset == self.elements.elements.get(str(idx)).offset:
+                # refering to its self
+                # to avoid recursion
+                _string = "{self}"
+                _string = "[self]"
+            else:
+                _string = self.elements.elements.get(str(idx)).__str__()
+
+            _elem += _string
 
             if  idx < (len(self.elements.all()) - 1):
                 _elem += ", "

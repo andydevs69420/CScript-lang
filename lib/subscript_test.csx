@@ -17,4 +17,7 @@ hashmap->c = hashmap;
 print: xxxxxxx[3] += 100;
 print: xxxxxxx, hashmap;
 
+hashmap["yawa"] = 2 + 100;
+print: hashmap->c;
+xxxxxxx[3] = xxxxxxx;
 
