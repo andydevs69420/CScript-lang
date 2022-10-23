@@ -393,7 +393,14 @@ class CSVM(ExceptionTable, CallStack):
 
     @staticmethod
     def push_const(_instruction:Instruction):
-        EvalStack.es_push(CSVM.VHEAP.allocate(_instruction.get("obj")))
+        # filter
+        _obj = _instruction.get("obj")
+        if  _obj.offset != -69420:
+            # already allocated!|raw
+            EvalStack.es_push(_obj)
+            return
+
+        EvalStack.es_push(CSVM.VHEAP.allocate(_obj))
     
     @staticmethod
     def push_name(_instruction:Instruction):

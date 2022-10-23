@@ -18,7 +18,7 @@ class CSObject(HashMap):
         super().__init__()
         # initilize
         self.dtype    = type(self).__name__
-        self.offset   = -1
+        self.offset   = -69420
         self.ismarked = False
     
     
