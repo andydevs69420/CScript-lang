@@ -1,8 +1,5 @@
 from sys import stderr, exit
-from strongtyping.strong_typing import match_typing
 
-
-@match_typing
 def show_error(_message, _token):
     """ Shows error and exit
 

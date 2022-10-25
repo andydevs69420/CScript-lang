@@ -11,9 +11,10 @@ class CSNumber(CSObject):
 
     def __init__(self):
         super().__init__()
+        self.initializeBound()
 
-    # ============ PYTHON|
-    # ===================|
+    # ======================== PYTHON|
+    # ===============================|
 
     def __str__(self):
         return "%d" % self.get("this")

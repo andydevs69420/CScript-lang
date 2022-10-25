@@ -19,8 +19,9 @@ class ClassNode(CSAst):
         self.member = _member
     
     def compile(self, _block:CodeBlock):
-        # push class name
-        self.push_constant(CSObject.new_string(self.name.token))
+        _s = _block.newglobals()
+
+        _block.symbtable.current.insert(self.name.token, _slot=_s, _global=True)
 
         # TODO: evaluate base name
 
@@ -31,5 +32,10 @@ class ClassNode(CSAst):
             # push name
             _block.push_constant(CSObject.new_string(each_member["name"].token))
         
+        # push class name
+        _block.push_constant(CSObject.new_string(self.name.token, _allocate=False))
+
         _block.make_class(len(self.member))
+
+        _block.store_name(self.name, _s)
 

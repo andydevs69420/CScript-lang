@@ -18,8 +18,13 @@ class ExpressionAst(CSAst, Evaluatable, Evaluator):
     def __init__(self):
         super().__init__()
     
+    def iscallable(self):
+        """ Checks if callable expression
+        """
+        return False
+
     def islogical(self):
-        """ Checks if logical exoression
+        """ Checks if logical expression
         """
         return False
 

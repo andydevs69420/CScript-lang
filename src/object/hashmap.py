@@ -33,7 +33,7 @@ class LinkedList(Node):
     def append(self, _data:Node):
         
         _last = self
-        while _last != None:
+        while _last:
 
             if _last.nkey == _data.nkey:
                 # update

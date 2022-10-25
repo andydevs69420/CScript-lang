@@ -346,18 +346,80 @@ class CSParser(ContextUtils):
 
             return _node
         
-        # call_args: array_elements;
-        def call_args():
-            return array_elements()
+        # allocation: "new" member_expression
+        # | other_type
+        # ;
+        def allocation():
+            if  self.cstoken.matches("new"):
+                _unary_opt = self.cstoken
+                self.eat(_unary_opt.ttype)
+
+                # call start
+                _s = self.cstoken
+
+                _exp = member_access()
+
+                return AllocDeallocNode(_unary_opt, _exp)
+            
+            return other_type()
 
         # member_access: other_type
         # | other_type->raw_identifier
         # | other_type '[' non_nullable_expression ']'
-        # | other_type '(' call_args ')'
         # ;
         def member_access():
             _open = self.cstoken
-            _node = other_type()
+            _node = allocation()
+            if not _node: return _node
+
+            while self.cstoken.matches("->") or \
+                  self.cstoken.matches("[" ):
+
+                if  self.cstoken.matches("->"):
+                    # eat type
+                    self.eat(self.cstoken.ttype)
+
+                    # attrib
+                    _attr = raw_identifier()
+
+                    _node = AccessNode(_node, _attr)
+
+                elif self.cstoken.matches("["):
+                    self.eat("[")
+
+                    _expr = non_nullable_expression()
+
+                    _c = self.cstoken
+                    self.eat("]")
+
+                    _subscript = CSToken(TokenType.DYNAMIC_LOCATION)
+                    _subscript.fsrce = self.fpath
+                    _subscript.token = "[...]"
+                    # xAxis
+                    _subscript.xS = _open.xS
+                    _subscript.xE = _c.xE
+                    # yAxis
+                    _subscript.yS = _open.yS
+                    _subscript.yE = _c.yE
+                    _subscript.addTrace(self)
+                
+                    _node = SubscriptNode(_node, _expr, _subscript)
+
+            return _node
+        
+        # call_args: array_elements;
+        # multi-purpose: used in: ["call_expresion", "allocation"]
+        def call_args():
+            return array_elements()
+        
+        # call_expression: other_type
+        # | other_type->raw_identifier
+        # | other_type '[' non_nullable_expression ']'
+        # | other_type '(' call_args ')'
+        # ;
+        def call_expression():
+            _open = self.cstoken
+            _node = member_access()
             if not _node: return _node
 
             while self.cstoken.matches("->") or \
@@ -425,42 +487,12 @@ class CSParser(ContextUtils):
                 self.eat(")")
                 return _expr
             
-            return member_access()
-        
-        # ternary: parenthesis ('?'non_nullable_expression ':' non_nullable_expression)? 
-        def ternary():
-            _node = parenthesis()
-            if not _node: return _node
-
-            if not self.cstoken.matches("?"):
-                return _node
-            
-            # eat operator
-            self.eat("?")
-
-            _tv = non_nullable_expression()
-
-            self.eat(":")
-
-            _fv = non_nullable_expression()
-
-            # return as ternary
-            return TernaryNode(_node, _tv, _fv)
+            return call_expression()
         
         # unary_op: ternary
-        # | ("del" | "new" | '~' | '!' | '+' | '-') unary_op
+        # | ('~' | '!' | '+' | '-') unary_op
         # ;
         def unary_op():
-
-            if  self.cstoken.matches("del") or \
-                self.cstoken.matches("new"):
-
-                _opt = self.cstoken
-                self.eat(_opt.ttype)
-
-                _exp = unary_op()
-
-                return AllocDeallocNode(_opt, _exp)
 
             if  self.cstoken.matches("~") or \
                 self.cstoken.matches("!") or \
@@ -475,7 +507,7 @@ class CSParser(ContextUtils):
                 # return as unary expr
                 return UnaryExprNode(_opt, _exp)
 
-            return ternary()
+            return parenthesis()
         
         # power: unary_op 
         # | unary_op "^^" unary_op
@@ -682,12 +714,32 @@ class CSParser(ContextUtils):
 
             # return node
             return _node
+        
+        # ternary: parenthesis ('?'non_nullable_expression ':' non_nullable_expression)? 
+        def ternary():
+            _node = logical()
+            if not _node: return _node
+
+            if not self.cstoken.matches("?"):
+                return _node
+            
+            # eat operator
+            self.eat("?")
+
+            _tv = non_nullable_expression()
+
+            self.eat(":")
+
+            _fv = non_nullable_expression()
+
+            # return as ternary
+            return TernaryNode(_node, _tv, _fv)
     
         # simple_assignment: logical
         # | logical '=' logical
         # ;
         def simple_assignment():
-            _node = logical()
+            _node = ternary()
             if not _node: return _node
 
             while self.cstoken.matches("="):
@@ -695,7 +747,7 @@ class CSParser(ContextUtils):
                 _opt = self.cstoken
                 self.eat(_opt.ttype)
 
-                _rhs = logical()
+                _rhs = ternary()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
 
@@ -778,16 +830,24 @@ class CSParser(ContextUtils):
                 _base = raw_identifier()
 
             # body containing member
-            _member = class_body()
+            _member = class_body_init()
 
             # return as class
             return ClassNode(_name, _base, _member)
         
-        # class_body: '{' class_member_pair* '}';
+        # class_body_init: '{' class_body '}';
+        def class_body_init():
+            self.eat("{")
+
+            _body = class_body()
+
+            self.eat("}")
+
+            return _body
+        
+        # class_body: class_member_pair* ;
         def class_body():
             _member = []
-
-            self.eat("{")
 
             _id0 = class_member_pair()
             if  not _id0:
@@ -807,13 +867,12 @@ class CSParser(ContextUtils):
                 
                 _member.append(_idN)
 
-            self.eat("}")
-
             return tuple(_member)
         
         # class_member_pair: raw_identifier ':' non_nullable_expression
         def class_member_pair():
             if  not self.cstoken.matches(TokenType.IDENTIFIER):
+                print("HERE")
                 return None
             
             _name  = raw_identifier()

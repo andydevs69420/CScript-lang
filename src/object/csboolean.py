@@ -1,4 +1,5 @@
 
+from csclassnames import CSClassNames
 from csobject import CSToken, CSObject, CSMalloc, ThrowError
 
 
@@ -13,10 +14,13 @@ class CSBoolean(CSObject):
     def __init__(self, _bool:str):
         assert _bool in ("true", "false"), "invalid boolean value(%s)" % _bool
         super().__init__()
-        self.put("this", bool(True if _bool == "true" else False))
+        self.initializeBound()
+
+        self.dtype = CSClassNames.CSBoolean
+        self.put("this", True if _bool == "true" else False)
     
-    # ============ PYTHON|
-    # ===================|
+    # ======================== PYTHON|
+    # ===============================|
 
     def __str__(self):
         return "true" if self.get("this") else "false"
@@ -56,13 +60,3 @@ class CSBoolean(CSObject):
     def neq(self, _opt: CSToken, _object: CSObject, _allocate:bool=True):
         self.assertType(_opt, self, _object)
         return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false", _allocate)
-    
-    def log_and(self, _opt: CSToken, _object: CSObject, _allocate:bool=True):
-        # self.assertType(_opt, self, _object)
-        # TODO: fix!!!!! memory hungry!
-        return CSMalloc(_object if self.get("this") and _object.get("this") else self, _allocate)
-    
-    def log_or(self, _opt: CSToken, _object: CSObject, _allocate:bool=True):
-        # self.assertType(_opt, self, _object)
-        # TODO: fix!!!!! memory hungry!
-        return CSMalloc(self if self.get("this") or _object.get("this") else _object, _allocate)

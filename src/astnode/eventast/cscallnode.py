@@ -35,6 +35,9 @@ class CallNode(ExpressionAst):
         
         # call opcode
         _block.call(self.location, len(self.arguments))
+    
+    def iscallable(self):
+        return True
 
 
 

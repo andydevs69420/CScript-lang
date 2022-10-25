@@ -1,5 +1,6 @@
 
 
+from csclassnames import CSClassNames
 from csobject import CSToken, CSObject, ThrowError
 
 
@@ -8,7 +9,17 @@ class CSArray(CSObject):
 
     def __init__(self):
         super().__init__()
+        self.initializeBound()
+
+        self.dtype    = CSClassNames.CSArray
         self.elements = CSObject.new_map(_allocate=False)
+    
+    def initializeBound(self):
+        super().initializeBound()
+        # === ARRAY Bounds|
+        # ================|
+        self.put("length", CSObject.new_bound_method(self.length, 0, _allocate=False))
+        self.put("push"  , CSObject.new_bound_method(self.push  , 1, _allocate=False))
     
     # ![bound::length]
     def length(self):
@@ -37,8 +48,8 @@ class CSArray(CSObject):
             CSObject
         """
     
-    # ============ PYTHON|
-    # ===================|
+    # ======================== PYTHON|
+    # ===============================|
     
     def all(self):
         return self.elements.all()
@@ -53,7 +64,6 @@ class CSArray(CSObject):
             if  self.offset == self.elements.elements.get(str(idx)).offset:
                 # refering to its self
                 # to avoid recursion
-                _string = "{self}"
                 _string = "[self]"
             else:
                 _string = self.elements.elements.get(str(idx)).__str__()
@@ -75,7 +85,7 @@ class CSArray(CSObject):
     # ===============================|
     # must be private!. do not include as attribte
     def assertSubscriptExpression(self, _subscript_location: CSToken, _expr:CSObject):
-        if  _expr.dtype != "CSInteger":
+        if  _expr.dtype != CSClassNames.CSInteger:
             # = format string|
             _error = CSObject.new_type_error("CSArray subscript must be a type of CSInteger", _subscript_location)
 

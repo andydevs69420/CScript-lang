@@ -1,4 +1,5 @@
 
+from csclassnames import CSClassNames
 from cstoken import CSToken
 from hashmap import hasher, HashMap
 
@@ -9,6 +10,7 @@ def CSMalloc(_csobject:CSObject):pass
 def ThrowError(_csexceptionobject:CSObject, _error_token:CSToken):pass
 
 
+
 class CSObject(HashMap):
     """ Represents Object in CScript
     """
@@ -16,11 +18,14 @@ class CSObject(HashMap):
     def __init__(self):
         super().__init__()
         # initilize
-        self.dtype    = type(self).__name__
+        self.dtype    = CSClassNames.CSObject
         self.offset   = -69420
         self.ismarked = False
     
-    # ![bound::toString]
+    def initializeBound(self):
+        self.put("toString", CSObject.new_bound_method(self.toString, 0, _allocate=False))
+
+    #![bound::toString]
     def toString(self):
         """ toString
             
@@ -30,8 +35,8 @@ class CSObject(HashMap):
         """
         return CSObject.new_string(self.__str__())
     
-    # ================ PYTHON|
-    # =======================|
+    # ======================== PYTHON|
+    # ===============================|
     def get(self, _key: str):
         if type(self) == CSObject and _key == "this": return self
         return super().get(_key)
@@ -50,7 +55,6 @@ class CSObject(HashMap):
         _keys   = self.keys()
         _attrib = ""
         for k in range(len(_keys)):
-
             _attrib += f"{_keys[k]}: {self.get(_keys[k]).__str__()}"
 
             if  k < (len(_keys) - 1):
@@ -214,6 +218,26 @@ class CSObject(HashMap):
         del cscallable
         return CSMalloc(_function) if _allocate else _function
     
+    @staticmethod
+    def new_bound_method(_pyCallable:callable, _parameter_count:int, _allocate:bool=True):
+        import csbound
+        _bound = csbound.CSBound(_pyCallable, _parameter_count)
+        del csbound
+        return CSMalloc(_bound) if _allocate else _bound
+    
+    @staticmethod
+    def new_class(_name:str, _allocate:bool=True):
+        """ Creates class template
+
+            Returns
+            -------
+            CSClass
+        """
+        import csclass
+        _class = csclass.CSClass(_name)
+        del csclass
+        return CSMalloc(_class) if _allocate else _class
+
     @staticmethod
     def new_exception(_message:str, _location:CSToken, _allocate:bool=True):
         """ Creates exception
@@ -398,6 +422,24 @@ class CSObject(HashMap):
     def __unary_expr_error(self, _opt:CSToken):
         # = format string|
         _error = CSObject.new_type_error("unsupported operator \"%s\" for type %s" % (_opt.token, self.dtype), _opt)
+
+        # === throw error|
+        # ===============|
+        ThrowError(_error)
+
+        # == return error|
+        # ===============|
+        return _error
+
+    def new_op(self, _opt:CSToken, _allocate:bool=True):
+        """ Called when unary new operation
+
+            Returns
+            -------
+            CSObject
+        """
+        # = format string|
+        _error = CSObject.new_type_error("right-hand expression \"%s(%s)\" is not a class" % (self.dtype, self.__str__()), _opt)
 
         # === throw error|
         # ===============|
@@ -619,25 +661,14 @@ class CSObject(HashMap):
         """
         return self.__binary_expr_error(_opt, _object)
     
-    # for compile time constant evaluation
-    def log_and(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        """ Called when logic and operation
-
-            Returns
-            -------
-            CSObject
-        """
-        return self.__binary_expr_error(_opt, _object)
+    # short circuiting|default
+    def log_and(self, _opt: CSToken, _object: CSObject, _allocate:bool=True):
+        # self.assertType(_opt, self, _object)
+        return self.get("this") and _object.get("this")
     
-    # for compile time constant evaluation
-    def log_or(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        """ Called when logic or operation
-
-            Returns
-            -------
-            CSObject
-        """
-        return self.__binary_expr_error(_opt, _object)
+    def log_or(self, _opt: CSToken, _object: CSObject, _allocate:bool=True):
+        # self.assertType(_opt, self, _object)
+        return self.get("this") or _object.get("this")
 
 
 # malloc

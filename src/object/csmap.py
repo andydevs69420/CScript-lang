@@ -1,4 +1,5 @@
 
+from csclassnames import CSClassNames
 from csobject import CSObject, ThrowError
 from cstoken import CSToken
 
@@ -10,10 +11,23 @@ from cstoken import CSToken
 class CSMap(CSObject):
     def __init__(self):
         super().__init__()
-        self.elements = CSObject.new(_allocate=True)
+        self.initializeBound()
+        
+        self.dtype    = CSClassNames.CSMap 
+        self.elements = CSObject.new(_allocate=False)
     
-    # ============ PYTHON|
-    # ===================|
+    def initializeBound(self):
+        super().initializeBound()
+        # ===== MAP Bounds|
+        # ================|
+
+
+    
+    # ======================== PYTHON|
+    # ===============================|
+
+    def keys(self):
+        return self.elements.keys()
 
     def put(self, _key: str, _data):
         self.elements.put(_key, _data)

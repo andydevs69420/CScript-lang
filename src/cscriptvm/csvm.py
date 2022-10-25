@@ -129,15 +129,12 @@ class CSVM(ExceptionTable, CallStack):
     """
     VHEAP:CSMemoryObject = CSMemoryObject()
 
-    ISRUNNING:bool = False
-
     @staticmethod
     def isrunning():
-        return CSVM.ISRUNNING
+        return EvalStack.es_isEmpty()
 
     @staticmethod
     def run(_instruction:list[Instruction]):
-        CSVM.ISRUNNING = True
 
         # push new frame
         CallStack.cs_push_frame(_instruction)
@@ -155,13 +152,11 @@ class CSVM(ExceptionTable, CallStack):
         CallStack.cs_pop_frame()\
             .cleanup()
         
-        CSVM.ISRUNNING = False
         return _top
     
     @staticmethod
     def throw_error(_csobject:CSObject):
         if  not ExceptionTable.et_is_empty():
-            print("Called IF")
             # if exception table is not empty,
             # jump to whats being returned
             _target = ExceptionTable.et_peek() // 2
@@ -435,7 +430,19 @@ class CSVM(ExceptionTable, CallStack):
 
     @staticmethod
     def make_class(_instruction:Instruction):
-        print(_instruction)
+        _size = _instruction.get("size")
+
+        # class name: string const
+        _name = EvalStack.es_pop()
+        
+        _class = CSObject.new_class(_name.__str__())
+
+        for idx in range(_size):
+            _k = EvalStack.es_pop()
+            _v = EvalStack.es_pop()
+            _class.put(_k.__str__(), _v)
+        
+        EvalStack.es_push(_class)
 
     @staticmethod
     def make_module(_instruction:Instruction):
@@ -455,7 +462,8 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def store_name(_instruction:Instruction):
-        _value = EvalStack.es_peek()
+        _value = EvalStack.es_pop()
+        # print(_instruction.get("name"), "=", _value)
         CSVM.VHEAP.setAddress(_instruction.get("offset"), _value.offset)
     
     @staticmethod
@@ -475,6 +483,8 @@ class CSVM(ExceptionTable, CallStack):
         _opt = _instruction.get("opt")
         _rhs = EvalStack.es_pop()
         match _opt.token:
+            case "new":
+                return EvalStack.es_push(_rhs.new_op(_opt))
             case "~":
                 return EvalStack.es_push(_rhs.bit_not(_opt))
             case "!":

@@ -8,7 +8,6 @@ print: (xxxxxxx[3] += 2) + 2;
 
 while (hashmap["b"] < 1000) 
 {
-
     hashmap["b"] += 1;
 }
 
@@ -18,6 +17,9 @@ print: xxxxxxx[3] += 100;
 print: xxxxxxx, hashmap;
 
 hashmap["yawa"] = 2 + 100;
+
 print: hashmap->c;
 xxxxxxx[3] = xxxxxxx;
+
+print: xxxxxxx;
 

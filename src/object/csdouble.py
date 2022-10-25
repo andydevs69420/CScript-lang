@@ -1,4 +1,5 @@
 
+from csclassnames import CSClassNames
 from csnumber import CSNumber
 
 
@@ -12,7 +13,8 @@ class CSDouble(CSNumber):
 
     def __init__(self, _flt:float):
         super().__init__()
+        self.dtype = CSClassNames.CSDouble
         self.put("this", float(_flt))
     
-    # ============ PYTHON|
-    # ===================|
+    # ======================== PYTHON|
+    # ===============================|

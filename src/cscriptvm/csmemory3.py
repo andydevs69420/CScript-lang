@@ -23,13 +23,13 @@ class CSMemoryObject(object):
         self.__onallocate()
 
         if  _csobject.offset != -69420:
-            raise Exception(f"{_csobject.__str__()} is already in memory at {_csobject.offset}!!!")
+            raise Exception(f"{_csobject.__str__()} is already in memory at index {_csobject.offset}!!!")
 
         if  len(self.__freecell) > 0:
             # reuse free space
             _index = self.__freecell.pop()
             if self.__bucket[_index] != None:
-                raise Exception("invalid exception")
+                raise Exception("invalid allocation|collision of objects")
 
             _csobject.offset = _index
             self.__bucket[_index] = _csobject
@@ -42,10 +42,15 @@ class CSMemoryObject(object):
         return self.__bucket[_index]
     
     def __onallocate(self):
+        from .csvm import CSVM as VM
+        if  not VM.isrunning():
+            del VM
+            return
         # ======== INCREMENT ALLOC|
         # ========================|
         self.__allocations += 1
 
+        # run collector every 500 alloc
         if  self.__allocations >= 500:
             self.collect()
             self.__allocations = 0
@@ -57,6 +62,7 @@ class CSMemoryObject(object):
         return self.__bucket[self.__nmpntr[_name_pntr]]
         
     def mark(self):
+
         _roots:list[CSObject] = [self.__bucket[idx] for idx in filter(lambda x:x != None, self.__nmpntr.values())]
         while len(_roots) > 0:
             _v = _roots.pop()
@@ -86,9 +92,14 @@ class CSMemoryObject(object):
     
     def collectlast(self):
         self.collect()
-        print("Finished -------------" + ("-" * (len(str(self.__total_garbage)) + 1)))
-        print("GarbageCollected:     ",  (" " * (len(str(self.__total_garbage)) - len(str(len(self.__freecell))))) + str(len(self.__freecell)))
-        print("TotalGarbageCollected:", self.__total_garbage)
+
+        _trailing = ("-" * (len(str(self.__total_garbage)) + 2))
+
+        print("+-Finished -------------" + _trailing + "+")
+        print("| GarbageCollected:     ",  (" " * (len(str(self.__total_garbage)) - len(str(len(self.__freecell))))) + str(len(self.__freecell)) + " |")
+        print("+-----------------------" + _trailing + "+")
+        print("| TotalGarbageCollected:", str(self.__total_garbage) + " |")
+        print("+-----------------------" + _trailing + "+")
         print("MemoryView: ", [obj.__str__() for obj in filter(lambda x:x != None, self.__bucket)])
         # run python gc
         gc.collect()

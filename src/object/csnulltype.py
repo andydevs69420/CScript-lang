@@ -1,3 +1,4 @@
+from csclassnames import CSClassNames
 from csobject import CSToken, CSObject
 
 
@@ -11,10 +12,13 @@ class CSNullType(CSObject):
 
     def __init__(self):
         super().__init__()
+        self.initializeBound()
+
+        self.dtype = CSClassNames.CSNullType
         self.put("this", None)
 
-    # ============ PYTHON|
-    # ===================|
+    # ======================== PYTHON|
+    # ===============================|
     
     def __str__(self):
         return "null"

@@ -354,6 +354,7 @@ class TokenBuilder(LexUtils):
 
             if  ord(self.clook) == 0x5c:
                 _bslash = self.clook
+                self.forward()
 
                 if  self.clook in self.ESCAPES.keys():
                     _sChunk += self.ESCAPES[self.clook]

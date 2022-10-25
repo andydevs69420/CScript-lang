@@ -1,4 +1,5 @@
 
+from csclassnames import CSClassNames
 from csnumber import CSToken, CSObject, CSNumber
 
 
@@ -12,10 +13,11 @@ class CSInteger(CSNumber):
 
     def __init__(self, _int:int):
         super().__init__()
+        self.dtype = CSClassNames.CSInteger
         self.put("this", int(_int))
     
-    # ============ PYTHON|
-    # ===================|
+    # ======================== PYTHON|
+    # ===============================|
     
     # ==================== OPERATIONS|
     # ===============================|

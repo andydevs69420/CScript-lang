@@ -1,3 +1,4 @@
+from csclassnames import CSClassNames
 from csobject import CSToken, CSObject, ThrowError
 
 class CSString(CSObject):
@@ -10,17 +11,23 @@ class CSString(CSObject):
 
     def __init__(self, _str:str):
         super().__init__()
+        self.initializeBound()
+
+        self.dtype = CSClassNames.CSString
         self.put("this", str(_str))
 
     # ![bound::toString]
     def toString(self):
         return self
     
-    # ============ PYTHON|
-    # ===================|
+    # ======================== PYTHON|
+    # ===============================|
     
     def __str__(self):
         return self.get("this")
+    
+    def __repr__(self) -> str:
+        return "\"" + self.__str__() + "\""
     
     # ==================== OPERATIONS|
     # ===============================|

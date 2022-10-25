@@ -1,5 +1,7 @@
 
 from astnode.globalast.csAst import CSToken, CSAst
+from astnode.globalast.cscodeblock import CodeBlock
+from errortoken import show_error
 
 
 # TODO: implement
@@ -17,5 +19,14 @@ class AllocDeallocNode(CSAst):
         self.opt = _opt
         self.rhs = _rhs
     
-    def compile(self):
-        return super().compile()
+    def compile(self, _block:CodeBlock):
+        if  self.opt.matches("del"):
+            return
+        elif self.opt.matches("new"):
+            return self.allocation(_block)
+    
+    def allocation(self, _block:CodeBlock):
+        # compile
+        self.rhs.compile(_block)
+
+        _block.unary_op(self.opt)
