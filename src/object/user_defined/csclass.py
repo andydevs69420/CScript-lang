@@ -20,11 +20,14 @@ class CSClass(CSObject):
         super().initializeBound()
         # ==== CLASS INSTANCE Bounds|
         # ==========================|
-        self.put("constructor", CSObject.new_bound_method("constructor", self.constructor, 0, _allocate=False))
+        self.put("constructor", CSObject.new_bound_method("constructor", self.constructor, 0))
 
     #![bound::constructor]
     def constructor(self):
         return CSObject.new_nulltype()
+    
+    def isPointer(self):
+        return True
     
     def __str__(self):
         return "class %s{...}" % self.name

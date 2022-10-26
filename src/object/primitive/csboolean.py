@@ -50,13 +50,13 @@ class CSBoolean(CSObject):
     
     """ CSBoolean specific operation
     """
-    def bin_not(self, _opt:CSToken, _allocate:bool=True):
-        return CSObject.new_boolean("true" if not self.get("this") else "false", _allocate)
+    def bin_not(self, _opt:CSToken):
+        return CSObject.new_boolean("true" if not self.get("this") else "false")
     
-    def eq(self, _opt: CSToken, _object: CSObject, _allocate:bool=True):
+    def eq(self, _opt: CSToken, _object: CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false")
     
-    def neq(self, _opt: CSToken, _object: CSObject, _allocate:bool=True):
+    def neq(self, _opt: CSToken, _object: CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false")

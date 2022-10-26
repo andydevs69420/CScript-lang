@@ -12,7 +12,7 @@ class CSMap(CSObject):
         self.initializeBound()
         
         self.dtype    = CSClassNames.CSMap 
-        self.elements = CSObject.new(_allocate=False)
+        self.elements = CSObject.new()
     
     def initializeBound(self):
         super().initializeBound()

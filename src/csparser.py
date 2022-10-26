@@ -10,17 +10,10 @@ from cslexer import (
 
 
 class ContextType(Enum):
-
     GLOBAL = 0x00
     LOCAL  = 0x01
     FUNCTION = 0x02
     LOOP = 0x03
-
-
-class FlagInterpreter:
-
-    def interpret():
-        ...
 
 class ContextUtils(object):
 

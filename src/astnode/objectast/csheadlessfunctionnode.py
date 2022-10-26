@@ -57,7 +57,7 @@ class HeadlessFunctionNode(CodeBlock, ExpressionAst):
         #     print(i)
         
         # push function to block
-        _block.push_constant(CSObject.new_callable("headless", _parameters, _instructions, _allocate=False))
+        _block.push_constant(CSObject.new_callable("headless", _parameters, _instructions))
 
         return _instructions
 

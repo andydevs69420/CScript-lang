@@ -49,35 +49,25 @@ class CSNumber(CSObject):
     """
         Shared operation for numbers
     """
-    def bin_not(self, _opt:CSToken, _allocate:bool=True):
-        return CSObject.new_boolean("true" if not self.get("this") else "false", _allocate)
+    def bin_not(self, _opt:CSToken):
+        return CSObject.new_boolean("true" if not self.get("this") else "false")
     
-    def positive(self, _opt:CSToken, _allocate:bool=True):
-        return CSObject.new_integer(+ self.get("this"), _allocate)
+    def positive(self, _opt:CSToken):
+        return CSObject.new_integer(+ self.get("this"))
     
-    def negative(self, _opt:CSToken, _allocate:bool=True):
-        return CSObject.new_integer(- self.get("this"), _allocate)
+    def negative(self, _opt:CSToken):
+        return CSObject.new_integer(- self.get("this"))
 
-    def pow(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def pow(self, _opt:CSToken, _object:CSObject):
         _class = self.assertType(_opt, self, _object)
-        return _class(self.get("this") ** _object.get("this"), _allocate)
+        return _class(self.get("this") ** _object.get("this"))
 
-    def mul(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def mul(self, _opt:CSToken, _object:CSObject):
         _class = self.assertType(_opt, self, _object)
-        return _class(self.get("this") * _object.get("this"), _allocate)
+        return _class(self.get("this") * _object.get("this"))
     
 
-    def div(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        _class = self.assertType(_opt, self, _object)
-
-        _left  = self.get("this")
-        _right = _object.get("this")
-
-        # TODO: check division error
-
-        return _class(_left / _right, _allocate)
-    
-    def mod(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def div(self, _opt:CSToken, _object:CSObject):
         _class = self.assertType(_opt, self, _object)
 
         _left  = self.get("this")
@@ -85,36 +75,46 @@ class CSNumber(CSObject):
 
         # TODO: check division error
 
-        return _class(_left % _right, _allocate)
-
-    def add(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+        return _class(_left / _right)
+    
+    def mod(self, _opt:CSToken, _object:CSObject):
         _class = self.assertType(_opt, self, _object)
-        return _class(self.get("this") + _object.get("this"), _allocate)
-    
-    def sub(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+
+        _left  = self.get("this")
+        _right = _object.get("this")
+
+        # TODO: check division error
+
+        return _class(_left % _right)
+
+    def add(self, _opt:CSToken, _object:CSObject):
         _class = self.assertType(_opt, self, _object)
-        return _class(self.get("this") - _object.get("this"), _allocate)
+        return _class(self.get("this") + _object.get("this"))
     
-    def lt(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") < _object.get("this") else "false", _allocate)
+    def sub(self, _opt:CSToken, _object:CSObject):
+        _class = self.assertType(_opt, self, _object)
+        return _class(self.get("this") - _object.get("this"))
     
-    def lte(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def lt(self, _opt:CSToken, _object:CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") <= _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") < _object.get("this") else "false")
+    
+    def lte(self, _opt:CSToken, _object:CSObject):
+        self.assertType(_opt, self, _object)
+        return CSObject.new_boolean("true" if self.get("this") <= _object.get("this") else "false")
 
-    def gt(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def gt(self, _opt:CSToken, _object:CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") > _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") > _object.get("this") else "false")
     
-    def gte(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def gte(self, _opt:CSToken, _object:CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") >= _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") >= _object.get("this") else "false")
 
-    def eq(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def eq(self, _opt:CSToken, _object:CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false")
     
-    def neq(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
+    def neq(self, _opt:CSToken, _object:CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false")

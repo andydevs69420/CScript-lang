@@ -33,7 +33,7 @@ class ClassNode(CSAst):
             _block.push_constant(CSObject.new_string(each_member["name"].token))
         
         # push class name
-        _block.push_constant(CSObject.new_string(self.name.token, _allocate=False))
+        _block.push_constant(CSObject.new_string(self.name.token))
 
         _block.make_class(len(self.member))
 

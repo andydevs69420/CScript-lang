@@ -24,20 +24,20 @@ class CSInteger(CSNumber):
     # must be private!. do not include as attribte
     """ CSInteger specific operation
     """
-    def bit_not(self, _opt:CSToken, _allocate:bool=True):
-        return CSObject.new_integer(~ self.get("this"), _allocate)
+    def bit_not(self, _opt:CSToken):
+        return CSObject.new_integer(~ self.get("this"))
     
-    def lshift(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        return CSObject.new_integer(self.get("this") << _object.get("this"), _allocate)
+    def lshift(self, _opt:CSToken, _object:CSObject):
+        return CSObject.new_integer(self.get("this") << _object.get("this"))
     
-    def rshift(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        return CSObject.new_integer(self.get("this") >> _object.get("this"), _allocate)
+    def rshift(self, _opt:CSToken, _object:CSObject):
+        return CSObject.new_integer(self.get("this") >> _object.get("this"))
     
-    def bit_and(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        return CSObject.new_integer(self.get("this") & _object.get("this"), _allocate)
+    def bit_and(self, _opt:CSToken, _object:CSObject):
+        return CSObject.new_integer(self.get("this") & _object.get("this"))
 
-    def bit_xor(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        return CSObject.new_integer(self.get("this") ^ _object.get("this"), _allocate)
+    def bit_xor(self, _opt:CSToken, _object:CSObject):
+        return CSObject.new_integer(self.get("this") ^ _object.get("this"))
     
-    def bit_or(self, _opt:CSToken, _object:CSObject, _allocate:bool=True):
-        return CSObject.new_integer(self.get("this") | _object.get("this"), _allocate)
+    def bit_or(self, _opt:CSToken, _object:CSObject):
+        return CSObject.new_integer(self.get("this") | _object.get("this"))

@@ -12,14 +12,14 @@ class CSArray(CSObject):
         self.initializeBound()
 
         self.dtype    = CSClassNames.CSArray
-        self.elements = CSObject.new_map(_allocate=False)
+        self.elements = CSObject.new_map()
     
     def initializeBound(self):
         super().initializeBound()
         # === ARRAY Bounds|
         # ================|
-        self.put("length", CSObject.new_bound_method("length", self.length, 0, _allocate=False))
-        self.put("push"  , CSObject.new_bound_method("push"  , self.push  , 1, _allocate=False))
+        self.put("length", CSObject.new_bound_method("length", self.length, 0))
+        self.put("push"  , CSObject.new_bound_method("push"  , self.push  , 1))
     
     # ![bound::length]
     def length(self):

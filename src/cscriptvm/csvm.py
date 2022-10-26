@@ -388,14 +388,7 @@ class CSVM(ExceptionTable, CallStack):
 
     @staticmethod
     def push_const(_instruction:Instruction):
-        # filter
-        _obj = _instruction.get("obj")
-        if  _obj.offset != -69420:
-            # already allocated!|raw
-            EvalStack.es_push(_obj)
-            return
-        # allocate
-        EvalStack.es_push(CSVM.VHEAP.allocate(_obj))
+        EvalStack.es_push(_instruction.get("obj"))
     
     @staticmethod
     def push_name(_instruction:Instruction):
@@ -411,7 +404,16 @@ class CSVM(ExceptionTable, CallStack):
 
         _array = CSObject.new_array()
         for idx in range(_size):
-            _array.push(EvalStack.es_pop())
+
+            _obj:CSObject = EvalStack.es_pop()
+
+            # ====== check if alocated|
+            # ========================|
+            if  _obj.offset == -69420:
+                _obj = CSVM.VHEAP.allocate(_obj)
+
+            # push alloc object
+            _array.push(_obj)
         
         EvalStack.es_push(_array)
     
@@ -422,9 +424,16 @@ class CSVM(ExceptionTable, CallStack):
         _object = CSObject.new_map()
 
         for idx in range(_size):
-            _k = EvalStack.es_pop()
-            _v = EvalStack.es_pop()
-            _object.put(_k.__str__(), _v)
+            _key:CSObject = EvalStack.es_pop()
+            _val:CSObject = EvalStack.es_pop()
+
+            # ====== check if alocated|
+            # ========================|
+            if  _val.offset == -69420:
+                _val = CSVM.VHEAP.allocate(_val)
+
+            # push alloc object
+            _object.put(_key.__str__(), _val)
         
         EvalStack.es_push(_object)
 
@@ -439,7 +448,7 @@ class CSVM(ExceptionTable, CallStack):
 
         for idx in range(_size):
             _k = EvalStack.es_pop()
-            _v = EvalStack.es_pop()
+            _v = CSVM.VHEAP.allocate(EvalStack.es_pop())
             _class.put(_k.__str__(), _v)
         
         EvalStack.es_push(_class)
@@ -462,8 +471,14 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def store_name(_instruction:Instruction):
-        _value = EvalStack.es_pop()
-        # print(_instruction.get("name"), "=", _value)
+        _value:CSObject = EvalStack.es_pop()
+        
+        # ====== check if alocated|
+        # ========================|
+        if  _value.offset == -69420:
+            _value = CSVM.VHEAP.allocate(_value)
+
+        # push alloc object
         CSVM.VHEAP.setAddress(_instruction.get("offset"), _value.offset)
     
     @staticmethod

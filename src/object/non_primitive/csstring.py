@@ -45,10 +45,10 @@ class CSString(CSObject):
             # ==============|
             return _error
         
-        return CSObject.new_string(self.get("this") + _object.get("this"), _allocate)
+        return CSObject.new_string(self.get("this") + _object.get("this"))
     
     def eq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false")
     
     def neq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false", _allocate)
+        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false")

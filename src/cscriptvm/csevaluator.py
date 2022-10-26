@@ -58,13 +58,13 @@ class Evaluator(object):
         if  not _rhs: return _rhs
 
         if _opt.matches("~"):
-            return _rhs.bit_not(_opt, _allocate=False)
+            return _rhs.bit_not(_opt)
         elif _opt.matches("!"):
-            return _rhs.bin_not(_opt, _allocate=False)
+            return _rhs.bin_not(_opt)
         elif _opt.matches("+"):
-            return _rhs.positive(_opt, _allocate=False)
+            return _rhs.positive(_opt)
         elif _opt.matches("-"):
-            return _rhs.negative(_opt, _allocate=False)
+            return _rhs.negative(_opt)
         
         raise ValueError("invalid unary op value \"%s\"" % _opt)
 
@@ -80,27 +80,27 @@ class Evaluator(object):
         return None
 
         if _opt.matches("^^"):
-            return _lhs.pow(_opt, _rhs, _allocate=False)
+            return _lhs.pow(_opt, _rhs)
         elif _opt.matches('*'):
-            return _lhs.mul(_opt, _rhs, _allocate=False)
+            return _lhs.mul(_opt, _rhs)
         elif _opt.matches('/'):
-            return _lhs.div(_opt, _rhs, _allocate=False)
+            return _lhs.div(_opt, _rhs)
         elif _opt.matches('%'):
-            return _lhs.mod(_opt, _rhs, _allocate=False)
+            return _lhs.mod(_opt, _rhs)
         elif _opt.matches('+'):
-            return _lhs.add(_opt, _rhs, _allocate=False)
+            return _lhs.add(_opt, _rhs)
         elif _opt.matches('-'):
-            return _lhs.sub(_opt, _rhs, _allocate=False)
+            return _lhs.sub(_opt, _rhs)
         elif _opt.matches("<<"):
-            return _lhs.lshift(_opt, _rhs, _allocate=False)
+            return _lhs.lshift(_opt, _rhs)
         elif _opt.matches(">>"):
-            return _lhs.rshift(_opt, _rhs, _allocate=False)
+            return _lhs.rshift(_opt, _rhs)
         elif _opt.matches('&'):
-            return _lhs.bit_and(_opt, _rhs, _allocate=False)
+            return _lhs.bit_and(_opt, _rhs)
         elif _opt.matches('^'):
-            return _lhs.bit_xor(_opt, _rhs, _allocate=False)
+            return _lhs.bit_xor(_opt, _rhs)
         elif _opt.matches('|'):
-            return _lhs.bit_or(_opt, _rhs, _allocate=False)
+            return _lhs.bit_or(_opt, _rhs)
 
         raise ValueError("invalid binary op value \"%s\"" % _opt)
 
@@ -117,20 +117,20 @@ class Evaluator(object):
         return None
 
         if _opt.matches('<'):
-            return _lhs.lt(_opt, _rhs, _allocate=False)
+            return _lhs.lt(_opt, _rhs)
         elif _opt.matches("<="):
-            return _lhs.lte(_opt, _rhs, _allocate=False)
+            return _lhs.lte(_opt, _rhs)
         elif _opt.matches('>'):
-            return _lhs.gt(_opt, _rhs, _allocate=False)
+            return _lhs.gt(_opt, _rhs)
         elif _opt.matches(">="):
-            return _lhs.gte(_opt, _rhs, _allocate=False)
+            return _lhs.gte(_opt, _rhs)
         elif _opt.matches("=="):
-            return _lhs.eq(_opt, _rhs, _allocate=False)
+            return _lhs.eq(_opt, _rhs)
         elif _opt.matches("!="):
-            return _lhs.neq(_opt, _rhs, _allocate=False)
+            return _lhs.neq(_opt, _rhs)
         elif _opt.matches("&&"):
-            return _lhs.log_and(_opt, _rhs, _allocate=False)
+            return _lhs.log_and(_opt, _rhs)
         elif _opt.matches("||"):
-            return _lhs.log_or(_opt, _rhs, _allocate=False)
+            return _lhs.log_or(_opt, _rhs)
 
         raise ValueError("invalid compare op value \"%s\"" % _opt)

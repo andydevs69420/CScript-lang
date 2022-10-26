@@ -1,33 +1,18 @@
 
-class Dog 
-{
-    name: null,
-    constructor: (function(this, _name){
-        this->name = _name;
-    })
-   ,
-   foooc: function(this) {
-    
-   }
+
+class Dog {
+    name: "Brownie",
+    age: 2,
+    birthday: (function(this) {return this->age += 1;})
 }
 
-var doggy = new Dog("Snoop");
-    print: doggy;
-    print: doggy->toString;
+var dog = new new Dog;
+    dog->birthday();
+    var newAge = dog->birthday();
+    newAge += 1;
+print: dog->name, dog->age, newAge;
 
 
-var arr = [1,2,3,4];
 
-var x = 0;
-while (x < arr->length()) 
-{
-    print: arr[x];
-    x+=1;
-}
-
-print: x, Dog->typeString, Dog->foooc;
-
-
-#![use:tagalog]
-
+print: dog->birthday->typeString(), Dog->birthday->typeString();
 

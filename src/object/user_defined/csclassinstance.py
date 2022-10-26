@@ -23,10 +23,13 @@ class CSClassInstance(CSClass):
     def put(self, _key: str, _data:CSObject):
         if  _data.dtype == CSClassNames.CSCallable:
             # wrap as method
-            super().put(_key, CSClassBoundMethod(self, _data))
+            super().put(_key, CSObject.new_class_bound_method(self, _data))
             return
         # default
         return super().put(_key, _data)
+    
+    def isPointer(self):
+        return True
     
     def __str__(self):
         return "instanceOf %s({...});" % self.name
@@ -42,9 +45,12 @@ class CSClassInstance(CSClass):
     # ===================== OPERATION|
     # ===============================|
     # must be private!. do not include as attribute
-    
-    def eq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.offset == _object.offset else "false", _allocate)
 
-    def neq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.offset != _object.offset else "false", _allocate)
+    def new_op(self, _opt: CSToken):
+        return CSObject.new_op(self, _opt)
+    
+    def eq(self, _opt: CSToken, _object: CSObject):
+        return CSObject.new_boolean("true" if self.offset == _object.offset else "false")
+
+    def neq(self, _opt: CSToken, _object: CSObject):
+        return CSObject.new_boolean("true" if self.offset != _object.offset else "false")

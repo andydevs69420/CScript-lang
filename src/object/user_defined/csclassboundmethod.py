@@ -18,6 +18,12 @@ class CSClassBoundMethod(CSObject):
     # ======================== PYTHON|
     # ===============================|
 
+    def all(self):
+        return [self.callable]
+
+    def isPointer(self):
+        return True
+
     def __str__(self):
         return self.callable.__str__()
     
@@ -45,7 +51,7 @@ class CSClassBoundMethod(CSObject):
     # must be private!. do not include as attribute
 
     def eq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.offset == _object.offset else "false", _allocate)
+        return CSObject.new_boolean("true" if self.offset == _object.offset else "false")
 
     def neq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.offset != _object.offset else "false", _allocate)
+        return CSObject.new_boolean("true" if self.offset != _object.offset else "false")

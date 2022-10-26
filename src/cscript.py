@@ -13,6 +13,7 @@ from csparser import CSParser
 # core
 from cscriptvm.csvm import CSVM
 
+# FILE = "tests/memory_stress_test_1.csx"
 FILE = "tests/class_test.csx"
 parser = CSParser(FILE, open(FILE, "r").read())
 x = parser.parse()
