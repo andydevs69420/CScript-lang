@@ -15,11 +15,12 @@ from cscriptvm.csevaluator import Evaluatable, Evaluator
 
 # ========= object|
 # ================|
-from object.csobject import CSObject
+from base.csobject import CSObject
 # ============ end|
 
-
 from astnode.utils.compilable import Compilable
+
+
 
 class CSAst(Compilable):pass
 class CSAst(Compilable):
@@ -38,3 +39,13 @@ class CSAst(Compilable):
             None
         """
         raise NotImplementedError(f"{type(self).__name__}::compile method must be override!")
+    
+    def isBreak(self):
+        """ Determine if the ast is "break statement"
+        """
+        return False
+
+    def isContinue(self):
+        """ Determine if the ast is "continue statement"
+        """
+        return False

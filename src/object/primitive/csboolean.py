@@ -1,6 +1,6 @@
 
-from csclassnames import CSClassNames
-from csobject import CSToken, CSObject, CSMalloc, ThrowError
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSToken, CSObject, ThrowError
 
 
 class CSBoolean(CSObject):

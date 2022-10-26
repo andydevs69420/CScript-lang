@@ -3,7 +3,7 @@ from .csmemory3 import CSMemoryObject
 
 from astnode.utils.compilable import Instruction
 
-from object.csobject import CSObject
+from base.csobject import CSObject
 class Frame(object):
 
     def __init__(self, _instructions:list[Instruction]):

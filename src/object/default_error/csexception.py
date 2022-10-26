@@ -1,11 +1,13 @@
 
-from csclassnames import CSClassNames
-from csobject import CSObject, CSToken
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSObject, CSToken
 
 
 class CSException(CSObject):
     def __init__(self, _message:str, _token_loc:CSToken):
         super().__init__()
+        self.initializeBound()
+
         self.dtype = CSClassNames.CSException
         self.put("message" , CSObject.new_string(_message))
         self.put("location", CSObject.new_map_fromPyDict(_token_loc.toDict()))

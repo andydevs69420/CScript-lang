@@ -18,6 +18,12 @@ class DoWhileNode(CSAst):
         self.body = _body
     
     def compile(self, _block:CodeBlock):
+        if  (self.body.isBreak() or self.body.isContinue()):
+            """ Do not compile if body is useless
+            """
+            _block.no_operation()
+            return
+
         _evaluated = self.condition.evaluate()
         if  _evaluated:
             if  not _evaluated.get("this"):
@@ -35,7 +41,9 @@ class DoWhileNode(CSAst):
     def logical(self, _block:CodeBlock):
         _jump_t0, _jump_t1 = None, None
 
-        _begin = _block.getLine()
+        # _begin = _block.getLine()
+        # push to loop__stack
+        _block.loop__stack.append(_block.getLine())
 
         # compile body
         self.body.compile(_block)
@@ -75,7 +83,7 @@ class DoWhileNode(CSAst):
             _jump_t0.kwargs["target"] = _block.getLine()
 
         # jumpt to condition
-        _block.absolute_jump(_begin)
+        _block.absolute_jump(_block.loop__stack[-1])
 
         # jump to this|end location if rhs is false when "logical and"!
         # do not evaluate lhs
@@ -87,9 +95,19 @@ class DoWhileNode(CSAst):
         if  not _lhs_evaluated:
             # set jump target 0
             _jump_t1.kwargs["target"] = _block.getLine()
+        
+        # append nearest "break" statement(if any)
+        if  len(_block.break__stack) > 0:
+            _break = _block.break__stack.pop()
+            _break.kwargs["target"] = _block.getLine()
+
+        # pop loop__stack
+        _block.loop__stack.pop()
 
     def default(self, _block:CodeBlock):
-        _begin = _block.getLine()
+        # _begin = _block.getLine()
+        # push to loop__stack
+        _block.loop__stack.append(_block.getLine())
 
         # compile body
         self.body.compile(_block)
@@ -101,8 +119,16 @@ class DoWhileNode(CSAst):
         _jump_t0 = _block.peekLast()
 
         # jump to condition
-        _block.absolute_jump(_begin)
+        _block.absolute_jump(_block.loop__stack[-1])
 
         # set jump target 0
         _jump_t0.kwargs["target"] = _block.getLine()
+
+        # append nearest "break" statement(if any)
+        if  len(_block.break__stack) > 0:
+            _break = _block.break__stack.pop()
+            _break.kwargs["target"] = _block.getLine()
+
+        # pop loop__stack
+        _block.loop__stack.pop()
 

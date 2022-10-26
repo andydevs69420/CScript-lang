@@ -2,7 +2,7 @@ from astnode.utils.compilable import Instruction
 
 # ======= object|
 # ==============|
-from object.csobject import CSObject
+from base.csobject import CSObject
 # ==============|
 
 

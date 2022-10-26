@@ -1,38 +1,10 @@
-from csclassnames import CSClassNames
-from csmap import CSMap
-from csobject import CSMalloc, CSObject
 
-# method
-from csclassmethod import CSClassMethod
-from cstoken import CSToken
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSToken, CSObject
 
-class CSClass(CSObject):
 
-    def __init__(self, _name:str):
-        super().__init__()
-        self.initializeBound()
-
-        self.dtype = CSClassNames.CSClass
-        self.name  = _name
-
-        # default
-    
-    def __str__(self):
-        return "class %s{...}" % self.name
-    
-    # ========================= EVENT|
-    # ===============================|
-    # must be private!. do not include as attribte
-
-    def new_op(self, _opt:CSToken, _allocate:bool=True):
-        """ 1(new Animals) 2(1,2,3)
-        """
-        _instance = CSMalloc(CSClassInstance(self.name))
-    
-        for _key in self.keys():
-            _instance.put(_key, self.get(_key))
-        return _instance
-
+from .csclass import CSClass
+from .csclassboundmethod import CSClassBoundMethod
 
 class CSClassInstance(CSClass):
     """ Holds class instanciation
@@ -44,7 +16,6 @@ class CSClassInstance(CSClass):
 
     def __init__(self, _name: str):
         super().__init__(_name)
-        self.dtype = CSClassNames.CSClass
     
     # ======================== PYTHON|
     # ===============================|
@@ -52,7 +23,8 @@ class CSClassInstance(CSClass):
     def put(self, _key: str, _data:CSObject):
         if  _data.dtype == CSClassNames.CSCallable:
             # wrap as method
-            return super().put(_key, CSClassMethod(self, _data))
+            super().put(_key, CSClassBoundMethod(self, _data))
+            return
         # default
         return super().put(_key, _data)
     

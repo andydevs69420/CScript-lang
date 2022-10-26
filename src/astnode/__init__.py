@@ -69,6 +69,8 @@ from .compoundast.csblocknode import BlockNode
 """
 from .simpleast.csvarnode import VarNode
 from .simpleast.csletnode import LetNode
+from .simpleast.csbreaknode import BreakNode
+from .simpleast.cscontinuenode import ContinueNode
 from .simpleast.csprintnode import PrintNode
-from .simpleast.csexprstatementnode import ExprStmntNode
 from .simpleast.csreturnnode import ReturnNode
+from .simpleast.csexprstatementnode import ExprStmntNode

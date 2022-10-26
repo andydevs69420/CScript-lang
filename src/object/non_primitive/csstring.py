@@ -1,5 +1,5 @@
-from csclassnames import CSClassNames
-from csobject import CSToken, CSObject, ThrowError
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSToken, CSObject, ThrowError
 
 class CSString(CSObject):
     """ String backend for CScript
@@ -46,3 +46,9 @@ class CSString(CSObject):
             return _error
         
         return CSObject.new_string(self.get("this") + _object.get("this"), _allocate)
+    
+    def eq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
+        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false", _allocate)
+    
+    def neq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
+        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false", _allocate)

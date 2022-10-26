@@ -1,6 +1,6 @@
 
-from csclassnames import CSClassNames
-from csnumber import CSToken, CSObject, CSNumber
+from obj_utils.csclassnames import CSClassNames
+from .csnumber import CSToken, CSObject, CSNumber
 
 
 class CSInteger(CSNumber):

@@ -1,6 +1,6 @@
 
-from csclassnames import CSClassNames
-from csnumber import CSNumber
+from obj_utils.csclassnames import CSClassNames
+from .csnumber import CSNumber
 
 
 class CSDouble(CSNumber):

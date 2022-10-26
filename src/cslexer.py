@@ -500,6 +500,9 @@ class TokenBuilder(LexUtils):
         
         elif self.clook == ':':
             _part += append()
+            
+        elif self.clook == '#':
+            _part += append()
         
         if  len(_part) <= 0:
             _builder.concat(self.error_part())

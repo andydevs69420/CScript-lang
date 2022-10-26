@@ -1,16 +1,17 @@
 
-from cscallable import CSCallable
-from csclassnames import CSClassNames
-from csobject import CSObject
-from cstoken import CSToken
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSToken, CSObject
 
-class CSClassMethod(CSObject):
+
+from user_defined.cscallable import CSCallable
+
+class CSClassBoundMethod(CSObject):
     
     def __init__(self, _this:CSObject, _regular_callable:CSCallable):
         super().__init__()
         self.initializeBound()
 
-        self.dtype    = CSClassNames.CSClassMethod
+        self.dtype    = CSClassNames.CSClassBoundMethod
         self.thisref  = _this
         self.callable = _regular_callable
 

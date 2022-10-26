@@ -1,5 +1,5 @@
 # CScript-lang
-cscript programming language
+cscript programming language prototype
 
 ## Statements
 - [ ] import statement
@@ -10,9 +10,11 @@ cscript programming language
 - [x] while statement
 - [x] do|while statement
 - [x] switch|case statement
-- [x] try/except statement
+- [x] try/except/finally statement
 - [x] print (print is a statement here.)
 - [x] class declairation
+- [x] continue statement
+- [x] break statement
 - [ ] enum declairation
 - [x] function declairation
 - [x] function expression
@@ -25,17 +27,26 @@ cscript programming language
 - [x] CSInteger
 - [x] CSDouble
 - [x] CSString
-- [x] CSBoolean
+- [x] CSBoolean(to be re-implemented using singleton)
 - [x] CSNullType(to be re-implemented using singleton)
 - [x] CSArray
+- [x] CSMap
 - [x] CSCallable
+- [x] CSClass
+- [x] CSClassInstance
+- [x] CSClassBoundMethod
+- [x] CSBound
+- [x] CSException
+- [x] CSTypeError
+- [x] CSAttributeError
+- [x] CSIndexError
 
 ## Other feature(s)
 - [x] operator overloading(few)
 
 # TODO:
 - [x] Rewrite evaluator|status:finished
-- [x] fix grabage collector(missing compile time objects)|status:fixed -> mark/sweep
-- [x] fix try/except
+- [x] fix grabage collector|status:fixed -> mark/sweep
+- [x] fix try/except/finally
 - [x] fix recursion error when __str__/toString|status:fixed
 - [ ] fix adding bound

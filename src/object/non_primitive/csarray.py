@@ -1,7 +1,7 @@
 
 
-from csclassnames import CSClassNames
-from csobject import CSToken, CSObject, ThrowError
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSToken, CSObject, ThrowError
 
 
 class CSArray(CSObject):pass
@@ -18,8 +18,8 @@ class CSArray(CSObject):
         super().initializeBound()
         # === ARRAY Bounds|
         # ================|
-        self.put("length", CSObject.new_bound_method(self.length, 0, _allocate=False))
-        self.put("push"  , CSObject.new_bound_method(self.push  , 1, _allocate=False))
+        self.put("length", CSObject.new_bound_method("length", self.length, 0, _allocate=False))
+        self.put("push"  , CSObject.new_bound_method("push"  , self.push  , 1, _allocate=False))
     
     # ![bound::length]
     def length(self):

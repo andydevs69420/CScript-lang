@@ -1,4 +1,4 @@
-from csobject import CSToken, CSObject, ThrowError
+from base.csobject import CSToken, CSObject, ThrowError
 
 
 class CSNumber(CSObject):

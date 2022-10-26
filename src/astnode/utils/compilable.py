@@ -7,7 +7,7 @@ from cstoken import CSToken
 
 # ======= object|
 # ==============|
-from object.csobject import CSObject
+from base.csobject import CSObject
 # ==============|
 
 

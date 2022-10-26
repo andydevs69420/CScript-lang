@@ -18,11 +18,17 @@ class WhileNode(CSAst):
         self.body = _body
     
     def compile(self, _block:CodeBlock):
+        if  (self.body.isBreak() or self.body.isContinue()):
+            """ Do not compile if body is useless
+            """
+            _block.no_operation()
+            return
+
         _evaluated = self.condition.evaluate()
         if  _evaluated:
             if  not _evaluated.getObject().get("this"):
                 # false condition|no operation
-                self.no_operation()
+                _block.no_operation()
                 return
 
         # compile
@@ -34,7 +40,9 @@ class WhileNode(CSAst):
     def logical(self, _block:CodeBlock):
         _jump_t0, _jump_t1 = None, None
 
-        _begin = _block.getLine()
+        # _begin = _block.getLine()
+        # push to loop__stack
+        _block.loop__stack.append(_block.getLine())
         
         _rhs_evaluated = self.condition.rhs.evaluate()
         _rhs_evaluated = _rhs_evaluated.get("this") if _rhs_evaluated else False
@@ -74,7 +82,7 @@ class WhileNode(CSAst):
         self.body.compile(_block)
 
         # jumpt to condition
-        _block.absolute_jump(_begin)
+        _block.absolute_jump(_block.loop__stack[-1])
 
         # jump to this|end location if rhs is false when "logical and"!
         # do not evaluate lhs
@@ -86,9 +94,20 @@ class WhileNode(CSAst):
         if  not _lhs_evaluated:
             # set jump target 0
             _jump_t1.kwargs["target"] = _block.getLine()
+        
+
+        # append nearest "break" statement(if any)
+        if  len(_block.break__stack) > 0:
+            _break = _block.break__stack.pop()
+            _break.kwargs["target"] = _block.getLine()
+
+        # pop loop__stack
+        _block.loop__stack.pop()
     
     def default(self, _block:CodeBlock):
-        _begin = _block.getLine()
+        # _begin = _block.getLine()
+        # push to loop__stack
+        _block.loop__stack.append(_block.getLine())
 
         # compile condition
         self.condition.compile(_block)
@@ -100,7 +119,15 @@ class WhileNode(CSAst):
         self.body.compile(_block)
 
         # jump to condition
-        _block.absolute_jump(_begin)
+        _block.absolute_jump(_block.loop__stack[-1])
 
         # set jump target 0
         _jump_t0.kwargs["target"] = _block.getLine()
+
+        # append nearest "break" statement(if any)
+        if  len(_block.break__stack) > 0:
+            _break = _block.break__stack.pop()
+            _break.kwargs["target"] = _block.getLine()
+
+        # pop loop__stack
+        _block.loop__stack.pop()

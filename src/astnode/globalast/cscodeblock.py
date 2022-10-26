@@ -11,6 +11,34 @@ class CodeBlock(CSAst):
         self.symbtable:ST = ST()
         self.__locals:int = 0
         self.__globals:int = 0
+
+        # used in continue
+        self.loop__stack = [
+            # while N
+            # ...
+            # while 0
+        ]
+
+        # used in loop
+        """ Example
+
+            code:
+            
+            while (cond)
+            {
+                break;
+            }
+
+            # implement:
+                jump_here = pop(break_stack)
+                jump_here.target = currentLine;
+
+        """
+        self.break__stack = [
+            # break N
+            # ...
+            # break 0
+        ]
     
     def newlocals(self):
         _old = self.__locals

@@ -1,5 +1,5 @@
-from csclassnames import CSClassNames
-from csobject import CSToken, CSObject, ThrowError
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSToken, CSObject, ThrowError
 
 
 class CSCallable(CSObject):

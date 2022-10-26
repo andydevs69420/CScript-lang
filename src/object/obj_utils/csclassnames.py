@@ -13,7 +13,7 @@ class CSClassNames:
     CSCallable    = "CSCallable"
     CSBound       = "CSBound"
     CSClass       = "CSClass"
-    CSClassMethod = "CSClassMethod"
+    CSClassBoundMethod = "CSClassBoundMethod"
     CSException   = "CSException"
     CSTypeError   = "CSTypeError"
     CSAttributeError = "CSAttributeError"

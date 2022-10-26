@@ -1,7 +1,7 @@
 
-from csclassnames import CSClassNames
+from obj_utils.csclassnames import CSClassNames
 from cstoken import CSToken
-from hashmap import hasher, HashMap
+from base.hashmap import hasher, HashMap
 
 
 # for typing
@@ -23,7 +23,18 @@ class CSObject(HashMap):
         self.ismarked = False
     
     def initializeBound(self):
-        self.put("toString", CSObject.new_bound_method(self.toString, 0, _allocate=False))
+        super().put("typeString", CSObject.new_bound_method("typeString", self.typeString, 0, _allocate=False))
+        super().put("toString"  , CSObject.new_bound_method("toString"  , self.toString  , 0, _allocate=False))
+
+    #![bound::runtimeType]
+    def typeString(self):
+        """ typeString
+            
+            Returns
+            -------
+            CSString
+        """
+        return CSObject.new_string(self.dtype)
 
     #![bound::toString]
     def toString(self):
@@ -69,9 +80,9 @@ class CSObject(HashMap):
 
     @staticmethod
     def new_integer(_data:int, _allocate:bool=True):
-        import csinteger
-        _int = csinteger.CSInteger(_data)
-        del csinteger
+        from primitive.csinteger import CSInteger
+        _int = CSInteger(_data)
+        del CSInteger
         return CSMalloc(_int) if _allocate else _int
 
     @staticmethod
@@ -82,9 +93,9 @@ class CSObject(HashMap):
             -------
             CSDouble
         """
-        import csdouble
-        _flt = csdouble.CSDouble(_data)
-        del csdouble
+        from primitive.csdouble import CSDouble
+        _flt = CSDouble(_data)
+        del CSDouble
         return CSMalloc(_flt) if _allocate else _flt
 
     @staticmethod
@@ -95,9 +106,9 @@ class CSObject(HashMap):
             -------
             CSString
         """
-        import csstring
-        _str = csstring.CSString(_data)
-        del csstring
+        from non_primitive.csstring import CSString
+        _str = CSString(_data)
+        del CSString
         return CSMalloc(_str) if _allocate else _str
     
     @staticmethod
@@ -108,9 +119,9 @@ class CSObject(HashMap):
             -------
             CSBoolean
         """
-        import csboolean
-        _bool = csboolean.CSBoolean(_data)
-        del csboolean
+        from primitive.csboolean import CSBoolean
+        _bool = CSBoolean(_data)
+        del CSBoolean
         return CSMalloc(_bool) if _allocate else _bool
 
     @staticmethod
@@ -121,7 +132,7 @@ class CSObject(HashMap):
             -------
             CSNullType
         """
-        import csnulltype
+        import primitive.csnulltype as csnulltype
         _null = csnulltype.CSNullType()
         del csnulltype
         return CSMalloc(_null) if _allocate else _null
@@ -134,7 +145,7 @@ class CSObject(HashMap):
             -------
             CSArray
         """
-        import csarray
+        import non_primitive.csarray as csarray
         _array = csarray.CSArray()
         del csarray
         return CSMalloc(_array) if _allocate else _array
@@ -173,7 +184,7 @@ class CSObject(HashMap):
             -------
             CSMap
         """
-        import csmap
+        import non_primitive.csmap as csmap
         _map = csmap.CSMap()
         del csmap
         return CSMalloc(_map) if _allocate else _map
@@ -213,17 +224,10 @@ class CSObject(HashMap):
             -------
             CSCallable
         """
-        import cscallable
-        _function = cscallable.CSCallable(_name, len(_parameters), _parameters, _instructions)
-        del cscallable
+        from user_defined.cscallable import CSCallable
+        _function = CSCallable(_name, len(_parameters), _parameters, _instructions)
+        del CSCallable
         return CSMalloc(_function) if _allocate else _function
-    
-    @staticmethod
-    def new_bound_method(_pyCallable:callable, _parameter_count:int, _allocate:bool=True):
-        import csbound
-        _bound = csbound.CSBound(_pyCallable, _parameter_count)
-        del csbound
-        return CSMalloc(_bound) if _allocate else _bound
     
     @staticmethod
     def new_class(_name:str, _allocate:bool=True):
@@ -233,10 +237,30 @@ class CSObject(HashMap):
             -------
             CSClass
         """
-        import csclass
-        _class = csclass.CSClass(_name)
-        del csclass
+        from user_defined.csclass import CSClass
+        _class = CSClass(_name)
+        del CSClass
         return CSMalloc(_class) if _allocate else _class
+    
+    @staticmethod
+    def new_class_instance(_name:str, _allocate:bool=True):
+        """ Creates class instance from class template
+
+            Returns
+            -------
+            CSClass
+        """
+        from user_defined.csclassinstance import CSClassInstance
+        _class = CSClassInstance(_name)
+        del CSClassInstance
+        return CSMalloc(_class) if _allocate else _class
+    
+    @staticmethod
+    def new_bound_method(_name:str, _pyCallable:callable, _parameter_count:int, _allocate:bool=True):
+        import user_defined.csbound as csbound
+        _bound = csbound.CSBound(_name, _pyCallable, _parameter_count)
+        del csbound
+        return CSMalloc(_bound) if _allocate else _bound
 
     @staticmethod
     def new_exception(_message:str, _location:CSToken, _allocate:bool=True):
@@ -246,7 +270,7 @@ class CSObject(HashMap):
             -------
             CSException
         """
-        import csexception
+        import default_error.csexception as csexception
         _exception = csexception.CSException(_message, _location)
         del csexception
         return CSMalloc(_exception) if _allocate else _exception
@@ -259,7 +283,7 @@ class CSObject(HashMap):
             -------
             CSTypeError
         """
-        import csexception
+        import default_error.csexception as csexception
         _exception = csexception.CSTypeError(_message, _location)
         del csexception
         return CSMalloc(_exception) if _allocate else _exception
@@ -272,7 +296,7 @@ class CSObject(HashMap):
             -------
             CSAttributeError
         """
-        import csexception
+        import default_error.csexception as csexception
         _exception = csexception.CSAttributeError(_message, _location)
         del csexception
         return CSMalloc(_exception) if _allocate else _exception
@@ -285,7 +309,7 @@ class CSObject(HashMap):
             -------
             CSIndexError
         """
-        import csexception
+        import default_error.csexception as csexception
         _exception = csexception.CSIndexError(_message, _location)
         del csexception
         return CSMalloc(_exception) if _allocate else _exception

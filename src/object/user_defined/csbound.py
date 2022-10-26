@@ -1,22 +1,22 @@
 
 
-from csobject import CSObject, ThrowError
-from cstoken import CSToken
+from base.csobject import CSToken, CSObject, ThrowError
 
 
 class CSBound(CSObject):
     """
     """
 
-    def __init__(self, _pyMethod:callable, _param_count:int):
-        super().__init__()        
+    def __init__(self, _name:str ,_pyMethod:callable, _param_count:int):
+        super().__init__()
+        self.name        = _name
         self.callable    = _pyMethod
         self.param_count = _param_count
     
     # ======================== PYTHON|
     # ===============================|
     def __str__(self):
-        return "bound method(){...}"
+        return "bound method %s(){...}" % self.name
     
 
     # ========================= EVENT|

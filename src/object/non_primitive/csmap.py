@@ -1,7 +1,5 @@
-
-from csclassnames import CSClassNames
-from csobject import CSObject, ThrowError
-from cstoken import CSToken
+from obj_utils.csclassnames import CSClassNames
+from base.csobject import CSToken, CSObject, ThrowError
 
 """ CSObject|Hashmap wrapper
 

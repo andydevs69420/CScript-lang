@@ -16,6 +16,12 @@ class ContextType(Enum):
     FUNCTION = 0x02
     LOOP = 0x03
 
+
+class FlagInterpreter:
+
+    def interpret():
+        ...
+
 class ContextUtils(object):
 
     def __init__(self):
@@ -333,6 +339,15 @@ class CSParser(ContextUtils):
                 "key": _key,
                 "val": _val,
             })
+        
+        # parethesis: '(' non_nullable_expression ')' | member_access
+        def parenthesis():
+            self.eat("(")
+            _expr = non_nullable_expression()
+            self.eat(")")
+            return _expr
+            
+           
 
         # other_type: array | csobject;
         def other_type():
@@ -343,6 +358,8 @@ class CSParser(ContextUtils):
                 return array()
             elif self.cstoken.matches("{"):
                 return csobject()
+            elif self.cstoken.matches("("):
+                return parenthesis()
 
             return _node
         
@@ -478,16 +495,7 @@ class CSParser(ContextUtils):
                     _node = CallNode(_node, _args, _call)
 
             return _node
-        
-        # parethesis: '(' non_nullable_expression ')' | member_access
-        def parenthesis():
-            if  self.cstoken.matches("("):
-                self.eat("(")
-                _expr = non_nullable_expression()
-                self.eat(")")
-                return _expr
-            
-            return call_expression()
+    
         
         # unary_op: ternary
         # | ('~' | '!' | '+' | '-') unary_op
@@ -507,7 +515,7 @@ class CSParser(ContextUtils):
                 # return as unary expr
                 return UnaryExprNode(_opt, _exp)
 
-            return parenthesis()
+            return call_expression()
         
         # power: unary_op 
         # | unary_op "^^" unary_op
@@ -1212,6 +1220,24 @@ class CSParser(ContextUtils):
             _val = non_nullable_expression()
 
             return ({"var": _id, "val": _val })
+        
+        # break_stmnt: "break" ';';
+        def break_stmnt():
+            self.bind(ContextType.LOOP)
+
+            self.eat("break")
+            self.eat(";")
+
+            return BreakNode()
+        
+        # continue_stmnt: "continue" ';';
+        def continue_stmnt():
+            self.bind(ContextType.LOOP)
+
+            self.eat("continue")
+            self.eat(";")
+
+            return ContinueNode()
 
         # return_stmnt: "return" nullable_expression ';';
         def return_stmnt():
@@ -1261,19 +1287,48 @@ class CSParser(ContextUtils):
                 return var_stmnt()
             elif self.cstoken.matches("let"):
                 return let_stmnt()
+            elif self.cstoken.matches("break"):
+                return break_stmnt()
+            elif self.cstoken.matches("continue"):
+                return continue_stmnt()
             elif self.cstoken.matches("return"):
                 return return_stmnt()
             elif self.cstoken.matches("print"):
                 return print_stmnt()
             return expression_stmnt()
         
-        # module: compound_stmnt* EOF;
+        # flag_parser: flag_parser_body|compoun_stmnt ;
+        def flag_parser():
+            if  self.cstoken.matches("#"):
+                # parse flag, but do not return
+                flag_parser_body()
+
+            return compound_stmnt()
+        
+        def flag_parser_body():
+            self.eat("#")
+            self.eat("!")
+            self.eat("[")
+
+            _flag = raw_identifier()
+
+            self.eat(":")
+
+            _value = raw_identifier()
+
+            self.eat("]")
+            
+            
+        
+        # module: flag_parser* EOF;
         def module():
             self.enter(ContextType.GLOBAL)
             _nodes = []
             
             while not self.cstoken.matches(TokenType.ENDOFFILE):
-                _nodes.append(compound_stmnt())
+                _child = flag_parser()
+                if  _child: 
+                    _nodes.append(_child)
             
             self.eat(TokenType.ENDOFFILE)
 

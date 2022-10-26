@@ -1,6 +1,4 @@
 
-
-from typing import Any
 from strongtyping.strong_typing import match_typing
 
 
@@ -20,14 +18,14 @@ def hasher(_key:str):
 
 class Node(object):
 
-    def __init__(self, _key:str, _data:Any):
+    def __init__(self, _key:str, _data):
         self.nkey = _key
         self.data = _data
         self.tail = None
 
 class LinkedList(Node):
     
-    def __init__(self, _key:str, _data:Any):
+    def __init__(self, _key:str, _data):
         super().__init__(_key, _data)
 
     def append(self, _data:Node):
@@ -58,7 +56,7 @@ class HashMap(object):
             None for _ in range(self.bcount)
         ]
     
-    def put(self, _key:str, _data:Any):
+    def put(self, _key:str, _data):
         
         _bucket_index = hasher(_key) % self.bcount
 
