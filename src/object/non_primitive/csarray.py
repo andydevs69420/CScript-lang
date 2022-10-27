@@ -6,26 +6,35 @@ from base.csobject import CSToken, CSObject, ThrowError
 
 class CSArray(CSObject):pass
 class CSArray(CSObject):
+    """
+    """
+    LENGTH= "length"
+    PUSH  = "push"
 
     def __init__(self):
         super().__init__()
         self.initializeBound()
 
-        self.dtype    = CSClassNames.CSArray
-        self.elements = CSObject.new_map()
+        self.dtype = CSClassNames.CSArray
     
     def initializeBound(self):
         super().initializeBound()
         # === ARRAY Bounds|
         # ================|
-        self.put("length", CSObject.new_bound_method("length", self.length, 0))
-        self.put("push"  , CSObject.new_bound_method("push"  , self.push  , 1))
+        self.proto.put(CSArray.LENGTH, CSObject.new_bound_method(CSArray.LENGTH, self.length, 0))
+        self.proto.put(CSArray.PUSH  , CSObject.new_bound_method(CSArray.PUSH  , self.push  , 1))
     
-    # ![bound::length]
+    #![bound::length]
     def length(self):
-        return CSObject.new_integer(len(self.elements.all()))
+        """ Get array length
 
-    # ![bound::push]
+            Returns
+            -------
+            CSInteger
+        """
+        return CSObject.new_integer(len(self.all()))
+
+    #![bound::push]
     def push(self, _csobject:CSObject):
         """ Push new item into array
 
@@ -34,7 +43,7 @@ class CSArray(CSObject):
             CSObject
         """
         # put element
-        self.elements.elements.put(str(len(self.elements.all())), _csobject)
+        self.thiso.put(str(len(self.all())), _csobject)
     
         # default return
         return CSObject.new_nulltype()
@@ -50,27 +59,21 @@ class CSArray(CSObject):
     
     # ======================== PYTHON|
     # ===============================|
-    
-    def all(self):
-        return self.elements.all()
-    
-    def isPointer(self):
-        return True
 
     def __str__(self):
         _elem = ""
-        for idx in range(len(self.elements.all())):
+        for idx in range(len(self.all())):
             _string = ...
-            if  self.offset == self.elements.elements.get(str(idx)).offset:
+            if  self.offset == self.thiso.get(str(idx)).offset:
                 # refering to its self
                 # to avoid recursion
                 _string = "[self]"
             else:
-                _string = self.elements.elements.get(str(idx)).__str__()
+                _string = self.thiso.get(str(idx)).__str__()
 
             _elem += _string
 
-            if  idx < (len(self.elements.all()) - 1):
+            if  idx < (len(self.all()) - 1):
                 _elem += ", "
         
         # return formated string
@@ -97,9 +100,9 @@ class CSArray(CSObject):
             # ===============|
             return _error
         
-        if  not self.elements.elements.hasAttribute(_expr.__str__()):
-            _opt = "<" if len(self.elements.all()) < _expr.get("this") else ">"
-            _lhs = len(self.elements.all()) if _opt == "<" else 0
+        if  not self.thiso.hasKey(_expr.__str__()):
+            _opt = "<" if len(self.thiso.all()) < _expr.get("this") else ">"
+            _lhs = len(self.thiso.all()) if _opt == "<" else 0
 
             # = format string|
             _error = CSObject.new_index_error("CSArray index out of range %d %s %d" % (_lhs, _opt, _expr.get("this")), _subscript_location)
@@ -118,15 +121,15 @@ class CSArray(CSObject):
         _error = self.assertSubscriptExpression(_subscript_location, _expr)
         if _error: return _error
         
-        return self.elements.elements.get(_expr.__str__())
+        return self.thiso.get(_expr.__str__())
     
     def subscriptSet(self, _subscript_location: CSToken, _attribute: CSObject, _new_value: CSObject):
         _error = self.assertSubscriptExpression(_subscript_location, _attribute)
         if _error: return _error
 
-        self.elements.elements.put(_attribute.__str__(), _new_value)
+        self.thiso.put(_attribute.__str__(), _new_value)
 
-        return self.elements.elements.get(_attribute.__str__())
+        return self.thiso.get(_attribute.__str__())
 
 
 

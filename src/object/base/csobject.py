@@ -6,25 +6,50 @@ from base.hashmap import hasher, HashMap
 
 # for typing
 class CSObject(HashMap):pass
-def CSMalloc(_csobject:CSObject):pass
-def ThrowError(_csexceptionobject:CSObject, _error_token:CSToken):pass
 
 
+# malloc
+def CSMalloc(_csobject:CSObject):
+    # import
+    from cscriptvm.csvm import CSVM as VM
 
-class CSObject(HashMap):
+    _object = VM.VHEAP.allocate(_csobject)
+    del VM
+
+    # return object
+    return _object
+
+
+def ThrowError(_csexceptionobject:CSObject):
+    from cscriptvm.csvm import CSVM as VM
+    VM.throw_error(_csexceptionobject)
+    # delete vm locally
+    del VM
+
+class CSObject(object):
     """ Represents Object in CScript
     """
+
+    TYPE_STRING= "typeString"
+    TO_STRING  = "toString"
+
     
     def __init__(self):
-        super().__init__()
-        # initilize
-        self.dtype    = CSClassNames.CSObject
-        self.offset   = -69420
-        self.ismarked = False
+        # ======== memory flags|
+        # =====================|
+        self.offset = -69420
+        self.marked = False
+
+        self.dtype = CSClassNames.CSObject
+        self.thiso = HashMap()
+        self.proto = HashMap()
     
     def initializeBound(self):
-        super().put("typeString", CSObject.new_bound_method("typeString", self.typeString, 0))
-        super().put("toString"  , CSObject.new_bound_method("toString"  , self.toString  , 0))
+        self.proto.put(CSObject.TYPE_STRING, CSObject.new_bound_method(CSObject.TYPE_STRING, self.typeString, 0))
+        self.proto.put(CSObject.TO_STRING  , CSObject.new_bound_method(CSObject.TO_STRING  , self.toString  , 0))
+    
+    # ======================== BOUNDS|
+    # ===============================|
 
     #![bound::runtimeType]
     def typeString(self):
@@ -48,25 +73,23 @@ class CSObject(HashMap):
     
     # ======================== PYTHON|
     # ===============================|
-    def get(self, _key: str):
-        if type(self) == CSObject and _key == "this": return self
-        return super().get(_key)
-
     def all(self):
-        return [self.get(_k) for _k in self.keys()]
+        return [self.thiso.get(_k) for _k in self.thiso.keys()]
     
-    def isPointer(self):
-        return False
+    def python(self):
+        """ Converts CSObject to Python Object
+        """
+        raise NotImplementedError("%s::python must be ovritten!" % self.dtype)
 
     def __str__(self):
         """ Modify __str__() if yo want to change how it looks when its printed
             | Do not modify tostring()
             ;
         """
-        _keys   = self.keys()
+        _keys   = self.thiso.keys()
         _attrib = ""
         for k in range(len(_keys)):
-            _attrib += f"{_keys[k]}: {self.get(_keys[k]).__str__()}"
+            _attrib += f"{_keys[k]}: {self.thiso.get(_keys[k]).__str__()}"
 
             if  k < (len(_keys) - 1):
                 _attrib += ", "
@@ -74,9 +97,16 @@ class CSObject(HashMap):
         return "{" + f"{_attrib}" + "}"
     
     @staticmethod
-    def new():
+    def new_object():
         _object = CSObject()
         return _object
+
+    @staticmethod
+    def new_module():
+        from user_defined.csmodule import CSModule
+        _module = CSModule()
+        del CSModule
+        return CSMalloc(_module)
 
     @staticmethod
     def new_integer(_data:int):
@@ -125,7 +155,7 @@ class CSObject(HashMap):
         return _bool
 
     @staticmethod
-    def new_nulltype(_allocate:bool=True):
+    def new_nulltype():
         """ Creates raw null object
 
             Returns
@@ -138,7 +168,7 @@ class CSObject(HashMap):
         return _null
     
     @staticmethod
-    def new_array(_allocate:bool=True):
+    def new_array():
         """ Creates array object
 
             Returns
@@ -177,7 +207,7 @@ class CSObject(HashMap):
         return _array
     
     @staticmethod
-    def new_map(_allocate:bool=True):
+    def new_map():
         """ Creates map object
 
             Returns
@@ -240,7 +270,7 @@ class CSObject(HashMap):
         from user_defined.csclass import CSClass
         _class = CSClass(_name)
         del CSClass
-        return CSMalloc(_class)
+        return _class
     
     @staticmethod
     def new_bound_method(_name:str, _pyCallable:callable, _parameter_count:int):
@@ -325,17 +355,6 @@ class CSObject(HashMap):
     # ========================= EVENT|
     # ===============================|
     # must be private!. do not include as attribute
-    
-    def hasAttribute(self, _key:str):
-        _bucket_index = hasher(_key) % self.bcount
-        if  self.bucket[_bucket_index] == None:
-            return False
-        _head = self.bucket[_bucket_index]
-        while _head:
-            if  _head.nkey == _key:
-                return True
-            _head = _head.tail
-        return False
 
     def getAttribute(self, _attr:CSToken):
         """ Called when "object->property"
@@ -345,7 +364,7 @@ class CSObject(HashMap):
             _attr : CSToken
         """
         # throws error
-        if  not self.hasAttribute(_attr.token):
+        if  not (self.thiso.hasKey(_attr.token) or self.proto.hasKey(_attr.token)):
             # = format string|
             _error = CSObject.new_attrib_error(f"{type(self).__name__}({self.__str__()}) has no attribute '{_attr.token}'", _attr)
 
@@ -357,7 +376,10 @@ class CSObject(HashMap):
             # ===============|
             return _error
         
-        return self.get(_attr.token)
+        if  self.thiso.hasKey(_attr.token):\
+        return self.thiso.get(_attr.token)
+        
+        return self.proto.get(_attr.token)
     
     def setAttribute(self, _attr:CSToken, _value:CSObject):
         """ Called when "csobject->property = csobject"
@@ -368,7 +390,7 @@ class CSObject(HashMap):
             _value : CSObject
         """
         # throws error
-        if  not self.hasAttribute(_attr.token):
+        if  not (self.thiso.hasKey(_attr.token) or self.proto.hasKey(_attr.token)):
             # = format string|
             _error = CSObject.new_attrib_error(f"{type(self).__name__}({self.__str__()}) has no attribute '{_attr.token}'", _attr)
 
@@ -380,7 +402,11 @@ class CSObject(HashMap):
             # ===============|
             return _error
         
-        self.put(_attr.token, _value)
+        if  self.thiso.hasKey(_attr.token):
+            self.thiso.put(_attr.token, _value)
+            return _value
+        
+        self.proto.put(_attr.token, _value)
         return _value
         
     def subscript(self, _subscript_location:CSToken, _expr:CSObject):
@@ -646,7 +672,7 @@ class CSObject(HashMap):
             -------
             bool
         """
-        return self.get("this") == _object.get("this")
+        return self.python() == _object.python()
 
     def eq(self, _opt:CSToken, _object:CSObject):
         """ Called when equal
@@ -696,28 +722,9 @@ class CSObject(HashMap):
     # short circuiting|default
     def log_and(self, _opt: CSToken, _object: CSObject):
         # self.assertType(_opt, self, _object)
-        return self.get("this") and _object.get("this")
+        return self.python() and _object.python()
     
     def log_or(self, _opt: CSToken, _object: CSObject):
         # self.assertType(_opt, self, _object)
-        return self.get("this") or _object.get("this")
-
-
-# malloc
-def CSMalloc(_csobject:CSObject):
-    # import
-    from cscriptvm.csvm import CSVM as VM
-
-    _object = VM.VHEAP.allocate(_csobject)
-    del VM
-
-    # return object
-    return _object
-
-
-def ThrowError(_csexceptionobject:CSObject):
-    from cscriptvm.csvm import CSVM as VM
-    VM.throw_error(_csexceptionobject)
-    # delete vm locally
-    del VM
+        return self.python() or _object.python()
 

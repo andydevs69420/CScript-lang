@@ -11,8 +11,7 @@ class CSMap(CSObject):
         super().__init__()
         self.initializeBound()
         
-        self.dtype    = CSClassNames.CSMap 
-        self.elements = CSObject.new()
+        self.dtype = CSClassNames.CSMap 
     
     def initializeBound(self):
         super().initializeBound()
@@ -20,36 +19,36 @@ class CSMap(CSObject):
         # ================|
 
 
-    
     # ======================== PYTHON|
     # ===============================|
 
     def keys(self):
-        return self.elements.keys()
+        return self.thiso.keys()
 
     def put(self, _key: str, _data):
-        self.elements.put(_key, _data)
+        self.thiso.put(_key, _data)
     
     def get(self, _key: str):
-        return self.elements.get(_key)
+        return self.thiso.get(_key)
     
-    def all(self):
-        return self.elements.all()
-
-    def isPointer(self):
-        return True
+    def python(self):
+        _map = ({})
+        for _k, _v in zip(self.keys(), self.all()):
+            _map[_k] = _v.python()
+        
+        return _map
     
     def __str__(self):
-        _keys   = self.elements.keys()
+        _keys   = self.keys()
         _attrib = ""
         for k in range(len(_keys)):
             _string = ...
-            if  self.offset == self.elements.get(_keys[k]).offset:
+            if  self.offset == self.thiso.get(_keys[k]).offset:
                 # refering to its self
                 # to avoid recursion
                 _string = "{self}"
             else:
-                _string = self.elements.get(_keys[k]).__str__()
+                _string = self.thiso.get(_keys[k]).__str__()
 
             _attrib += f"{_keys[k]}: {_string}"
 
@@ -74,9 +73,9 @@ class CSMap(CSObject):
             # ===============|
             return _error
         
-        if  not self.elements.hasAttribute(_expr.__str__()):
+        if  not self.thiso.hasKey(_expr.__str__()):
             # = format string|
-            _error = CSObject.new_attrib_error(f"CSMap({self.elements.__str__()}) has no attribute %s" % _expr.__str__(), _subscript_location)
+            _error = CSObject.new_attrib_error(f"CSMap({self.thiso.__str__()}) has no attribute %s" % _expr.__str__(), _subscript_location)
 
             # === throw error|
             # ===============|
@@ -89,32 +88,23 @@ class CSMap(CSObject):
         return False
     
     def getAttribute(self, _attr: CSToken):
-        return self.elements.getAttribute(_attr)
+        return super().getAttribute(_attr)
     
     def setAttribute(self, _attr: CSToken, _value: CSObject):
-        return self.elements.setAttribute(_attr, _value)
+        return super().setAttribute(_attr, _value)
     
     def subscript(self, _subscript_location: CSToken, _expr: CSObject):
         _error = self.assertSubscriptExpression(_subscript_location, _expr)
         if _error: return _error
 
-        return self.elements.get(_expr.__str__())
+        return self.thiso.get(_expr.__str__())
     
     def subscriptSet(self, _subscript_location: CSToken, _attribute: CSObject, _new_value: CSObject):
-        if  _attribute.dtype != "CSString":
-            # = format string|
-            _error = CSObject.new_type_error("CSMap subscript must be a type of CSString", _subscript_location)
+        _error = self.assertSubscriptExpression(_subscript_location, _attribute)
+        if _error: return _error
 
-            # === throw error|
-            # ===============|
-            ThrowError(_error)
-
-            # == return error|
-            # ===============|
-            return _error
-
-        self.elements.put(_attribute.__str__(), _new_value)
-        return self.elements.get(_attribute.__str__())
+        self.thiso.put(_attribute.__str__(), _new_value)
+        return self.thiso.get(_attribute.__str__())
 
     # ==================== OPERATIONS|
     # ===============================|

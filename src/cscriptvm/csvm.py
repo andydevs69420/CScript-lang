@@ -174,6 +174,11 @@ class CSVM(ExceptionTable, CallStack):
     def evaluate(_instruction:Instruction):
         match _instruction.opcode:
             # OK!!!
+            case CSOpCode.LOAD_MODULE:
+                return CSVM\
+                    .load_module(_instruction)
+
+            # OK!!!
             case CSOpCode.PUSH_CONST:
                 return CSVM\
                     .push_const(_instruction)
@@ -204,13 +209,19 @@ class CSVM(ExceptionTable, CallStack):
                 return CSVM\
                     .make_module(_instruction)
             
+            # OK!!!
             case CSOpCode.GET_ATTRIB:
                 return CSVM\
                     .get_attrib(_instruction)
             
+            # OK!!!
             case CSOpCode.SET_ATTRIB:
                 return CSVM\
                     .set_attrib(_instruction)
+            
+            case CSOpCode.LOAD_ATTRIB:
+                return CSVM\
+                    .load_attrib(_instruction)
             
             # OK!!!
             case CSOpCode.STORE_NAME:
@@ -385,6 +396,17 @@ class CSVM(ExceptionTable, CallStack):
 
     # ================================== BEGIN EVAL METHODS|
     # =====================================================|
+    @staticmethod
+    def load_module(_instruction:Instruction):
+        # pop location
+        _location = EvalStack.es_pop ()
+        _location = _location.__str__()
+
+        from csparser import CSParser
+        _module_parser = CSParser(_location, open(_location, "r").read())
+
+        _top = CSVM.run(_module_parser.parse().compile())
+        EvalStack.es_push(_top)
 
     @staticmethod
     def push_const(_instruction:Instruction):
@@ -404,7 +426,6 @@ class CSVM(ExceptionTable, CallStack):
 
         _array = CSObject.new_array()
         for idx in range(_size):
-
             _obj:CSObject = EvalStack.es_pop()
 
             # ====== check if alocated|
@@ -447,19 +468,45 @@ class CSVM(ExceptionTable, CallStack):
         _class = CSObject.new_class(_name.__str__())
 
         for idx in range(_size):
-            _k = EvalStack.es_pop()
-            _v = CSVM.VHEAP.allocate(EvalStack.es_pop())
-            _class.put(_k.__str__(), _v)
+            _key:CSObject = EvalStack.es_pop()
+            _val:CSObject = EvalStack.es_pop()
+
+            # ====== check if alocated|
+            # ========================|
+            if  _val.offset == -69420:
+                _val = CSVM.VHEAP.allocate(_val)
+
+            _class.put(_key.__str__(), _val)
         
         EvalStack.es_push(_class)
 
     @staticmethod
     def make_module(_instruction:Instruction):
-        EvalStack.es_push(None)
+        _size = _instruction.get("size")
+
+        _mod = CSObject.new_module()
+
+        for idx in range(_size):
+            _key:CSObject = EvalStack.es_pop()
+            _val:CSObject = EvalStack.es_pop()
+
+            # ====== check if alocated|
+            # ========================|
+            if  _val.offset == -69420:
+                _val = CSVM.VHEAP.allocate(_val)
+
+            _mod.put(_key.__str__(), _val)
+        
+        EvalStack.es_push(_mod)
     
     @staticmethod
     def get_attrib(_instruction:Instruction):
         _top = EvalStack.es_pop()
+        EvalStack.es_push(_top.getAttribute(_instruction.get("attr")))
+    
+    @staticmethod
+    def load_attrib(_instruction:Instruction):
+        _top = EvalStack.es_peek()
         EvalStack.es_push(_top.getAttribute(_instruction.get("attr")))
 
     @staticmethod
@@ -668,7 +715,7 @@ class CSVM(ExceptionTable, CallStack):
 
         _top = EvalStack.es_pop()
 
-        if not (_top.get("this")):
+        if not (_top.python()):
             CallStack\
                 .cs_peek_frame()\
                     .setPointer(_target)
@@ -679,7 +726,7 @@ class CSVM(ExceptionTable, CallStack):
 
         _top = EvalStack.es_pop()
 
-        if _top.get("this"):
+        if _top.python():
             CallStack\
                 .cs_peek_frame()\
                     .setPointer(_target)
@@ -690,7 +737,7 @@ class CSVM(ExceptionTable, CallStack):
 
         _top = EvalStack.es_peek()
 
-        if not _top.get("this"):
+        if not _top.python():
             CallStack\
                 .cs_peek_frame()\
                     .setPointer(_target)
@@ -704,7 +751,7 @@ class CSVM(ExceptionTable, CallStack):
 
         _top = EvalStack.es_peek()
 
-        if _top.get("this"):
+        if _top.python():
             CallStack\
                 .cs_peek_frame()\
                     .setPointer(_target)

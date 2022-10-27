@@ -7,6 +7,7 @@
 from .globalast.csAst import CSAst
 from .objectast.csreferncenode import ReferenceNode
 
+from .moduleast.csmodulenode import ModuleNode
 
 """ Object ast group
     Represents object
@@ -47,9 +48,6 @@ from .assignmentast.csaugmentedassignmentnode import AugmentedAssignment
 
 
 
-from .moduleast.csmodulenode import ModuleNode
-
-
 
 """ Compound statement ast group
     Compiles compound statements
@@ -67,6 +65,7 @@ from .compoundast.csblocknode import BlockNode
 """ Simple statement at group
     Compiles simple statement
 """
+from .simpleast.csimportnode import ImportNode
 from .simpleast.csvarnode import VarNode
 from .simpleast.csletnode import LetNode
 from .simpleast.csbreaknode import BreakNode

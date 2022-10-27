@@ -103,7 +103,6 @@ class HashMap(object):
                     self.put(last.nkey, last.data)
                     last = last.tail
 
-
     def keys(self):
         _keys = []
         for buck in self.bucket:
@@ -114,6 +113,17 @@ class HashMap(object):
                     _last = _last.tail
         
         return _keys
+    
+    def hasKey(self, _key:str):
+        _bucket_index = hasher(_key) % self.bcount
+        if  self.bucket[_bucket_index] == None:
+            return False
+        _head = self.bucket[_bucket_index]
+        while _head:
+            if  _head.nkey == _key:
+                return True
+            _head = _head.tail
+        return False
     
 
 

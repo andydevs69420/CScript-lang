@@ -14,7 +14,7 @@ class IfStatementNode(CSAst):
     def compile(self, _block:CodeBlock):
         _evaluated = self.condition.evaluate()
         if  _evaluated:
-            if  _evaluated.get("this"):
+            if  _evaluated:
                 # condition met|true|satisfiable
                 self.statement.compile(_block)
             else:
@@ -33,7 +33,7 @@ class IfStatementNode(CSAst):
 
         # extract rhs and compile
         _rhs_evaluated = self.condition.rhs.evaluate()
-        _rhs_evaluated = _rhs_evaluated.get("this") if _rhs_evaluated else False
+        _rhs_evaluated = _rhs_evaluated.python() if _rhs_evaluated else False
 
         if  not _rhs_evaluated:
             self.condition.rhs.compile(_block)
@@ -49,7 +49,7 @@ class IfStatementNode(CSAst):
             _jump_t0 = _block.peekLast()
         
         _lhs_evaluated = self.condition.lhs.evaluate()
-        _lhs_evaluated = _lhs_evaluated.get("this") if _lhs_evaluated else False
+        _lhs_evaluated = _lhs_evaluated.python() if _lhs_evaluated else False
 
         if  not _lhs_evaluated:
             # extract lhs and compile

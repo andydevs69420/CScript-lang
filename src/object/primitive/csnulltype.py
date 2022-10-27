@@ -1,25 +1,23 @@
 from obj_utils.csclassnames import CSClassNames
 from base.csobject import CSToken, CSObject
+from obj_utils.nonpointer import NonPointer
 
 
-class CSNullType(CSObject):
+class CSNullType(NonPointer):
     """NullType backend for CScript
 
         Paramters
         ---------
         _null : NoneType
     """
+    THIS= "this"
 
     def __init__(self):
         super().__init__()
-        self.initializeBound()
-
+        
         self.dtype = CSClassNames.CSNullType
-        self.put("this", None)
+        self.thiso.put(CSNullType.THIS, None)
 
-    # ======================== PYTHON|
-    # ===============================|
-    
     def __str__(self):
         return "null"
     
@@ -29,4 +27,10 @@ class CSNullType(CSObject):
     """ CSInteger specific operation
     """
     def bin_not(self, _opt:CSToken):
-        return CSObject.new_boolean("true" if not self.get("this") else "false")
+        return CSObject.new_boolean("true" if not self.python() else "false")
+
+    def eq(self, _opt: CSToken, _object: CSObject):
+        return  CSObject.new_boolean("true" if (self.offset == _object.offset) else "false" )
+
+    def equals(self, _object: CSObject):
+        return  CSObject.new_boolean("true" if (self.offset != _object.offset) else "false" )

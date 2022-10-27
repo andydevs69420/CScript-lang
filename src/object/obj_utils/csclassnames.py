@@ -3,6 +3,7 @@
 class CSClassNames:
 
     CSObject      = "CSObject"
+    CSModule      = "CSModule"
     CSInteger     = "CSInteger"
     CSDouble      = "CSDouble"
     CSString      = "CSString"
@@ -14,8 +15,8 @@ class CSClassNames:
     CSBound       = "CSBound"
     CSClass       = "CSClass"
     CSClassBoundMethod = "CSClassBoundMethod"
-    CSException   = "CSException"
-    CSTypeError   = "CSTypeError"
-    CSAttributeError = "CSAttributeError"
-    CSIndexError     = "CSIndexError"
+    CSException        = "CSException"
+    CSTypeError        = "CSTypeError"
+    CSAttributeError   = "CSAttributeError"
+    CSIndexError       = "CSIndexError"
 

@@ -35,7 +35,7 @@ class LetNode(CSAst):
             _s = _block.newlocals()
 
             # save var_name
-            _block.symbtable.current.insert(_var.token, _slot=_s, _global=False)
+            _block.symbtable.current.insert(_var.token, _slot=_s, _global=False, _token=_var)
 
             # ============ MEMORY SETTING PURPOSE|
             # ===================================|

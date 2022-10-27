@@ -1,6 +1,7 @@
 from enum import Enum
 class CSOpCode(Enum):
 
+   LOAD_MODULE = 0x204
    PUSH_NAME  = 0x00
    PUSH_LOCAL  = 0x201
    PUSH_CONST = 0x01
@@ -10,6 +11,7 @@ class CSOpCode(Enum):
    MAKE_MODULE = 0x05
    GET_ATTRIB  = 0x06
    SET_ATTRIB  = 0x07
+   LOAD_ATTRIB = 0x205
    STORE_NAME  = 0x08
    STORE_LOCAL = 0x200
    CALL       = 0x09

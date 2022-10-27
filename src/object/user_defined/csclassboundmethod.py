@@ -1,8 +1,6 @@
 
 from obj_utils.csclassnames import CSClassNames
 from base.csobject import CSToken, CSObject
-
-
 from user_defined.cscallable import CSCallable
 
 class CSClassBoundMethod(CSObject):

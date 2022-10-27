@@ -2,7 +2,7 @@
 cscript programming language prototype
 
 ## Statements
-- [ ] import statement
+- [x] import statement
 - [x] var declairation
 - [x] let declairation
 - [x] if statement
@@ -49,4 +49,9 @@ cscript programming language prototype
 - [x] fix grabage collector|status:fixed -> mark/sweep
 - [x] fix try/except/finally
 - [x] fix recursion error when __str__/toString|status:fixed
+- [x] fix parser is confused with operator (+) and string "+"
+    - example
+        2 "+" 2 = 4<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;^^^ -- should error because string was used instead of (+).
+    - status: fixing
 - [ ] fix adding bound

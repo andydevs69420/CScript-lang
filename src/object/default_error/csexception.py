@@ -9,17 +9,14 @@ class CSException(CSObject):
         self.initializeBound()
 
         self.dtype = CSClassNames.CSException
-        self.put("message" , CSObject.new_string(_message))
-        self.put("location", CSObject.new_map_fromPyDict(_token_loc.toDict()))
-    
-    def isPointer(self):
-        return True
+        self.thiso.put("message" , CSObject.new_string(_message))
+        self.thiso.put("location", CSObject.new_map_fromPyDict(_token_loc.toDict()))
     
     # ======================== PYTHON|
     # ===============================|
 
     def __str__(self):
-        return reformatError(self.dtype, self.get("message"), self.get("location"))
+        return reformatError(self.dtype, self.thiso.get("message"), self.thiso.get("location"))
 
 
 class CSTypeError(CSException):
@@ -46,7 +43,9 @@ def reformatError(_type, _message:CSObject, _token:CSObject):
         _csexceptionobject : CSObject
         _token             : CSToken
     """
-    _error = (("[%s:%d:%d] %s: %s" % (_token.get("fsrce").get("this"), _token.get("yS").get("this"), _token.get("xS").get("this"), _type, _message.get("this")))
+    _map = _token.python()
+
+    _error = (("[%s:%d:%d] %s: %s" % (_map["fsrce"], _map["yS"], _map["xS"], _type, _message.python()))
              + "\n" 
-             + _token.get("trace").__str__())
+             + _map["trace"])
     return _error

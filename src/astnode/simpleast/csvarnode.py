@@ -18,7 +18,7 @@ class VarNode(CSAst):
             # compile value
             _val = assignment["val"]
             if  not _val:
-                _block.push_constant(CSObject.new_nulltype(_allocate=False))
+                _block.push_constant(CSObject.new_nulltype())
             else:
                 _val.compile(_block)
             
@@ -34,7 +34,7 @@ class VarNode(CSAst):
             _s = _block.newglobals()
 
             # save var_name
-            _block.symbtable.globaltable.insert(_var.token, _slot=_s, _global=True)
+            _block.symbtable.globaltable.insert(_var.token, _slot=_s, _global=True, _token=_var)
 
             # ============ MEMORY SETTING PURPOSE|
             # ===================================|

@@ -14,10 +14,7 @@ class CSInteger(CSNumber):
     def __init__(self, _int:int):
         super().__init__()
         self.dtype = CSClassNames.CSInteger
-        self.put("this", int(_int))
-    
-    # ======================== PYTHON|
-    # ===============================|
+        self.thiso.put(CSNumber.THIS, int(_int))
     
     # ==================== OPERATIONS|
     # ===============================|
@@ -25,19 +22,19 @@ class CSInteger(CSNumber):
     """ CSInteger specific operation
     """
     def bit_not(self, _opt:CSToken):
-        return CSObject.new_integer(~ self.get("this"))
+        return CSObject.new_integer(~ self.python())
     
     def lshift(self, _opt:CSToken, _object:CSObject):
-        return CSObject.new_integer(self.get("this") << _object.get("this"))
+        return CSObject.new_integer(self.python() << _object.python())
     
     def rshift(self, _opt:CSToken, _object:CSObject):
-        return CSObject.new_integer(self.get("this") >> _object.get("this"))
+        return CSObject.new_integer(self.python() >> _object.python())
     
     def bit_and(self, _opt:CSToken, _object:CSObject):
-        return CSObject.new_integer(self.get("this") & _object.get("this"))
+        return CSObject.new_integer(self.python() & _object.python())
 
     def bit_xor(self, _opt:CSToken, _object:CSObject):
-        return CSObject.new_integer(self.get("this") ^ _object.get("this"))
+        return CSObject.new_integer(self.python() ^ _object.python())
     
     def bit_or(self, _opt:CSToken, _object:CSObject):
-        return CSObject.new_integer(self.get("this") | _object.get("this"))
+        return CSObject.new_integer(self.python() | _object.python())
