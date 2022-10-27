@@ -22,9 +22,6 @@ class CSMap(CSObject):
     # ======================== PYTHON|
     # ===============================|
 
-    def all(self):
-        return super().all()
-
     def keys(self):
         return self.thiso.keys()
 

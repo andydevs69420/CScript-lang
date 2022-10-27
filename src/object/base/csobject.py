@@ -102,6 +102,13 @@ class CSObject(object):
         return _object
 
     @staticmethod
+    def new_module():
+        from user_defined.csmodule import CSModule
+        _module = CSModule()
+        del CSModule
+        return CSMalloc(_module)
+
+    @staticmethod
     def new_integer(_data:int):
         from primitive.csinteger import CSInteger
         _int = CSInteger(_data)
@@ -715,9 +722,9 @@ class CSObject(object):
     # short circuiting|default
     def log_and(self, _opt: CSToken, _object: CSObject):
         # self.assertType(_opt, self, _object)
-        return self.get("this") and _object.python()
+        return self.python() and _object.python()
     
     def log_or(self, _opt: CSToken, _object: CSObject):
         # self.assertType(_opt, self, _object)
-        return self.get("this") or _object.python()
+        return self.python() or _object.python()
 

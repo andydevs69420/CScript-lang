@@ -1,22 +1,28 @@
 
+import [MODULE, add, State] from "/home/andydevs69420/Documents/CScript/tests/import1_test.csx";
 
-class Dog {
+State->flags += 100;
+
+
+class Dog 
+{
     name: null,
-    age: 0,
-    
+    age : 0   ,
     birthday: (function(this) {return this->age += 1;}),
-    eat: (function(this, _food) { print: this->name, "is eating a", _food, "!"; return !true;})
+    eat     : (function(this, _food) { print: this->name, "is eating a", _food, "!"; return !true;})
 }
 
-var x = 0;
-while (x < 1000)x += 1;
+
+{
+    let x = 0;
+    while (x < 1000) x += 1;
+}
+
+var xxx = (2 != 2)?1:100;
+var yyy = new Dog();
+
+print: MODULE, add(10, 20), State->flags;
+    State->flags += 100;
+print: MODULE, add(10, 20), State->flags;
 
 
-var yy = new Dog();
-
-print: yy->name == Dog->name;
-
-
-print: 2 + 2;
-
-print: { a : "2" };

@@ -88,6 +88,7 @@ class CSParser(ContextUtils):
         def invalid_keyword():
             if  self.cstoken.matches(TokenType.IDENTIFIER) and \
                 (self.cstoken.matches("import"  ) or \
+                 self.cstoken.matches("from"    ) or \
                  self.cstoken.matches("class"   ) or \
                  self.cstoken.matches("return"  ) or \
                  self.cstoken.matches("assert"  ) or \
@@ -214,12 +215,12 @@ class CSParser(ContextUtils):
             # return as double
             return DoubleNode(_flt)
 
+
+
         # string
         def string():
             _str = self.cstoken
-            if  not _str.matches(TokenType.STRING):
-                return None
-            
+
             # eat type
             self.eat(_str.ttype)
 
@@ -503,7 +504,6 @@ class CSParser(ContextUtils):
                     _node = CallNode(_node, _args, _call)
 
             return _node
-    
         
         # unary_op: ternary
         # | ('~' | '!' | '+' | '-') unary_op
@@ -1176,6 +1176,44 @@ class CSParser(ContextUtils):
             
             return simple_stmnt()
         
+        # import_stmnt: "import" "[" function_parameters "]" "from" string;
+        def import_stmnt():
+            self.bind(ContextType.GLOBAL, _immediate=True)
+
+            self.eat("import", TokenType.IDENTIFIER)
+
+            self.eat("[", TokenType.OPERATOR)
+
+            _imports = function_parameters()
+
+            self.eat("]", TokenType.OPERATOR)
+
+            self.eat("from", TokenType.IDENTIFIER)
+
+            # open
+            _o = self.cstoken
+
+            _source = string()
+
+            # close
+            _c = self.cstoken
+
+            self.eat(";", TokenType.OPERATOR)
+
+            _import_loc = CSToken(TokenType.DYNAMIC_LOCATION)
+            _import_loc.fsrce = self.fpath
+            _import_loc.token = "..."
+            # xAxis
+            _import_loc.xS = _o.xS
+            _import_loc.xE = _c.xE
+            # yAxis
+            _import_loc.yS = _o.yS
+            _import_loc.yE = _c.yE
+            _import_loc.addTrace(self)
+
+            return ImportNode(_imports, _source, _import_loc)
+
+
         # var_stmnt: "var" assignment_list;
         def var_stmnt():
             # ===== check context|
@@ -1299,7 +1337,9 @@ class CSParser(ContextUtils):
         # | expression_stmnt
         # ;
         def simple_stmnt():
-            if  self.cstoken.matches(TokenType.IDENTIFIER ) and self.cstoken.matches("var"):
+            if  self.cstoken.matches(TokenType.IDENTIFIER ) and self.cstoken.matches("import"):
+                return import_stmnt()
+            elif self.cstoken.matches(TokenType.IDENTIFIER ) and self.cstoken.matches("var"):
                 return var_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("let"):
                 return let_stmnt()

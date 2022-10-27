@@ -3,6 +3,7 @@
 class CSClassNames:
 
     CSObject      = "CSObject"
+    CSModule      = "CSModule"
     CSInteger     = "CSInteger"
     CSDouble      = "CSDouble"
     CSString      = "CSString"

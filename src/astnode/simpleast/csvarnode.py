@@ -34,7 +34,7 @@ class VarNode(CSAst):
             _s = _block.newglobals()
 
             # save var_name
-            _block.symbtable.globaltable.insert(_var.token, _slot=_s, _global=True)
+            _block.symbtable.globaltable.insert(_var.token, _slot=_s, _global=True, _token=_var)
 
             # ============ MEMORY SETTING PURPOSE|
             # ===================================|

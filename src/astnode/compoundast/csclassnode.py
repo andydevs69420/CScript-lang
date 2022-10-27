@@ -21,7 +21,7 @@ class ClassNode(CSAst):
     def compile(self, _block:CodeBlock):
         _s = _block.newglobals()
 
-        _block.symbtable.current.insert(self.name.token, _slot=_s, _global=True)
+        _block.symbtable.current.insert(self.name.token, _slot=_s, _global=True, _token=self.name)
 
         # TODO: evaluate base name
 

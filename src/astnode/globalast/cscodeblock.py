@@ -49,3 +49,9 @@ class CodeBlock(CSAst):
         _old = self.__globals
         self.__globals += 1
         return _old
+    
+    def getlocals(self):
+        return self.__locals
+    
+    def getglobals(self):
+        return self.__globals

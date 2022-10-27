@@ -62,6 +62,14 @@ class Compilable(object):
     def getLine(self):
         return len(self.__instructions) * 2
 
+    def load_module(self):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.LOAD_MODULE,
+            )
+        )
     
     def push_name(self, _name:CSToken, _offset:int):
         self.__instructions\
@@ -123,12 +131,12 @@ class Compilable(object):
         )
     
     
-    def make_module(self):
+    def make_module(self, _size:int):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.MAKE_MODULE
+                CSOpCode.MAKE_MODULE, size=_size
             )
         )
     
@@ -139,6 +147,15 @@ class Compilable(object):
             Instruction(
                 len(self.__instructions) * 2,
                 CSOpCode.GET_ATTRIB, attr=_attrib
+            )
+        )
+    
+    def load_attrib(self, _attrib:CSToken):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.LOAD_ATTRIB, attr=_attrib
             )
         )
 

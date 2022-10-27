@@ -37,7 +37,7 @@ class FunctionNode(CodeBlock):
         _parameters:list[str] = []
         
         # save var_name
-        _block.symbtable.globaltable.insert(self.funcname.token, _slot=_s, _global=True)
+        _block.symbtable.globaltable.insert(self.funcname.token, _slot=_s, _global=True, _token=self.funcname)
 
         for tok in self.parameters:
             _parameters.append(tok.token)
@@ -51,7 +51,7 @@ class FunctionNode(CodeBlock):
                 return show_error("parameter \"%s\" is already defined" % tok.token, tok)
             
             # save param
-            self.symbtable.current.insert(tok.token, _slot=_l, _global=False)
+            self.symbtable.current.insert(tok.token, _slot=_l, _global=False, _token=tok)
 
             # ============ MEMORY SETTING PURPOSE|
             # ===================================|
@@ -62,7 +62,7 @@ class FunctionNode(CodeBlock):
         for each_node in self.body:
             each_node.compile(self)
 
-        self.push_constant(CSObject.new_nulltype(_allocate=False))
+        self.push_constant(CSObject.new_nulltype())
 
         self.return_op()
 
@@ -72,7 +72,7 @@ class FunctionNode(CodeBlock):
 
         # push function to block
         # let push constant allocate function
-        _block.push_constant(CSObject.new_callable(self.funcname.token, _parameters, _instructions, _allocate=False))
+        _block.push_constant(CSObject.new_callable(self.funcname.token, _parameters, _instructions))
 
         # ============ MEMORY SETTING PURPOSE|
         # ===================================|

@@ -40,7 +40,7 @@ class Evaluator(object):
 
         _cond = _condition.evaluate()
         if  _cond:
-            if  _cond.get("this"):
+            if  _cond.python():
                 return _true.evaluate()
             else:
                 return _false.evaluate()

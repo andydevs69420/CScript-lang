@@ -2,7 +2,7 @@
 cscript programming language prototype
 
 ## Statements
-- [ ] import statement
+- [x] import statement
 - [x] var declairation
 - [x] let declairation
 - [x] if statement

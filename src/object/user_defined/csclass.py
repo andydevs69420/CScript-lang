@@ -1,10 +1,11 @@
 
 from obj_utils.csclassnames import CSClassNames
+from non_primitive.csmap import CSMap
 from base.csobject import CSToken, CSObject
 
 
 
-class CSClass(CSObject):
+class CSClass(CSMap):
     """
     """
     CONSTRUCTOR= "constructor"

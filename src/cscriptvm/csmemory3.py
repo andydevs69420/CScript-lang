@@ -50,7 +50,7 @@ class CSMemoryObject(object):
         # ========================|
         self.__allocations += 1
 
-        # run collector every 500 alloc
+        # run collector every 500 or more alloc
         if  self.__allocations >= 500:
             self.collect()
             self.__allocations = 0
