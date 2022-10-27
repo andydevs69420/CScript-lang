@@ -52,6 +52,6 @@ cscript programming language prototype
 - [x] fix parser is confused with operator (+) and string "+"
     - example
         2 "+" 2 = 4<br/>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;^^^ -- should error because string was used instead of (+).
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;^^^ -- should error because string was used instead of (+).
     - status: fixing
 - [ ] fix adding bound
