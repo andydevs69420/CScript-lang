@@ -51,7 +51,7 @@ cscript programming language prototype
 - [x] fix recursion error when __str__/toString|status:fixed
 - [x] fix parser is confused with operator (+) and string "+"
     - example
-        2 "+" 2 = 4
+        2 "+" 2 = 4<br/>
           ^^^ -- should error because string was used instead of (+).
     - status: fixing
 - [ ] fix adding bound
