@@ -1,8 +1,8 @@
 
 import [MODULE, add, State] from "/home/andydevs69420/Documents/CScript/tests/import1_test.csx";
 
-State->flags += 100;
 
+State->flags += 100;
 
 class Dog 
 {

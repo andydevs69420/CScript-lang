@@ -13,15 +13,22 @@ from csparser import CSParser
 # core
 from cscriptvm.csvm import CSVM
 
-# FILE = "tests/memory_stress_test_1.csx"
-FILE = "tests/class_test.csx"
-parser = CSParser(FILE, open(FILE, "r").read())
-x = parser.parse()
-instruct = x.compile()
+# object
+from object.builtins.cshelpers import __read__
 
-for ins in instruct:
-    print(ins)
-print("Done!")
 
-CSVM.run(instruct)
-CSVM.VHEAP.collectlast()
+
+def main(_args:dict):
+    FILE     = "eval.csx"
+    parser   = CSParser(FILE, __read__(FILE))
+    aST      = parser.parse()
+    instruct = aST.compile()
+    for ins in instruct:
+        print(ins)
+    print("Done!")
+    CSVM.run(instruct)
+    CSVM.VHEAP.collectlast()
+
+
+main({})
+

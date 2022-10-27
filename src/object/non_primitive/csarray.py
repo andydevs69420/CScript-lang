@@ -60,6 +60,13 @@ class CSArray(CSObject):
     # ======================== PYTHON|
     # ===============================|
 
+    def python(self):
+        _lst = []
+        for _obj in self.all():
+            _lst.append(_obj.python())
+        
+        return _lst
+
     def __str__(self):
         _elem = ""
         for idx in range(len(self.all())):
