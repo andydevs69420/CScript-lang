@@ -13,9 +13,30 @@ from object import CSObject
 class CSMemoryObject(object):
 
     def __init__(self):
-        self.__bucket:list[CSObject] = []
-        self.__nmpntr:dict[int:int] = ({})
-        self.__freecell:list[int] = []
+        self.__bucket:list[CSObject] = ([
+            # +------------+
+            # | CSObject 0 |
+            # +------------+
+            # | CSObject . |
+            # +------------+
+            # | CSObject N |
+            # +------------+
+        ])
+
+        self.__nmpntr:dict[int:int] = ({
+            # var_x: 0,
+            # var_y: 1,
+            # var_N: 1000...
+        })
+
+        self.__freecell:list[int] = ([
+            # +-----------------------+
+            # | self.__bucket index N |
+            # +-----------------------+
+            # | self.__bucket index ? |
+            # +-----------------------+
+        ])
+
         self.__allocations:int = 0
         self.__total_garbage = 0
     

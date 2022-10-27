@@ -1,8 +1,6 @@
 
-from strongtyping.strong_typing import match_typing
 
 
-@match_typing
 def hasher(_key:str):
     _key = str(_key)
     
