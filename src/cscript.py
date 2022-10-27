@@ -14,7 +14,7 @@ from csparser import CSParser
 from cscriptvm.csvm import CSVM
 
 # object
-from object.builtins.cshelpers import __read__
+from object.system.cshelpers import __read__
 
 
 
