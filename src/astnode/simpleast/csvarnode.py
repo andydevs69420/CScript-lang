@@ -18,7 +18,7 @@ class VarNode(CSAst):
             # compile value
             _val = assignment["val"]
             if  not _val:
-                _block.push_constant(CSObject.new_nulltype(_allocate=False))
+                _block.push_constant(CSObject.new_nulltype())
             else:
                 _val.compile(_block)
             

@@ -62,29 +62,25 @@ class CSMemoryObject(object):
         return self.__bucket[self.__nmpntr[_name_pntr]]
         
     def mark(self):
-
         _roots:list[CSObject] = [self.__bucket[idx] for idx in filter(lambda x:x != None, self.__nmpntr.values())]
         while len(_roots) > 0:
             _v = _roots.pop()
 
-            if  not _v.ismarked:
-                _v.ismarked = True
+            if  not _v.marked:
+                _v.marked = True
 
-                if  _v.isPointer():
-                    for child in _v.all():
-                        _roots.append(child)
+                for child in _v.all():
+                    _roots.append(child)
 
     def sweep(self):
-        # below code not working!!
-        # this implementation is much better! but does not work!
         for idx in range(len(self.__bucket)):
             if  self.__bucket[idx]:
-                if  not self.__bucket[idx].ismarked:
+                if  not self.__bucket[idx].marked:
                     self.__total_garbage += 1
                     self.__bucket[idx] = None
                     self.__freecell.append(idx)
                 else:
-                    self.__bucket[idx].ismarked = False
+                    self.__bucket[idx].marked = False
 
     def collect(self):
         self.mark ()

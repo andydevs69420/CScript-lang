@@ -1,20 +1,24 @@
 from obj_utils.csclassnames import CSClassNames
+from obj_utils.nonpointer import NonPointer
 from base.csobject import CSToken, CSObject, ThrowError
 
-class CSString(CSObject):
+""" In CScript, strings not a pointer
+"""
+class CSString(NonPointer):
     """ String backend for CScript
 
         Paramters
         ---------
         _str : str
     """
+    THIS= "this"
 
     def __init__(self, _str:str):
         super().__init__()
         self.initializeBound()
 
         self.dtype = CSClassNames.CSString
-        self.put("this", str(_str))
+        self.thiso.put(CSString.THIS, str(_str))
 
     # ![bound::toString]
     def toString(self):
@@ -22,12 +26,9 @@ class CSString(CSObject):
     
     # ======================== PYTHON|
     # ===============================|
-    
+
     def __str__(self):
-        return self.get("this")
-    
-    def __repr__(self) -> str:
-        return "\"" + self.__str__() + "\""
+        return self.thiso.get(CSString.THIS)
     
     # ==================== OPERATIONS|
     # ===============================|
@@ -45,10 +46,10 @@ class CSString(CSObject):
             # ==============|
             return _error
         
-        return CSObject.new_string(self.get("this") + _object.get("this"))
+        return CSObject.new_string(self.python() + _object.python())
     
     def eq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false")
+        return CSObject.new_boolean("true" if self.python() == _object.python() else "false")
     
     def neq(self, _opt: CSToken, _object: CSObject, _allocate: bool = True):
-        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false")
+        return CSObject.new_boolean("true" if self.python() != _object.python() else "false")

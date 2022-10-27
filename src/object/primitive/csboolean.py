@@ -1,29 +1,27 @@
 
 from obj_utils.csclassnames import CSClassNames
 from base.csobject import CSToken, CSObject, ThrowError
+from obj_utils.nonpointer import NonPointer
 
 
-class CSBoolean(CSObject):
+class CSBoolean(NonPointer):
     """ Boolean backend for CScript
 
         Paramters
         ---------
         _bool : boolean
     """
+    THIS= "this"
 
     def __init__(self, _bool:str):
         assert _bool in ("true", "false"), "invalid boolean value(%s)" % _bool
         super().__init__()
-        self.initializeBound()
 
         self.dtype = CSClassNames.CSBoolean
-        self.put("this", True if _bool == "true" else False)
+        self.thiso.put(CSBoolean.THIS, True if _bool == "true" else False)
     
-    # ======================== PYTHON|
-    # ===============================|
-
     def __str__(self):
-        return "true" if self.get("this") else "false"
+        return "true" if self.python() else "false"
     
     # ========================= EVENT|
     # ===============================|
@@ -51,12 +49,12 @@ class CSBoolean(CSObject):
     """ CSBoolean specific operation
     """
     def bin_not(self, _opt:CSToken):
-        return CSObject.new_boolean("true" if not self.get("this") else "false")
+        return CSObject.new_boolean("true" if not self.python() else "false")
     
     def eq(self, _opt: CSToken, _object: CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") == _object.get("this") else "false")
+        return CSObject.new_boolean("true" if self.python() == _object.python() else "false")
     
     def neq(self, _opt: CSToken, _object: CSObject):
         self.assertType(_opt, self, _object)
-        return CSObject.new_boolean("true" if self.get("this") != _object.get("this") else "false")
+        return CSObject.new_boolean("true" if self.python() != _object.python() else "false")

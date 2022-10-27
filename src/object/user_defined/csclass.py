@@ -5,6 +5,9 @@ from base.csobject import CSToken, CSObject
 
 
 class CSClass(CSObject):
+    """
+    """
+    CONSTRUCTOR= "constructor"
 
     def __init__(self, _name:str):
         super().__init__()
@@ -12,22 +15,22 @@ class CSClass(CSObject):
 
         self.dtype = CSClassNames.CSClass
         self.name  = _name
-
-    # ======================== PYTHON|
-    # ===============================|
     
     def initializeBound(self):
         super().initializeBound()
         # ==== CLASS INSTANCE Bounds|
         # ==========================|
-        self.put("constructor", CSObject.new_bound_method("constructor", self.constructor, 0))
+        self.proto.put(CSClass.CONSTRUCTOR, CSObject.new_bound_method(CSClass.CONSTRUCTOR, self.constructor, 0))
+
+    # ======================== BOUNDS|
+    # ===============================|
 
     #![bound::constructor]
     def constructor(self):
         return CSObject.new_nulltype()
     
-    def isPointer(self):
-        return True
+    # ======================== PYTHON|
+    # ===============================|
     
     def __str__(self):
         return "class %s{...}" % self.name
@@ -41,8 +44,8 @@ class CSClass(CSObject):
         """
         _instance = CSObject.new_class_instance(self.name)
     
-        for _key in self.keys():
-            _instance.put(_key, self.get(_key))
+        for _key in self.thiso.keys():
+            _instance.put(_key, self.thiso.get(_key))
         return _instance
 
 
