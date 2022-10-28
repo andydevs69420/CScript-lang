@@ -10,7 +10,9 @@ class CSSystem(CSObject):
 
     SYSTEM= CSObject.new_module()
     # append PATH #
-    SYSTEM.put("path", CSPath())
+    SYSTEM.put("path", CSPath()) # csarray
+    SYSTEM.get("path")\
+        .push(CSObject.new_string("."))
     SYSTEM.get("path")\
         .push(CSObject.new_string("tests"))
     SYSTEM.get("path")\

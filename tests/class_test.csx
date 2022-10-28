@@ -1,6 +1,5 @@
 
-import [MODULE, add, State] from "/home/andydevs69420/Documents/CScript/tests/import1_test.csx";
-
+import [MODULE, add, State] from "import1_test.csx";
 
 State->flags += 100;
 
@@ -14,8 +13,9 @@ class Dog
 
 
 {
-    let x = 0;
-    while (x < 1000) x += 1;
+    let xx = 0;
+    var gg = 2;
+    while (xx < 1000) x += 1;
 }
 
 var xxx = (2 != 2)?1:100;
@@ -24,5 +24,4 @@ var yyy = new Dog();
 print: MODULE, add(10, 20), State->flags;
     State->flags += 100;
 print: MODULE, add(10, 20), State->flags;
-
-
+// return 

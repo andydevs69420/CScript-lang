@@ -403,7 +403,8 @@ class CSVM(ExceptionTable, CallStack):
         _location = _location.__str__()
 
         from csparser import CSParser
-        _module_parser = CSParser(_location, open(_location, "r").read())
+        from cshelpers import __read__
+        _module_parser = CSParser(_location, __read__(_location))
 
         _top = CSVM.run(_module_parser.parse().compile())
         EvalStack.es_push(_top)
