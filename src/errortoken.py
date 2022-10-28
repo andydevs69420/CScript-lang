@@ -1,4 +1,5 @@
-from sys import stderr, exit
+
+from cshelpers import __throw__
 
 def show_error(_message, _token):
     """ Shows error and exit
@@ -15,5 +16,4 @@ def show_error(_message, _token):
     """
     _header = f"[{_token.fsrce}:{_token.xS}:{_token.yS}] {_message}"
     
-    print(_header + '\n' + _token.trace, file=stderr)
-    exit(0x01)
+    return __throw__(_header + '\n' + _token.trace)

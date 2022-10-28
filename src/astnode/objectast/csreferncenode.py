@@ -18,7 +18,6 @@ class ReferenceNode(ExpressionAst):
     def assertExists(self, _block:CodeBlock):
         # check if exists
         if  not _block.symbtable.current.existsglobally(self.reference.token):
-            print(_block.symbtable.current.parent)
             return show_error("name \"%s\" is not defined" % self.reference.token, self.reference)
    
     def compile(self, _block:CodeBlock):

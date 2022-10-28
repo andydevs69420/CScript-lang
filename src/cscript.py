@@ -4,6 +4,9 @@ from sys import path, setrecursionlimit
 path.append("./src/object"  )
 path.append("./src/astnode" )
 path.append("./src/csriptvm")
+# ===========================
+path.append("./lib"         )
+path.append("./tests"       )
 
 setrecursionlimit(15000)
 
@@ -14,12 +17,12 @@ from csparser import CSParser
 from cscriptvm.csvm import CSVM
 
 # object
-from object.system.cshelpers import __read__
+from cshelpers import __read__
 
 
 
 def main(_args:dict):
-    FILE     = "eval.csx"
+    FILE     = "class_test.csx"
     parser   = CSParser(FILE, __read__(FILE))
     aST      = parser.parse()
     instruct = aST.compile()

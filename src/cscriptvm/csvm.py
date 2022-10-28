@@ -398,15 +398,34 @@ class CSVM(ExceptionTable, CallStack):
     # =====================================================|
     @staticmethod
     def load_module(_instruction:Instruction):
+        from csparser import CSParser
+        from cshelpers import __read__, __base__
+
+        from object.system.cssystem import CSSystem
+
         # pop location
         _location = EvalStack.es_pop ()
         _location = _location.__str__()
 
-        from csparser import CSParser
-        _module_parser = CSParser(_location, open(_location, "r").read())
+        _top= None
+        if  (CSSystem\
+                .SYSTEM\
+                    .get("modules").contains(__base__(_location))):
+            # reuse top #
+            _top = CSSystem\
+                        .SYSTEM\
+                            .get("modules")\
+                                .get(__base__(_location))
+        else:
+            _module_parser = CSParser(_location, __read__(_location))
+            _top = CSVM.run(_module_parser.parse().compile())
+            CSSystem\
+                .SYSTEM\
+                    .get("modules")\
+                        .put(__base__(_location), _top)
 
-        _top = CSVM.run(_module_parser.parse().compile())
         EvalStack.es_push(_top)
+
 
     @staticmethod
     def push_const(_instruction:Instruction):
