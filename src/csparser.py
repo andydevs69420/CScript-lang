@@ -148,7 +148,7 @@ class CSParser(ContextUtils):
         def function_expression():
             self.enter(ContextType.FUNCTION)
 
-            self.eat("function", TokenType.IDENTIFIER)
+            self.eat("func", TokenType.IDENTIFIER)
 
             self.eat("(", TokenType.OPERATOR)
 
@@ -247,7 +247,7 @@ class CSParser(ContextUtils):
                 self.cstoken.matches("null"):
                 return nulltype()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and \
-                self.cstoken.matches("function"):
+                self.cstoken.matches("func"):
                 return function_expression()
             elif self.cstoken.matches(TokenType.IDENTIFIER):
                 return identifier()
@@ -907,13 +907,13 @@ class CSParser(ContextUtils):
 
             return ({"name": _name, "value": _value})
 
-        # function_dec: "function" raw_identifier '(' function_parameters ')' block_stmnt;
+        # function_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;
         def function_dec():
             self.bind(ContextType.GLOBAL, _immediate=True)
 
             self.enter(ContextType.FUNCTION)
 
-            self.eat("function", TokenType.IDENTIFIER)
+            self.eat("func", TokenType.IDENTIFIER)
 
             _func_name = raw_identifier()
 
@@ -1159,7 +1159,7 @@ class CSParser(ContextUtils):
         def compound_stmnt():
             if  self.cstoken.matches(TokenType.IDENTIFIER)  and self.cstoken.matches("class"):
                 return class_dec()
-            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("function"):
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("func"):
                 return function_dec()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("if"):
                 return if_stmnt()

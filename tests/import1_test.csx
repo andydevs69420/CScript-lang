@@ -1,10 +1,10 @@
 
 
-
 var MODULE = 2;
 
 
-function add(a,b) {
+func add(a, b)
+{
     return a + b;
 }
 
