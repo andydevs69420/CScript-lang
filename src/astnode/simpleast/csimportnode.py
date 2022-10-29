@@ -20,7 +20,7 @@ class ImportNode(CSAst):
         # push source
         self.source.compile(_block)
 
-        _block.load_module()
+        _block.load_module(self.location)
 
         for each_import in self.imports:
             # get module attribute

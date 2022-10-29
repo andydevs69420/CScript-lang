@@ -3,6 +3,7 @@ from astnode.utils.compilable import Instruction
 # ======= object|
 # ==============|
 from base.csobject import CSObject
+from default_error.csexception import CSException
 # ==============|
 
 
@@ -31,6 +32,33 @@ class ExceptionTable:
     def et_is_empty():
         return len(ExceptionTable.TABLE) <= 0
 
+
+
+class ImportStack:
+    """
+    """
+
+    IMPORT_STACK = []
+    
+    @staticmethod
+    def is_push(_module_name:str):
+        ImportStack.IMPORT_STACK.append(_module_name)
+    
+    @staticmethod
+    def is_pop():
+        return ImportStack.IMPORT_STACK.pop()
+    
+    @staticmethod
+    def is_peek():
+        return ImportStack.IMPORT_STACK[-1]
+
+    @staticmethod
+    def is_contains(_module_name:str):
+        return _module_name in ImportStack.IMPORT_STACK
+    
+    @staticmethod
+    def is_isempty():
+        return len(ImportStack.IMPORT_STACK) <= 0
 
 
 class EvalStack:
@@ -156,6 +184,7 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def throw_error(_csobject:CSObject):
+        from cshelpers import __throw__
         if  not ExceptionTable.et_is_empty():
             # if exception table is not empty,
             # jump to whats being returned
@@ -165,8 +194,7 @@ class CSVM(ExceptionTable, CallStack):
                     .setPointer(_target)
         else:
             # TODO: replace with cscript stderr
-            print(_csobject)
-            return exit(1)
+            return __throw__(_csobject.__str__())
     
     # ==================================== OPCODE EVALUATOR|
     # =====================================================|
@@ -371,6 +399,10 @@ class CSVM(ExceptionTable, CallStack):
             case CSOpCode.POP_TRY:
                 return CSVM\
                     .pop_try(_instruction)
+            # OK!!!
+            case CSOpCode.THROW_ERROR:
+                return CSVM\
+                    .throw_error_op(_instruction)
 
             # OK!!!
             case CSOpCode.PRINT_OBJECT:
@@ -399,15 +431,17 @@ class CSVM(ExceptionTable, CallStack):
     @staticmethod
     def load_module(_instruction:Instruction):
         from csparser import CSParser
-        from cshelpers import __read__, __base__
+        from cshelpers import __read__, __base__, __throw__
 
         from object.system.cssystem import CSSystem
 
         # pop location
         _location = EvalStack.es_pop ()
-        _location = _location.__str__()
+        _location = __base__(_location.__str__())
 
-        _top= None
+        ImportStack.is_push(_location)
+
+        _top = None
         if  (CSSystem\
                 .SYSTEM\
                     .get("modules").contains(__base__(_location))):
@@ -423,6 +457,8 @@ class CSVM(ExceptionTable, CallStack):
                 .SYSTEM\
                     .get("modules")\
                         .put(__base__(_location), _top)
+
+        ImportStack.is_pop()
 
         EvalStack.es_push(_top)
 
@@ -815,6 +851,14 @@ class CSVM(ExceptionTable, CallStack):
     @staticmethod
     def pop_try(_instruction:Instruction):
         ExceptionTable.et_pop()
+    
+    @staticmethod
+    def throw_error_op(_instruction:Instruction):
+        _error   = EvalStack.es_pop()
+        if  not isinstance(_error, CSException):
+            _error = CSObject.new_exception(_error.__str__(), _instruction.get("location"))
+        CSVM.throw_error(_error)
+        EvalStack.es_push(_error)
 
     @staticmethod
     def print_object(_instruction:Instruction):

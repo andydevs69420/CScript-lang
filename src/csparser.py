@@ -113,7 +113,8 @@ class CSParser(ContextUtils):
             if  self.cstoken.matches(TokenType.IDENTIFIER) and \
                 (self.cstoken.matches("false"  ) or \
                  self.cstoken.matches("true"   ) or \
-                 self.cstoken.matches("null"   )):
+                 self.cstoken.matches("null"   ) or \
+                 self.cstoken.matches("func"   )):
                 # throw
                 return show_error("unexpected keyword for identifier \"%s\"" % self.cstoken.token, self.cstoken)
             
@@ -1102,7 +1103,7 @@ class CSParser(ContextUtils):
         def try_except():
             self.eat("try", TokenType.IDENTIFIER)
 
-            _try_body = compound_stmnt()
+            _try_body = block_stmnt()
 
             self.eat("except", TokenType.IDENTIFIER)
 
@@ -1112,15 +1113,14 @@ class CSParser(ContextUtils):
             
             self.eat(")", TokenType.OPERATOR)
 
-            _except_body = compound_stmnt()
+            _except_body = block_stmnt()
             
 
             _finally_body = None
             if  (self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("finally")):
                 self.eat("finally", TokenType.IDENTIFIER)
 
-                _finally_body = compound_stmnt()
-            
+                _finally_body = block_stmnt()
             
             # return as try/except node
             return TryExceptNode(_try_body, _parameter, _except_body, _finally_body)
@@ -1190,26 +1190,11 @@ class CSParser(ContextUtils):
 
             self.eat("from", TokenType.IDENTIFIER)
 
-            # open
-            _o = self.cstoken
-
+            # location
+            _import_loc = self.cstoken
             _source = string()
 
-            # close
-            _c = self.cstoken
-
             self.eat(";", TokenType.OPERATOR)
-
-            _import_loc = CSToken(TokenType.DYNAMIC_LOCATION)
-            _import_loc.fsrce = self.fpath
-            _import_loc.token = "..."
-            # xAxis
-            _import_loc.xS = _o.xS
-            _import_loc.xE = _c.xE
-            # yAxis
-            _import_loc.yS = _o.yS
-            _import_loc.yE = _c.yE
-            _import_loc.addTrace(self)
 
             return ImportNode(_imports, _source, _import_loc)
 
@@ -1266,7 +1251,7 @@ class CSParser(ContextUtils):
             _id = raw_identifier()
             
             if not (self.cstoken.matches(TokenType.OPERATOR) and self.cstoken.matches("=")):
-                return ({"var": _id, "val": None })
+                return ({"var": _id, "val": None})
             
             # eat operator
             self.eat("=", TokenType.OPERATOR)
@@ -1274,6 +1259,56 @@ class CSParser(ContextUtils):
             _val = non_nullable_expression()
 
             return ({"var": _id, "val": _val })
+        
+        # throw_stmnt: "throw" non_nullable_expression ';' ;
+        def throw_stmnt():
+            _o = self.cstoken
+            self.eat("throw", TokenType.IDENTIFIER)
+
+            _expr = non_nullable_expression()
+
+            _c = self.cstoken
+            self.eat(";", TokenType.OPERATOR)
+
+            _loc = CSToken(TokenType.DYNAMIC_LOCATION)
+            _loc.fsrce = self.fpath
+            _loc.token = "[...]"
+            # xAxis
+            _loc.xS = _o.xS
+            _loc.xE = _c.xE - 1
+            # yAxis
+            _loc.yS = _o.yS
+            _loc.yE = _c.yE
+            _loc.addTrace(self)
+
+            return ThrowNode(_expr, _loc)
+        
+        # assert_stmnt: "assert" non_nullable_expression ',' non_nullable_expression ';';
+        def assert_stmnt():
+            _o = self.cstoken
+            self.eat("assert", TokenType.IDENTIFIER)
+
+            _cond = non_nullable_expression()
+
+            self.eat(",", TokenType.OPERATOR)
+
+            _message = non_nullable_expression()
+
+            _c = self.cstoken
+            self.eat(";", TokenType.OPERATOR)
+
+            _loc = CSToken(TokenType.DYNAMIC_LOCATION)
+            _loc.fsrce = self.fpath
+            _loc.token = "[...]"
+            # xAxis
+            _loc.xS = _o.xS
+            _loc.xE = _c.xE - 1
+            # yAxis
+            _loc.yS = _o.yS
+            _loc.yE = _c.yE
+            _loc.addTrace(self)
+
+            return AssertNode(_cond, _message, _loc)
         
         # break_stmnt: "break" ';';
         def break_stmnt():
@@ -1343,6 +1378,10 @@ class CSParser(ContextUtils):
                 return var_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("let"):
                 return let_stmnt()
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("throw"):
+                return throw_stmnt()
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("assert"):
+                return assert_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("break"):
                 return break_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("continue"):

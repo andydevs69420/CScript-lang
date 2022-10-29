@@ -112,12 +112,13 @@ class CSMemoryObject(object):
 
         _trailing = ("-" * (len(str(self.__total_garbage)) + 2))
 
-        print("+-Finished -------------" + _trailing + "+")
+        print("+-Finished--------------" + _trailing + "+")
         print("| GarbageCollected:     ",  (" " * (len(str(self.__total_garbage)) - len(str(len(self.__freecell))))) + str(len(self.__freecell)) + " |")
         print("+-----------------------" + _trailing + "+")
         print("| TotalGarbageCollected:", str(self.__total_garbage) + " |")
         print("+-----------------------" + _trailing + "+")
         print("MemoryView: ", [obj.__str__() for obj in filter(lambda x:x != None, self.__bucket)])
+        self.__bucket.clear()
         # run python gc
         gc.collect()
 
