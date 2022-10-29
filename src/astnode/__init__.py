@@ -70,6 +70,8 @@ from .simpleast.csvarnode import VarNode
 from .simpleast.csletnode import LetNode
 from .simpleast.csbreaknode import BreakNode
 from .simpleast.cscontinuenode import ContinueNode
+from .simpleast.csthrownode import ThrowNode
+from .simpleast.csassertnode import AssertNode
 from .simpleast.csprintnode import PrintNode
 from .simpleast.csreturnnode import ReturnNode
 from .simpleast.csexprstatementnode import ExprStmntNode

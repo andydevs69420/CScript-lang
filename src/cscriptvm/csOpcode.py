@@ -55,6 +55,7 @@ class CSOpCode(Enum):
    SETUP_TRY = 0x202
    POP_TRY = 0x203
 
+   THROW_ERROR   = 0x206
    PRINT_OBJECT = 0x2d
    NO_OPERATION = 0x2e
    POP_TOP = 0x2f

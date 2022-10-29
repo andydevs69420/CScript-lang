@@ -62,12 +62,12 @@ class Compilable(object):
     def getLine(self):
         return len(self.__instructions) * 2
 
-    def load_module(self):
+    def load_module(self, _location:CSToken):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.LOAD_MODULE,
+                CSOpCode.LOAD_MODULE, location=_location
             )
         )
     
@@ -558,6 +558,15 @@ class Compilable(object):
             Instruction(
                 len(self.__instructions) * 2,
                 CSOpCode.POP_TRY
+            )
+        )
+    
+    def throw_error(self, _location:CSToken):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.THROW_ERROR, location=_location
             )
         )
     
