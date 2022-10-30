@@ -17,13 +17,13 @@ from csparser import CSParser
 from cscriptvm.csvm import CSVM, ImportStack
 
 # object
-from cshelpers import __read__, __base__
+from cshelpers import __read__, __base__, __trim__
 
 
 
 def main(_args:dict):
     FILE     = "class_test.csx"
-    ImportStack.is_push(__base__(FILE))
+    ImportStack.is_push(__trim__(__base__(FILE)))
 
     parser   = CSParser(FILE, __read__(FILE))
     aST      = parser.parse()

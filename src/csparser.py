@@ -1176,19 +1176,11 @@ class CSParser(ContextUtils):
             
             return simple_stmnt()
         
-        # import_stmnt: "import" "[" function_parameters "]" "from" string;
+        # import_stmnt: "import" "from" string;
         def import_stmnt():
             self.bind(ContextType.GLOBAL, _immediate=True)
 
             self.eat("import", TokenType.IDENTIFIER)
-
-            self.eat("[", TokenType.OPERATOR)
-
-            _imports = function_parameters()
-
-            self.eat("]", TokenType.OPERATOR)
-
-            self.eat("from", TokenType.IDENTIFIER)
 
             # location
             _import_loc = self.cstoken
@@ -1196,7 +1188,7 @@ class CSParser(ContextUtils):
 
             self.eat(";", TokenType.OPERATOR)
 
-            return ImportNode(_imports, _source, _import_loc)
+            return ImportNode(_source, _import_loc)
 
 
         # var_stmnt: "var" assignment_list;

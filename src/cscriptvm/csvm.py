@@ -1,3 +1,4 @@
+
 from astnode.utils.compilable import Instruction
 
 # ======= object|
@@ -149,6 +150,7 @@ class CallStack:
 #| +---+---+-----------------+
 #| |   |   |
 #| x   y   z
+
 
 
 
@@ -431,15 +433,14 @@ class CSVM(ExceptionTable, CallStack):
     @staticmethod
     def load_module(_instruction:Instruction):
         from csparser import CSParser
-        from cshelpers import __read__, __base__, __throw__
-
+        from cshelpers import __read__, __base__, __trim__, __throw__
         from object.system.cssystem import CSSystem
 
         # pop location
         _location = EvalStack.es_pop ()
         _location = __base__(_location.__str__())
 
-        ImportStack.is_push(_location)
+        # ImportStack.is_push(__trim__(_location))
 
         _top = None
         if  (CSSystem\
@@ -449,19 +450,18 @@ class CSVM(ExceptionTable, CallStack):
             _top = CSSystem\
                         .SYSTEM\
                             .get("modules")\
-                                .get(__base__(_location))
+                                .get(__trim__(_location))
         else:
             _module_parser = CSParser(_location, __read__(_location))
             _top = CSVM.run(_module_parser.parse().compile())
             CSSystem\
                 .SYSTEM\
                     .get("modules")\
-                        .put(__base__(_location), _top)
-
-        ImportStack.is_pop()
-
+                        .put(__trim__(_location), _top)
+        
+        # ImportStack.is_pop()
+    
         EvalStack.es_push(_top)
-
 
     @staticmethod
     def push_const(_instruction:Instruction):
@@ -469,7 +469,10 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def push_name(_instruction:Instruction):
-        EvalStack.es_push(CSVM.VHEAP.getAddress(_instruction.get("offset")))
+        from cshelpers import __base__, __trim__
+        _var_from = __trim__(__base__(_instruction.get("name").fsrce))
+        _var_name = __trim__(__base__(_instruction.get("name").token))
+        EvalStack.es_push(CSVM.VHEAP.getAddress(_var_from + "__" + _var_name))
     
     @staticmethod
     def push_local(_instruction:Instruction):
@@ -573,6 +576,8 @@ class CSVM(ExceptionTable, CallStack):
     
     @staticmethod
     def store_name(_instruction:Instruction):
+        from cshelpers import __base__, __trim__
+
         _value:CSObject = EvalStack.es_pop()
         
         # ====== check if alocated|
@@ -580,8 +585,11 @@ class CSVM(ExceptionTable, CallStack):
         if  _value.offset == -69420:
             _value = CSVM.VHEAP.allocate(_value)
 
+        _var_from = __trim__(__base__(_instruction.get("name").fsrce))
+        _var_name = __trim__(__base__(_instruction.get("name").token))
+
         # push alloc object
-        CSVM.VHEAP.setAddress(_instruction.get("offset"), _value.offset)
+        CSVM.VHEAP.setAddress(_var_from + "__" + _var_name, _value.offset)
     
     @staticmethod
     def store_local(_instruction:Instruction):

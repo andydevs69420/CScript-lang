@@ -51,7 +51,7 @@ def __path__():
 def __trim__(_file_path:str):
     """ Removes unneccessary file name and extension
     """
-    _dir_name= ospath.dirname(_file_path)
+    _dir_name= __base__(_file_path).replace(EXTENSION, "")
     return _dir_name
 
 def __base__(_file_path:str):

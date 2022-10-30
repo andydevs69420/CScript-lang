@@ -145,9 +145,13 @@ class TokenBuilder(LexUtils):
 
         if not self.is_digit(): return _builder
 
-        # update digit follow
-        _builder.concat(self.digit_start())
-        _builder.update(self)
+        while not self.is_eof() and (self.is_identifier() or self.is_digit()):
+            # update digit follow
+            if  self.is_digit():
+                _builder.concat(self.digit_start())
+            else:
+                _builder.concat(self.identifier_start())
+            _builder.update(self)
         
         return _builder
     

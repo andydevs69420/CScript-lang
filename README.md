@@ -53,5 +53,6 @@ cscript programming language prototype
     - example
         2 "+" 2 = 4<br/>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;^^^ -- should error because string was used instead of (+).
-    - status: fixing
+    - status: fixed
+- [ ] add super capablility
 - [ ] fix adding bound
