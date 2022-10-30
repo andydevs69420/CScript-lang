@@ -44,8 +44,11 @@ class Table(object):
         self.parent = _node
 
 class ST:
+
+    BUILTIN:Table = Table(None)
+
     def __init__(self):
-        self.globaltable:Table = Table(None)
+        self.globaltable:Table = Table(ST.BUILTIN)
         self.current = self.globaltable
         self.__stack = []
 

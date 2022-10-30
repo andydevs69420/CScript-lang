@@ -39,11 +39,12 @@ class CSMap(CSObject):
         return _map
     
     def __str__(self):
+        # print(self.offset)
         _keys   = self.keys()
         _attrib = ""
         for k in range(len(_keys)):
             _string = ...
-            if  self.offset == self.thiso.get(_keys[k]).offset:
+            if  self.offset == self.thiso.get(_keys[k]).offset and self.offset >= 0:
                 # refering to its self
                 # to avoid recursion
                 _string = "{self}"

@@ -435,17 +435,19 @@ class CSVM(ExceptionTable, CallStack):
         from csparser import CSParser
         from cshelpers import __read__, __base__, __trim__, __throw__
         from object.system.cssystem import CSSystem
+        from object.system.csinternal import CSInternal
 
         # pop location
         _location = EvalStack.es_pop ()
         _location = __base__(_location.__str__())
 
-        # ImportStack.is_push(__trim__(_location))
+        if  CSInternal.isInternal(_location): return EvalStack.es_push(CSInternal.get(_location))
 
         _top = None
         if  (CSSystem\
                 .SYSTEM\
                     .get("modules").contains(__base__(_location))):
+           
             # reuse top #
             _top = CSSystem\
                         .SYSTEM\
@@ -458,8 +460,6 @@ class CSVM(ExceptionTable, CallStack):
                 .SYSTEM\
                     .get("modules")\
                         .put(__trim__(_location), _top)
-        
-        # ImportStack.is_pop()
     
         EvalStack.es_push(_top)
 
@@ -587,7 +587,7 @@ class CSVM(ExceptionTable, CallStack):
 
         _var_from = __trim__(__base__(_instruction.get("name").fsrce))
         _var_name = __trim__(__base__(_instruction.get("name").token))
-
+        
         # push alloc object
         CSVM.VHEAP.setAddress(_var_from + "__" + _var_name, _value.offset)
     

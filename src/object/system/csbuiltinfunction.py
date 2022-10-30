@@ -1,24 +1,22 @@
 
-""" For builtin class boundmethod
-"""
-
-from base.csobject import CSToken, CSObject, ThrowError
 
 
-class CSBound(CSObject):
-    """
-    """
+from base.csobject import CSObject, ThrowError
+from cstoken import CSToken
 
-    def __init__(self, _name:str ,_pyMethod:callable, _param_count:int):
+
+class CSBuiltinFunction(CSObject):
+
+    def __init__(self, _name:str, _param_count:int, _callable:callable):
         super().__init__()
         self.name        = _name
-        self.callable    = _pyMethod
         self.param_count = _param_count
+        self.callable    = _callable
     
     # ======================== PYTHON|
     # ===============================|
     def __str__(self):
-        return "bound method %s(){...}" % self.name
+        return "builtin function %s(){...}" % self.name
     
 
     # ========================= EVENT|
@@ -52,4 +50,3 @@ class CSBound(CSObject):
         # delete ES locally
         del ES
         return self.callable(*_args)
-

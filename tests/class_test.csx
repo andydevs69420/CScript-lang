@@ -1,11 +1,19 @@
+
 import "import1_test.csx";
+import "system";
 
-import1_test->State->flags += 200;
 
-var hello1_2 = 2;
 
-var v = 0;
+func println(_message)
+{ return system
+            ->stdio
+                ->write(_message); }
 
-print: "v =", import1_test->add(10, 20);
-print: import1_test->State->flags;
 
+
+
+print: system->path[1];
+
+println("Hello World!");
+
+assert "gwapo ko" != "pangit ko", "Ahhhh so sad!";

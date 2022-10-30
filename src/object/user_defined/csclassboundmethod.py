@@ -1,6 +1,6 @@
 
 from obj_utils.csclassnames import CSClassNames
-from base.csobject import CSToken, CSObject
+from base.csobject import CSToken, CSObject, ThrowError
 from user_defined.cscallable import CSCallable
 
 class CSClassBoundMethod(CSObject):
@@ -42,7 +42,21 @@ class CSClassBoundMethod(CSObject):
         # delete vm locally
         del ES
         # append self as parameters list
-        return self.callable.call(_call_location, _actual_count)
+        _result = self.callable.call(_call_location, _actual_count)
+
+        if  not _result:
+            # = format string|
+            _error = CSObject.new_type_error("unexpected error", _call_location)
+
+            # === throw error|
+            # ===============|
+            ThrowError(_error)
+
+            # == return error|
+            # ===============|
+            return _error
+
+        return _result
 
     # ===================== OPERATION|
     # ===============================|

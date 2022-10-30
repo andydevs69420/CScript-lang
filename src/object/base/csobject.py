@@ -298,6 +298,13 @@ class CSObject(object):
         _bound = CSClassBoundMethod(_thisref, _pyCallable)
         del CSClassBoundMethod
         return _bound
+    
+    @staticmethod
+    def new_raw_function(_name:str, _param_count:int, _pyCallable:callable):
+        from system.csbuiltinfunction import CSBuiltinFunction
+        _bound = CSBuiltinFunction(_name, _param_count, _pyCallable)
+        del CSClassBoundMethod
+        return _bound
 
     @staticmethod
     def new_exception(_message:str, _location:CSToken):

@@ -71,7 +71,7 @@ class CSArray(CSObject):
         _elem = ""
         for idx in range(len(self.all())):
             _string = ...
-            if  self.offset == self.thiso.get(str(idx)).offset:
+            if  self.offset == self.thiso.get(str(idx)).offset and self.offset >= 0:
                 # refering to its self
                 # to avoid recursion
                 _string = "[self]"
