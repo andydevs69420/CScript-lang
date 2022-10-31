@@ -3,16 +3,16 @@ import dis
 
 
 code = """
-x = 0
 
-import math
+vv ="www"
 
-while x < 10:
-    if x == 5: continue
-    print("x =", x)
-    x += 1
+class Animal:
 
-import math
+    x = 2
+
+    def eat():
+        print("Yumm!")
+
 """
 
 dis.dis(code)

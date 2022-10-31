@@ -1,19 +1,18 @@
 
-import "import1_test.csx";
-import "system";
+x += [1,2,3,4];
 
+x = {a:2, b:3};
 
+class Dog 
+{
 
-func println(_message)
-{ return system
-            ->stdio
-                ->write(_message); }
+    func construct()
+    {
+        
+    }
 
+    func add() {
 
+    }
 
-
-print: system->path[1];
-
-println("Hello World!");
-
-assert "gwapo ko" != "pangit ko", "Ahhhh so sad!";
+}

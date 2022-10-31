@@ -31,13 +31,13 @@ print: "new list:", list_of_ambot;
 
 class Language {
     name: null,
-    constructor: (function(this, _name){
+    constructor: (func(this, _name){
         this->name = _name;
     }),
-    getName: (function(this){
+    getName: (func(this){
         return this->name;
     }),
-    toString: (function(this){
+    toString: (func(this){
         return "Programming language: " + this->name;
     })
 }

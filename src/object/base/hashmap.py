@@ -43,39 +43,36 @@ class LinkedList(Node):
 
 
 
-
-
-
 class HashMap(object):
+    """ 
+    """
+
     def __init__(self):
-        self.nitems = 0
-        self.bcount = 16
-        self.bucket = [
-            None for _ in range(self.bcount)
+        self.__nitems =  0
+        self.__bcount = 16
+        self.__bucket = [
+            None for _ in range(self.__bcount)
         ]
     
-    def put(self, _key:str, _data):
-        
-        _bucket_index = hasher(_key) % self.bcount
-
-        if  self.bucket[_bucket_index] != None:
+    def put(self, _key:str, _data:object):
+        _bucket_index = hasher(_key) % self.__bcount
+        if  self.__bucket[_bucket_index] != None:
             # collision | update
-            return self.bucket[_bucket_index].append(Node(_key, _data))
-        
+            return self.__bucket[_bucket_index].append(Node(_key, _data))
         # insert
-        self.bucket[_bucket_index] = LinkedList(_key, _data)
-        self.nitems += 1
+        self.__bucket[_bucket_index] = LinkedList(_key, _data)
+        self.__nitems += 1
 
-        _load_factor = float(self.nitems) / self.bcount
+        _load_factor = float(self.__nitems) / self.__bcount
 
         if _load_factor > 0.75:
-            self.rehash()
+            self.__rehash()
         
     def get(self, _key:str):
-        _hashed_key = hasher(_key) % self.bcount
-        assert self.bucket[_hashed_key] != None, "key error: key '%s' not found!" % _key
+        _hashed_key = hasher(_key) % self.__bcount
+        assert self.__bucket[_hashed_key] != None, "key error: key '%s' not found!" % _key
 
-        _head = self.bucket[_hashed_key]
+        _head = self.__bucket[_hashed_key]
 
         while _head:
             if  _head.nkey == _key:
@@ -86,15 +83,19 @@ class HashMap(object):
         raise KeyError("'%s' key not found!" % _key)
         
 
-    def rehash(self):
+    def __rehash(self):
+        """ Rehashing when bucket is potential full
+
+            :internal
+        """
         # increase by mupltiply of 2 := 16 * 2 = 32
-        self.bcount *= 2
-        self.copy = self.bucket
-        self.bucket = [
-            None for _ in range(self.bcount)
+        self.__bcount *= 2
+        self.copy = self.__bucket
+        self.__bucket = [
+            None for _ in range(self.__bcount)
         ]
 
-        for node in self.bucket:
+        for node in self.__bucket:
             if  node != None:
                 last = node
                 while last:
@@ -102,8 +103,10 @@ class HashMap(object):
                     last = last.tail
 
     def keys(self):
+        """ Retrieve all keys
+        """
         _keys = []
-        for buck in self.bucket:
+        for buck in self.__bucket:
             if  buck:
                 _last = buck
                 while _last:
@@ -113,16 +116,42 @@ class HashMap(object):
         return _keys
     
     def hasKey(self, _key:str):
-        _bucket_index = hasher(_key) % self.bcount
-        if  self.bucket[_bucket_index] == None:
+        """ Checks if key exists
+        """
+        _bucket_index = hasher(_key) % self.__bcount
+        if  self.__bucket[_bucket_index] == None:
             return False
-        _head = self.bucket[_bucket_index]
+        _head = self.__bucket[_bucket_index]
         while _head:
             if  _head.nkey == _key:
                 return True
             _head = _head.tail
         return False
     
+    def __str__(self):
+        _keys   = self.keys()
+        _attrib = ""
+        for k in range(len(_keys)):
+            _value  = self.get(_keys[k])
+            _string = ...
+
+            if  (self is _value):
+                # refering to its self
+                # to avoid recursion  
+                _string = "{self}"
+            else:
+                _string = _value.__str__()
+
+                  
+            _attrib += f"{_keys[k]}: {_string}"
+
+            if  k < (len(_keys) - 1):
+                _attrib += ", "
+
+        return "{" + f"{_attrib}" + "}"
+
+    
+
 
 
 if  __name__ == "__main__":
@@ -135,3 +164,8 @@ if  __name__ == "__main__":
     print(hashmap.get("andy"))
     print(hashmap.get("Marielle"))
     print(hashmap.get("Philipp"))
+
+
+
+    hashmap.put("self", hashmap)
+    print(hashmap)
