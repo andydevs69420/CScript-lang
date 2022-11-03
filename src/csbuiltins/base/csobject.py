@@ -14,6 +14,8 @@ class CSObject(HashMap):
         self.offset = -69420
         self.marked = False
 
+        self.type = type(self).__name__
+
     
 
 

@@ -2,17 +2,18 @@
 
 
 # .
-from compiler.csrawcode import rawcode
-from .csxcompileerror import CSXCompileError
 from .cseval import CSEval
 from .blockcompiler import BlockCompiler
+from .csxcompileerror import CSXCompileError
 
 # utility
-from utility.asttypes import ExpressionType
+from utility import ExpressionType
 
 # grammar
-from grammarp.csparser import CSParser
+from grammarp import CSParser
 
+# csbuiltins
+from csbuiltins import csrawcode
 
 TYPE= "type"
 
@@ -79,6 +80,18 @@ class RawBlock(BlockCompiler):
         # compile array
         self.make_object(len(_elements))
     
+    # allocation
+    def callocation(self, _node:dict):
+
+        for child in _node["arguments"][::-1]:
+            self.visit(child)
+
+        # compile right
+        self.visit(_node["right-hand"])
+        
+        # unary new
+        self.unary_op("new", len(_node["arguments"]))
+    
     # member access
     def cmember(self, _node:dict):
         # visit left
@@ -108,10 +121,21 @@ class RawBlock(BlockCompiler):
             self.visit(_expr)
 
         # push calling object
-        self.visit(_node["left"])
+        match  _node["left"][TYPE]:
+            case ExpressionType.MEMBER:
+                # visit left
+                self.visit(_node["left"]["left"])
 
-        # add call
-        self.call(len(_arguments))
+                # add get attrib
+                self.get_method(_node["left"]["member"])
+
+                # add call
+                self.call_method(len(_arguments))
+            case _:
+                self.visit(_node["left"])
+
+                # add call
+                self.call(len(_arguments))
 
     # binary expr
     def cbinary(self, _node:dict):
@@ -144,7 +168,6 @@ class RawBlock(BlockCompiler):
         self.visit(_node["left" ])
 
         _operator = _node["opt"]
-
         match _operator:
             # arithmetic
             case "^^":
@@ -170,8 +193,8 @@ class RawBlock(BlockCompiler):
                 self.binary_xor(_operator)
             case '|':
                 self.binary_or (_operator)
-        
-        raise NotImplementedError("unimplemented operator '%s'" % _operator)
+            case _:
+                raise NotImplementedError("unimplemented operator '%s'" % _operator)
 
     # compare expr
     def ccompare(self, _node:dict):
@@ -382,28 +405,125 @@ class RawBlock(BlockCompiler):
     # class
     def cclass(self, _node:dict):
         _ccom = ClassCompiler(_node)
-        _ccom.compile()
+        self.push_code(_ccom.compile())
 
-        # make class
-        self.make_class()
-        
-        # call class
+        # # push arg count
+        self.push_integer(0)
+
+        # push func name
+        self.push_string(_node["name"])
+
+        # build function
+        self.make_function()
+
+        # call csrawcode before
+        # saving value
         self.call(0)
+
+        # store class
+        self.make_var(_node["name"])
     
+    # class var
+    def cvaldec(self, _node:dict):
+        for _dec in _node["assignments"]:
+
+            _value = _dec["val"]
+            if  not _value:
+                self.push_null(None)
+            else:
+                self.visit(_value)
+
+            
+            _varia = _dec["var"]
+
+            self.dup_top()
+
+            # make local
+            self.make_local(_varia)
+
+            # attribute name
+            self.push_string(_varia)
+
+    
+    # class func
+    def cclassfunc(self, _node:dict):
+        _fcom = FunctionCompiler(_node)
+        self.push_code(_fcom.compile())
+
+        # # push arg count
+        self.push_integer(len(_node["params"]))
+
+        # push func name
+        self.push_string(_node["name"])
+
+        # build function
+        self.make_function()
+        
+        # attribute name
+        self.push_string(_node["name"])
+
     # func
     def cfunc(self, _node:dict):
+        _fcom = FunctionCompiler(_node)
+        self.push_code(_fcom.compile())
 
-        if  type(self) == ClassCompiler:
-            # function is inside class
-            ...
-        else:
-            ...
+        # # push arg count
+        self.push_integer(len(_node["params"]))
+
+        # push func name
+        self.push_string(_node["name"])
+
+        # build function
+        self.make_function()
+
+        # store class
+        self.make_var(_node["name"])
 
     # block
     def cblock(self, _node:dict):
+        # new for scoping
+        self.new_block()
+
         for _stmnt in _node["block"]:
             # compile statement
             self.visit(_stmnt)
+        
+        # end scope
+        self.end_block()
+
+    # var dec
+    def cvardec(self, _node:dict):
+        for _dec in _node["assignments"]:
+
+            _value = _dec["val"]
+            if  not _value:
+                self.push_null(None)
+            else:
+                self.visit(_value)
+
+            # attribute name
+            _varia = _dec["var"]
+            self.make_var(_varia)
+    
+    # return
+    def creturn(self, _node:dict):
+        
+        if  _node["expression"]:
+            self.visit(_node["expression"])
+        else:
+            self.push_null(None)
+        
+        self.return_op()
+
+    
+    # print
+    def cprint(self, _node:dict):
+        for _expr in _node["expressions"][::-1]:
+            # compile right-most
+            self.visit(_expr)
+        
+        # add print
+        self.print_object(len(_node["expressions"]))
 
     # expression node
     def cexpression(self, _node:dict):
@@ -418,8 +538,8 @@ class RawBlock(BlockCompiler):
         for _child in _node["children"]:
             self.visit(_child)
         
-        for i in self.getInsntructions():
-            print(i)
+        # for i in self.getInsntructions():
+        #     print(i)
 
 
 
@@ -437,12 +557,49 @@ class CSCompiler(RawBlock, CSEval):
         self.visit(_root)
 
         # return raw code
-        return rawcode(self.getInsntructions())
+        return csrawcode(self.fpath, self.getInsntructions())
     
     
 
-class ClassCompiler(RawBlock):
+class ClassCompiler(RawBlock, CSEval):
+    """ Class compiler
     """
+
+    def __init__(self, _node:dict):
+        super().__init__()
+        self.decl = 0
+        self.node = _node
+    
+    def cvaldec(self, _node: dict):
+        super().cvaldec(_node)
+        # hack!
+        self.decl += len(_node["assignments"])
+        
+    
+    def compile(self):
+        # ========== body|
+        # ===============|
+        for _child in self.node["body"]:
+            # compile child
+            self.visit(_child)
+
+        # ==== push class|
+        # ===============|
+        self.push_string(self.node["name"])
+        
+        # === build class|
+        # ===============|
+        self.make_class((len(self.node["body"])-1) + self.decl)
+
+        # ======== return|
+        # ===============|
+        self.return_op()
+
+        return csrawcode(self.node["name"], self.getInsntructions())
+
+
+class FunctionCompiler(RawBlock, CSEval):
+    """ Function/Method compiler
     """
 
     def __init__(self, _node:dict):
@@ -450,18 +607,23 @@ class ClassCompiler(RawBlock):
         self.node = _node
     
     def compile(self):
-        # push name as str
-        self.push_string(self.node["name"])
-
-        # class name
-        self.store_name("__name__")
-
+        # ==== parameters|
+        # ===============|
+        for _param in self.node["params"]:
+            # compile parameters
+            self.make_local(_param)
+    
+        # ========== body|
+        # ===============|
         for _child in self.node["body"]:
-            # compile child
             self.visit(_child)
         
-        # add default return expr
+        #  default return|
+        # ===============|
         self.push_null(None)
 
-        # add return
+        # ======== return|
+        # ===============|
         self.return_op()
+
+        return csrawcode(self.node["name"], self.getInsntructions())

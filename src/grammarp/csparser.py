@@ -2,15 +2,12 @@ from enum import Enum
 
 
 # .
-from .cstoken import (
-    TokenType, 
-    CSToken  ,
-)
+from .cstoken import TokenType
 from .cslexer import CSLexer
 
 # utility
-from utility.cserrortoken import show_error
-from utility.asttypes import ExpressionType, SyntaxType
+from utility import show_error
+from utility import ExpressionType, SyntaxType
 
 class ContextType(Enum):
     GLOBAL = 0x00
@@ -160,7 +157,9 @@ class CSParser(ContextUtils):
         
         # function(){...}
         def function_expression():
-            self.enter(ContextType.FUNCTION)
+            self.enter(ContextType.FUNCTION) # enter function
+            self.enter(ContextType.LOCAL)       # enter local ofcourse!
+
 
             self.eat("func", TokenType.IDENTIFIER)
 
@@ -172,7 +171,8 @@ class CSParser(ContextUtils):
 
             _func_body = function_body()
 
-            self.leave()
+            self.leave()      # leave local
+            self.leave() # leave function
 
             # return as headless function
             return ({
@@ -417,10 +417,17 @@ class CSParser(ContextUtils):
                 self.eat(_unary_opt.ttype)
 
                 _expression = member_access()
+                
+                self.eat("(", TokenType.OPERATOR)
 
+                _args = array_elements()
+
+                self.eat(")", TokenType.OPERATOR)
+                
                 return ({
                     TYPE        : ExpressionType.ALLOCATION,
-                    "right-hand": _expression
+                    "right-hand": _expression,
+                    "arguments" : _args
                 })
             
             return other_type()
@@ -491,13 +498,11 @@ class CSParser(ContextUtils):
                     # attrib
                     _attr = raw_identifier()
 
-                    # attrib
-                    _member = raw_identifier()
 
                     _node = ({
                         TYPE    : ExpressionType.MEMBER,
                         "left"  : _node,
-                        "member": _member
+                        "member": _attr
                     })
 
 
@@ -900,8 +905,8 @@ class CSParser(ContextUtils):
             
             return _exp
         
-        # ===================== STATEMENT
-        # ===============================
+        # ===================== STATEMENT|
+        # ===============================|
 
         # class declairation: "class" raw_identifier (':' raw_identifier)? class_body;
         def class_dec():
@@ -934,30 +939,45 @@ class CSParser(ContextUtils):
             })
         
         def class_body():
-            self.enter(ContextType.LOCAL)
-
             _statements = []
 
             self.eat("{", TokenType.OPERATOR)
 
-            _stmntN = compound_stmnt()
+            _stmntN = allowed_in_class()
             while _stmntN:
                 _statements.append(_stmntN)
-                _stmntN = compound_stmnt()
+                _stmntN = allowed_in_class()
 
             self.eat("}", TokenType.OPERATOR)
 
-            self.leave()
-
             # return as block node
             return tuple(_statements)
+    
 
-        # function_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;
-        def function_dec():
-            self.bind(ContextType.GLOBAL)
-            self.bind(ContextType.CLASS)
+        # val_stmnt: "val" assignment_list;
+        def val_stmnt():
+            # ===== check context|
+            # ===================|
+            self.bind(ContextType.CLASS, _immediate=True)
 
-            self.enter(ContextType.FUNCTION)
+            self.eat("val", TokenType.IDENTIFIER)
+
+            _assignments = assignment_list()
+
+            self.eat(";", TokenType.OPERATOR)
+
+            # return as var node
+            return ({
+                TYPE         : SyntaxType.VAL_STMNT,
+                "assignments": _assignments
+            })
+
+        # class_func_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;
+        def class_func_dec():
+            self.bind(ContextType.CLASS, _immediate=True)
+
+            self.enter(ContextType.FUNCTION) # enter function
+            self.enter(ContextType.LOCAL)       # enter local ofcourse!
 
             self.eat("func", TokenType.IDENTIFIER)
 
@@ -971,7 +991,47 @@ class CSParser(ContextUtils):
 
             _func_body = function_body()
 
-            self.leave()
+            self.leave()          # leave local
+            self.leave() # leave function
+
+            # return as function
+            return ({
+                TYPE: SyntaxType.CLASS_FUNC_DEC,
+                "name"  : _func_name,
+                "params": _parameters,
+                "body"  : _func_body
+            })
+        
+
+        def allowed_in_class():
+            if  self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("val"):
+                return val_stmnt()
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("func"):
+                return class_func_dec()
+            return None
+
+
+        # function_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;
+        def function_dec():
+            self.bind(ContextType.GLOBAL)
+
+            self.enter(ContextType.FUNCTION) # enter function
+            self.enter(ContextType.LOCAL)       # enter local ofcourse!
+
+            self.eat("func", TokenType.IDENTIFIER)
+
+            _func_name = raw_identifier()
+
+            self.eat("(", TokenType.OPERATOR)
+
+            _parameters = function_parameters()
+
+            self.eat(")", TokenType.OPERATOR)
+
+            _func_body = function_body()
+
+            self.leave()          # leave local
+            self.leave() # leave function
 
             # return as function
             return ({
@@ -982,7 +1042,7 @@ class CSParser(ContextUtils):
             })
         
 
-        # multi-purpose: used in: ["functin_dec", "function_expression"]
+        # multi-purpose: used in: ["function_dec", "function_expression", "cass_function_dec"]
         def function_parameters():
             _parameters = []
 
@@ -1017,8 +1077,6 @@ class CSParser(ContextUtils):
         def function_body():
             _statements = []
 
-            self.enter(ContextType.LOCAL)
-
             self.eat("{", TokenType.OPERATOR)
 
             _stmntN = compound_stmnt()
@@ -1027,8 +1085,6 @@ class CSParser(ContextUtils):
                 _stmntN = compound_stmnt()
 
             self.eat("}", TokenType.OPERATOR)
-
-            self.leave()
 
             return tuple(_statements)
 
@@ -1205,7 +1261,6 @@ class CSParser(ContextUtils):
 
 
         # block_stmnt: '{' compound_stmnt* '}';
-        # multi-purpose: used in: ["function_expression"]
         def block_stmnt():
             self.enter(ContextType.LOCAL)
             
@@ -1446,6 +1501,9 @@ class CSParser(ContextUtils):
                 return import_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER ) and self.cstoken.matches("var"):
                 return var_stmnt()
+            elif self.cstoken.matches(TokenType.IDENTIFIER ) and self.cstoken.matches("val"):
+                # add val here for error
+                return self.bind(ContextType.CLASS, _immediate=True)
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("let"):
                 return let_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("throw"):

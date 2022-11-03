@@ -1,7 +1,7 @@
 
 
 # .
-from .csOpcode import CSOpCode
+from .csopcode import CSOpCode
 
 
 
@@ -103,27 +103,24 @@ class Compilable(object):
                 CSOpCode.PUSH_NULL, const=_const
             )
         )
-
-    def push_name(self, _name:str):
+    
+    def push_object(self):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.PUSH_NAME, name=_name
+                CSOpCode.PUSH_OBJECT, content="{}"
             )
         )
     
-    
-    def push_local(self, _name:str, _offset:int):
+    def push_code(self, _raw_code):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.PUSH_LOCAL, name=_name, offset=_offset
+                CSOpCode.PUSH_CODE, code=_raw_code
             )
         )
-
-    
     
     def make_array(self, _size:int):
         self.__instructions\
@@ -154,6 +151,14 @@ class Compilable(object):
             )
         )
     
+    def make_function(self):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.MAKE_FUNCTION
+            )
+        )
     
     def make_module(self, _size:int):
         self.__instructions\
@@ -161,6 +166,25 @@ class Compilable(object):
             Instruction(
                 len(self.__instructions) * 2,
                 CSOpCode.MAKE_MODULE, size=_size
+            )
+        )
+
+    def push_name(self, _name:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.PUSH_NAME, name=_name
+            )
+        )
+    
+    
+    def push_local(self, _name:str, _offset:int):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.PUSH_LOCAL, name=_name, offset=_offset
             )
         )
     
@@ -174,12 +198,12 @@ class Compilable(object):
             )
         )
     
-    def load_attrib(self, _attrib:str):
+    def get_method(self, _attrib:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.LOAD_ATTRIB, attr=_attrib
+                CSOpCode.GET_METHOD, attr=_attrib
             )
         )
 
@@ -193,7 +217,15 @@ class Compilable(object):
             )
         )
     
-    
+    def make_var(self, _name:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.MAKE_VAR, name=_name
+            )
+        )
+
     def store_name(self, _name:str):
         self.__instructions\
         .append(
@@ -203,13 +235,21 @@ class Compilable(object):
             )
         )
     
-    
-    def store_local(self, _name:str, _offset:int):
+    def make_local(self, _name:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.STORE_LOCAL, name=_name, offset=_offset
+                CSOpCode.MAKE_LOCAL, name=_name
+            )
+        )
+    
+    def store_local(self, _name:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.STORE_LOCAL, name=_name
             )
         )
     
@@ -223,13 +263,22 @@ class Compilable(object):
             )
         )
     
-    
-    def unary_op(self, _operator:str):
+    def call_method(self, _size:int):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.UNARY_OP, opt=_operator
+                CSOpCode.CALL_METHOD, size=_size
+            )
+        )
+    
+    
+    def unary_op(self, _operator:str, _size:int):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.UNARY_OP, opt=_operator, size=_size
             )
         )
 
@@ -603,16 +652,6 @@ class Compilable(object):
                 CSOpCode.PRINT_OBJECT, size=_size
             )
         )
-    
-    
-    def no_operation(self):
-        self.__instructions\
-        .append(
-            Instruction(
-                len(self.__instructions) * 2,
-                CSOpCode.NO_OPERATION
-            )
-        )
 
     def dup_top(self):
         self.__instructions\
@@ -629,6 +668,33 @@ class Compilable(object):
             Instruction(
                 len(self.__instructions) * 2,
                 CSOpCode.POP_TOP
+            )
+        )
+    
+    def new_block(self):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.NEW_BLOCK
+            )
+        )
+
+    def end_block(self):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.END_BLOCK
+            )
+        )
+
+    def no_operation(self):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.NO_OPERATION
             )
         )
     

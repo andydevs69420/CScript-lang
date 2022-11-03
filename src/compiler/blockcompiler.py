@@ -5,7 +5,7 @@
 from .compilable import Compilable
 
 # utility
-from utility.asttypes import ExpressionType, SyntaxType
+from utility import ExpressionType, SyntaxType
 
 TYPE= "type"
 
@@ -62,6 +62,10 @@ class BlockCompiler(Compilable):
             # =====================|
             case SyntaxType.CLASS_DEC:
                 return self.cclass(_node)
+            case SyntaxType.VAL_STMNT:
+                return self.cvaldec(_node)
+            case SyntaxType.CLASS_FUNC_DEC:
+                return self.cclassfunc(_node)
             case SyntaxType.FUNC_DEC:
                 return self.cfunc(_node)
             case SyntaxType.IF_STMNT:
@@ -92,6 +96,8 @@ class BlockCompiler(Compilable):
                 return self.ccontinue(_node)
             case SyntaxType.RETURN_STMNT:
                 return self.creturn(_node)
+            case SyntaxType.PRINT_STMNT:
+                return self.cprint(_node)
             case SyntaxType.PRINT_STMNT:
                 return self.cprint(_node)
             case SyntaxType.EXPRESSION_STMNT:

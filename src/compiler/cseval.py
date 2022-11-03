@@ -1,7 +1,10 @@
 
 
+# .
+from .csxcompileerror import CSXCompileError
 
-from utility.asttypes import ExpressionType
+# utility
+from utility import ExpressionType
 
 
 class CSEval(object):
@@ -83,7 +86,19 @@ class CSEval(object):
                 case '|':
                     return _a |  _b
         except TypeError:
-            ...
+            _rename_a = _a
+            if  type(_a) == bool:
+                _rename_a = "true" if _a else "false"
+            elif _a == None:
+                _rename_a = "null"
+            
+            _rename_b = _b
+            if  type(_b) == bool:
+                _rename_b = "true" if _b else "false"
+            elif _b == None:
+                _rename_b = "null"
+
+            CSXCompileError.csx_Error("TypeError: invalid expression %s %s %s!" % (_rename_a, _node["opt"], _rename_b))
         except ZeroDivisionError:
             ...
 
@@ -111,7 +126,19 @@ class CSEval(object):
                 case "!=":
                     return _a != _b
         except TypeError:
-            ...
+            _rename_a = _a
+            if  type(_a) == bool:
+                _rename_a = "true" if _a else "false"
+            elif _a == None:
+                _rename_a = "null"
+            
+            _rename_b = _b
+            if  type(_b) == bool:
+                _rename_b = "true" if _b else "false"
+            elif _b == None:
+                _rename_b = "null"
+
+            CSXCompileError.csx_Error("TypeError: invalid expression %s %s %s!" % (_rename_a, _node["opt"], _rename_b))
     
     def ev_logical(self, _node:dict):
         _a = self.evaluate(_node["left" ])

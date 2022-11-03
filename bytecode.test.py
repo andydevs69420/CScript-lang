@@ -6,12 +6,12 @@ code = """
 
 vv ="www"
 
-class Animal:
 
-    x = 2
+class Dog:
 
-    def eat():
-        print("Yumm!")
+    def cat():print
+
+Dog.cat.meow()
 
 """
 

@@ -6,7 +6,7 @@ from .cstoken import (
 )
 
 # utility
-from utility.cserrortoken import show_error
+from utility import show_error
 
 
 class LexUtils(object):
