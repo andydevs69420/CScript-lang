@@ -505,6 +505,20 @@ class RawBlock(BlockCompiler):
             _varia = _dec["var"]
             self.make_var(_varia)
     
+    # let dec
+    def cletdec(self, _node:dict):
+        for _dec in _node["assignments"]:
+
+            _value = _dec["val"]
+            if  not _value:
+                self.push_null(None)
+            else:
+                self.visit(_value)
+
+            # attribute name
+            _varia = _dec["var"]
+            self.make_local(_varia)
+    
     # return
     def creturn(self, _node:dict):
         
@@ -574,6 +588,10 @@ class ClassCompiler(RawBlock, CSEval):
         super().cvaldec(_node)
         # hack!
         self.decl += len(_node["assignments"])
+    
+    def cclassfunc(self, _node: dict):
+        self.decl += 1
+        return super().cclassfunc(_node)
         
     
     def compile(self):
@@ -589,7 +607,7 @@ class ClassCompiler(RawBlock, CSEval):
         
         # === build class|
         # ===============|
-        self.make_class((len(self.node["body"])-1) + self.decl)
+        self.make_class(self.decl)
 
         # ======== return|
         # ===============|

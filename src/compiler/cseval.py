@@ -50,7 +50,7 @@ class CSEval(object):
     
     # eval null
     def ev_null(self, _node:dict):
-        return float(_node["const"])
+        return None
 
     # eval binary
     def ev_binary(self, _node:dict):

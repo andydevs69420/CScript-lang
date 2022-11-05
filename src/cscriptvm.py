@@ -2,15 +2,17 @@ from compiler import Instruction
 from compiler import CSOpCode
 
 # builtins
+from csbuiltins import CSTypes
 from csbuiltins import CSObject
 from csbuiltins import csrawcode
-from csbuiltins import CSString
 from csbuiltins import CSInteger
 from csbuiltins import CSDouble
-from csbuiltins.csbuiltins import csB__double_proto, csB__integer_proto, csB__object_proto
-from csbuiltins.csfunction import CSFunction
+from csbuiltins import CSString
+from csbuiltins import CSBoolean
 from csbuiltins.csnulltype import CSNullType
-from csbuiltins.cstypes import CSTypes
+from csbuiltins.csfunction import CSFunction
+from csbuiltins.csbuiltins import csB__boolean_proto, csB__double_proto, csB__function_proto, csB__integer_proto, csB__nulltype_proto, csB__object_proto, csB__string_proto
+
 
 # utility
 from utility import __throw__
@@ -138,7 +140,7 @@ class Scope(object):
 def cs__error(_env:CSXEnvironment, _message:str):
     return __throw__(_message)
 
-def cs__get_constructor(
+def cs__get_prototype(
     _env:CSXEnvironment, 
     _constructor_name:str
 ):
@@ -149,14 +151,17 @@ def cs__get_constructor(
     return _type
 
 
-def cs__get_proto(
+def cs__get_prototype_attribute(
     _env:CSXEnvironment, 
     _constructor_name:str,
     _prototype_name:str
 ):
-    _type  = cs__get_constructor(_env, _constructor_name)
-    _proto = _type.get(_prototype_name)
-    return _proto
+    _type  = cs__get_prototype(_env, _constructor_name)
+
+    if not _type.hasKey(_prototype_name):\
+    return cs__error(_env, "AttributeError: %s has no attribute %s" % (_type.__str__(), _prototype_name))
+
+    return _type.get(_prototype_name)
 
 
 def cs__define_prop(_env:CSXEnvironment, _name:str, _csObject):
@@ -166,25 +171,55 @@ def cs__define_prop(_env:CSXEnvironment, _name:str, _csObject):
 # ========================================|
 def cs__new_number(_env:CSXEnvironment, _raw_py_number:int|float):
     """ Allocates new int|double
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _raw_py_number : int|float
     """
     if  type(_raw_py_number) == int:
         _env.stack.push(CSInteger(_raw_py_number))
-        cs__raw_call(_env, cs__get_proto(_env, CSTypes.TYPE_CSINTEGER, "constructor"), 1)
+        cs__raw_call(_env, cs__get_prototype_attribute(_env, CSTypes.TYPE_CSINTEGER, CSTypes.TYPE_CSINTEGER), 1)
     else:
         _env.stack.push(CSDouble(_raw_py_number))
-        cs__raw_call(_env, cs__get_proto(_env, CSTypes.TYPE_CSDOUBLE , "constructor"), 1)
+        cs__raw_call(_env, cs__get_prototype_attribute(_env, CSTypes.TYPE_CSDOUBLE , CSTypes.TYPE_CSDOUBLE), 1)
 
 
 def cs__new_string(_env:CSXEnvironment, _raw_py_string:str):
     """ Allocates new string
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _raw_py_string : str
     """
-    _env.stack.push(_env.vheap.cs__malloc(CSString(_raw_py_string)))
+    _env.stack.push(CSString(_raw_py_string))
+    cs__raw_call(_env, cs__get_prototype_attribute(_env, CSTypes.TYPE_CSSTRING, CSTypes.TYPE_CSSTRING), 1)
+
+
+
+def cs__new_boolean(_env:CSXEnvironment, _raw_py_bool:bool):
+    """ Allocates|reuse boolean
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _raw_py_bool : bool
+    """
+    _env.stack.push(CSBoolean(_raw_py_bool))
+    cs__raw_call(_env, cs__get_prototype_attribute(_env, CSTypes.TYPE_CSBOOLEAN, CSTypes.TYPE_CSBOOLEAN), 1)
+
 
 
 def cs__new_null(_env:CSXEnvironment):
-    """ Allocates new string
+    """ Allocates|reuse null
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
     """
-    _env.stack.push(_env.vheap.cs__malloc(CSNullType()))
+    _env.stack.push(CSNullType())
+    cs__raw_call(_env, cs__get_prototype_attribute(_env, CSTypes.TYPE_CSNULLTYPE, CSTypes.TYPE_CSNULLTYPE), 1)
 
 
 def cs__new_code(_env:CSXEnvironment, _raw_code:csrawcode):
@@ -195,24 +230,39 @@ def cs__new_code(_env:CSXEnvironment, _raw_code:csrawcode):
         _env : CSXEnvironment
         _raw_code : csrawcode
     """
-    _env.stack.push(_env.vheap.cs__malloc(_raw_code))
+    _env.stack.push(_raw_code)
+    _env.stack.push(_env.vheap.cs__malloc(_env.stack.poll()))
 
 
 def cs__new_function(_env:CSXEnvironment):
     """ Allocates function
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
     """
-    _fname = _env.stack.poll()
-    _fargc = _env.stack.poll()
-    _fcode = _env.stack.poll()
-    _env.stack.push(_env.vheap.cs__malloc(CSFunction(_fname, _fargc, _fcode)))
+    cs__raw_call(_env, cs__get_prototype_attribute(_env, CSTypes.TYPE_CSFUNCTION, CSTypes.TYPE_CSFUNCTION), 3)
 
 
 def cs__new_class(_env:CSXEnvironment, _size:int):
-    """ Allocates function
+    """ Allocates new class declairation
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _size : int
     """
-    _csclass = cs__get_proto(_env, CSTypes.TYPE_CSOBJECT, "constructor")\
-               .call([_env, None])
+    cs__raw_call(_env, cs__get_prototype_attribute(_env, CSTypes.TYPE_CSOBJECT, CSTypes.TYPE_CSOBJECT), 0)
+
+    _csclass = _env.stack.poll()
     _csclass.type = _env.stack.poll().this
+
+    if  True:
+        # if not extended. use CSObject as super class
+        _proto = cs__get_prototype(_env, CSTypes.TYPE_CSOBJECT)
+        _keys = _proto.keys()
+        for _k in _keys:
+            _csclass.put(_k, _proto.get(_k))
 
     for _r in range(_size):
         _key = _env.stack.poll()
@@ -322,7 +372,7 @@ def cs__raw_call(_env:CSXEnvironment, _csobject:CSObject, _arg_count:int):
     _argc = _csobject.get("argc")
 
     if _argc.this != _arg_count:\
-    return cs__error(_env, "%s requires %d argument(s), got %d!" % (_name.this, _argc.this, _arg_count))
+    return cs__error(_env, "%s requires %s argument(s), got %s!" % (_name.__str__(), _argc.__str__(), _arg_count))
 
     match _csobject.type:
         case CSTypes.TYPE_CSFUNCTION:
@@ -398,10 +448,14 @@ def cs__get_attribute(_env:CSXEnvironment, _top_object:CSObject, _attr:str):
     # set current object
 
     # check has attribute
-    if not _top_object.hasKey(_attr):\
-    return cs__error(_env, "AttributeError: %s has no attribute %s" % (_top_object.type, _attr))
+    if  _top_object.hasKey(_attr):
+        return _env.stack.push(_top_object.get(_attr))
 
-    _env.stack.push(_top_object.get(_attr))
+    _prototype = cs__get_prototype(_env, _top_object.type)
+    if   _prototype.hasKey(_attr):
+        return _env.stack.push(_prototype.get(_attr))
+
+    return cs__error(_env, "AttributeError: %s has no attribute %s" % (_top_object.type, _attr))
 
 
 def cs__set_attribute(_env:CSXEnvironment, _attr:str):
@@ -444,17 +498,37 @@ def cs__get_method(_env:CSXEnvironment, _top_object:CSObject, _attr:str):
 def cs__construct_class(_env:CSXEnvironment, _arg_count:int):
     """
     """
-
     _class_proto = _env.stack.poll()
+    
 
-    if not _class_proto.hasKey("constructor"):\
-    return cs__error(_env, "%s is not a constructor" % _class_proto.__str__())
+    # make a copy for non function
+    _keys = _class_proto.keys()
+    
+    # call base constructor which is CSObject
+    # you can call the super constructor inside constructor(manually)
+    cs__raw_call(_env, cs__get_prototype_attribute(_env, _class_proto.type, CSTypes.TYPE_CSOBJECT), 0)
 
-    _constructor = _class_proto.get("constructor")
+    _new = _env.stack.poll()
+    _new.type = _class_proto.type
+
+    for _k in _keys:
+        if  _class_proto.get(_k).type != CSTypes.TYPE_CSFUNCTION and\
+            _class_proto.get(_k).type != CSTypes.TYPE_CSNATIVEFUNCTION:
+            _new.put(_k, _class_proto.get(_k))
 
     _env.scope.append(Scope(_parent=_env.scope[-1]))
 
-    cs__raw_call(_env, _constructor, _arg_count)
+    cs__define_prop(_env, "this", _new)
+
+    if  _class_proto.hasKey(_class_proto.type):
+        _constructor = _class_proto.get(_class_proto.type)
+        cs__raw_call(_env, _constructor, _arg_count)
+
+        # hack!!!
+        _env.stack.poll() # pop defult return
+
+    # push newly created!
+    _env.stack.push(_new)
 
     _env.scope.pop()
 
@@ -466,8 +540,8 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
     _returned = False
 
 
-    for i in _code:
-        print(i)
+    # for i in _code:
+    #     print(i)
 
     while _ipointer < len(_code.code) and (not _returned):
 
@@ -477,6 +551,7 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
             case CSOpCode.PUSH_INTEGER:cs__new_number(_env, _instruction.get("const"))
             case CSOpCode.PUSH_DOUBLE:cs__new_number(_env, _instruction.get("const"))
             case CSOpCode.PUSH_STRING:cs__new_string(_env, _instruction.get("const"))
+            case CSOpCode.PUSH_BOOLEAN:cs__new_boolean(_env, _instruction.get("const"))
             case CSOpCode.PUSH_NULL:cs__new_null(_env)
             case CSOpCode.PUSH_CODE:cs__new_code(_env, _instruction.get("code"))
             case CSOpCode.MAKE_FUNCTION:cs__new_function(_env)
@@ -546,7 +621,7 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
                     _format += _raw_obj.__str__()
 
                     if  idx < _size - 1:
-                        _format += ", "
+                        _format += " "
                 
                 print(_format)
 
@@ -567,8 +642,12 @@ def cs__init_builtin(_env:CSXEnvironment):
     """
     """
     _base = csB__object_proto(_env)
-    csB__double_proto(_env, _base)
     csB__integer_proto(_env, _base)
+    csB__double_proto(_env, _base)
+    csB__string_proto(_env, _base)
+    csB__boolean_proto(_env, _base)
+    csB__nulltype_proto(_env, _base)
+    csB__function_proto(_env, _base)
     
 def cs__run(_code:csrawcode):
     _env = CSXEnvironment()

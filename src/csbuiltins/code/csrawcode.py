@@ -1,6 +1,6 @@
 
 
-
+from csbuiltins.cstypes import CSTypes
 from base.csobject import CSObject
 
 class csrawcode(CSObject):
@@ -15,6 +15,7 @@ class csrawcode(CSObject):
 
     def __init__(self, _name:str, _code:tuple):
         super().__init__()
+        self.type = CSTypes.TYPE_CSRAWCODE
         self.name = _name
         self.code = _code
     
@@ -22,7 +23,7 @@ class csrawcode(CSObject):
         """ Specify as native when printing in python
             to prevent confusions!
         """
-        return "[NATIVE: csrawcode :for='%s' at %s]" % (self.name, hex(id(self)))
+        return "<csrawcode :for='%s' at %s/>" % (self.name, hex(id(self)))
 
     def __iter__(self):
         return self.code.__iter__()

@@ -6,6 +6,10 @@ from csbuiltins.cstypes import CSTypes
 
 class CSDouble(CSObject):
     """ Represents double in cscript
+
+        Parameters
+        ----------
+        _raw_py_float: float
     """
 
     def __init__(self, _raw_py_float:float):

@@ -8,8 +8,7 @@
 
 class Syntax 
 {
-
-
+    
     public static void main(String[] args) 
     {
         Syntax synt = new Syntax;

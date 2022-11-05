@@ -9,6 +9,10 @@ from .base.csobject import CSObject
 
 class CSString(CSObject):
     """ Represents string for cscript
+
+        Parameters
+        ----------
+        _raw_py_string : str
     """
 
     def __init__(self, _raw_py_string:str):

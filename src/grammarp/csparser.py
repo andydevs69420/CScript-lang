@@ -106,6 +106,7 @@ class CSParser(ContextUtils):
                  self.cstoken.matches("except"  ) or \
                  self.cstoken.matches("finally" ) or \
                  self.cstoken.matches("var"     ) or \
+                 self.cstoken.matches("val"     ) or \
                  self.cstoken.matches("let"     ) or \
                  self.cstoken.matches("print"   )):
                 # throw
@@ -1008,7 +1009,7 @@ class CSParser(ContextUtils):
                 return val_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("func"):
                 return class_func_dec()
-            return None
+            return compound_stmnt()
 
 
         # function_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;

@@ -7,6 +7,10 @@ from .base.csobject import CSObject
 
 class CSInteger(CSObject):
     """ Represents integer in cscript
+
+        Parameters
+        ----------
+        _raw_py_int : int
     """
 
     def __init__(self, _raw_py_int:int):
