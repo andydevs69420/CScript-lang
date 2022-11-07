@@ -57,7 +57,7 @@ class CSEval(object):
         _a = self.evaluate(_node["left" ])
         _b = self.evaluate(_node["right"])
 
-        if  ((_a and _b) == ...):
+        if  ((_a == ...) or _b == ...):
             # specify ellipsis return
             return ...
         
@@ -115,7 +115,7 @@ class CSEval(object):
         _a = self.evaluate(_node["left" ])
         _b = self.evaluate(_node["right"])
 
-        if  ((_a and _b) == ...):
+        if  ((_a == ...) or _b == ...):
             # specify ellipsis return
             return ...
         
@@ -156,7 +156,7 @@ class CSEval(object):
         _a = self.evaluate(_node["left" ])
         _b = self.evaluate(_node["right"])
 
-        if  ((_a and _b) == ...):
+        if  ((_a == ...) or _b == ...):
             # specify ellipsis return
             return ...
 

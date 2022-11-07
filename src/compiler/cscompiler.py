@@ -173,26 +173,26 @@ class RawBlock(BlockCompiler):
             case "^^":
                 self.binary_pow(_operator, _loc=_node["loc"])
             case '*':
-                self.binary_mul(_operator)
+                self.binary_mul(_operator, _loc=_node["loc"])
             case '/':
-                self.binary_div(_operator)
+                self.binary_div(_operator, _loc=_node["loc"])
             case '%':
-                self.binary_mod(_operator)
+                self.binary_mod(_operator, _loc=_node["loc"])
             case '+':
                 self.binary_add(_operator, _loc=_node["loc"])
             case '-':
                 self.binary_sub(_operator, _loc=_node["loc"])
             # bitwise
             case "<<":
-                self.binary_lshift(_operator)
+                self.binary_lshift(_operator, _loc=_node["loc"])
             case ">>":
-                self.binary_rshift(_operator)
+                self.binary_rshift(_operator, _loc=_node["loc"])
             case '&':
-                self.binary_and(_operator)
+                self.binary_and(_operator, _loc=_node["loc"])
             case '^':
-                self.binary_xor(_operator)
+                self.binary_xor(_operator, _loc=_node["loc"])
             case '|':
-                self.binary_or (_operator)
+                self.binary_or (_operator, _loc=_node["loc"])
             case _:
                 raise NotImplementedError("unimplemented operator '%s'" % _operator)
 
@@ -227,7 +227,7 @@ class RawBlock(BlockCompiler):
 
         # add operator
         _operator = _node["opt"]
-        self.compare_op(_operator)
+        self.compare_op(_operator, _loc=_node["loc"])
     
     # logical expr | short circuit
     def clogical(self, _node:dict):
@@ -347,27 +347,27 @@ class RawBlock(BlockCompiler):
         _operator = _node["opt"]
         match _operator:
             case "^^=":
-                self.inplace_pow(_operator)
+                self.inplace_pow(_operator, _loc=_node["loc"])
             case "*=":
-                self.inplace_mul(_operator)
+                self.inplace_mul(_operator, _loc=_node["loc"])
             case "/=":
-                self.inplace_div(_operator)
+                self.inplace_div(_operator, _loc=_node["loc"])
             case "%=":
-                self.inplace_mod(_operator)
+                self.inplace_mod(_operator, _loc=_node["loc"])
             case "+=":
-                self.inplace_add(_operator)
+                self.inplace_add(_operator, _loc=_node["loc"])
             case "-=":
-                self.inplace_sub(_operator)
+                self.inplace_sub(_operator, _loc=_node["loc"])
             case "<<=":
-                self.inplace_lshift(_operator)
+                self.inplace_lshift(_operator, _loc=_node["loc"])
             case ">>=":
-                self.inplace_rshift(_operator)
+                self.inplace_rshift(_operator, _loc=_node["loc"])
             case "&=":
-                self.inplace_and(_operator)
+                self.inplace_and(_operator, _loc=_node["loc"])
             case "^=":
-                self.inplace_xor(_operator)
+                self.inplace_xor(_operator, _loc=_node["loc"])
             case "|=":
-                self.inplace_or(_operator)
+                self.inplace_or(_operator, _loc=_node["loc"])
             case _:
                 raise NotImplementedError("unimplemented operator '%s'" % _operator)
 
@@ -439,7 +439,7 @@ class RawBlock(BlockCompiler):
             self.dup_top()
 
             # make local
-            self.make_local(_varia)
+            self.make_local(_varia, _node["loc"])
 
             # attribute name
             self.push_string(_varia)

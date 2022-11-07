@@ -2,15 +2,23 @@
 
 
 
-class Dog 
+class MyInt 
 {
-   func __toString__()
-   {
-        print: "Called by print: ";
-        return "<FOOOC/>";
-   }
+    func MyInt(_int) 
+    { this->number = _int; }
+
+    func __add__(_rhs) 
+    { return this->number + _rhs; }
+
+    func __toString__()
+    { return "MyInt: " + this->number; }
 }
 
 
+var 比克 = new MyInt(500);
+print: 比克 + (500 * 2);
 
-print: "doggy =", new Dog();
+
+
+print: CSNaNType->__add__ == CSObject->__add__;
+

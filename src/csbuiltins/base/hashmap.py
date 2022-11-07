@@ -1,15 +1,18 @@
 
 
 # deprecated: produces alot of collision
-# uses python hash instead
-# def hasher(_key:str):
-#     _key = str(_key)
-#     if  len(_key) <= 0: return 0
-#     _hashcode = 0
-#     for char in _key:
-#         _hashcode  = ((_hashcode << 5) - _hashcode) + ord(char)
-#         _hashcode |= 0
-#     return _hashcode
+def hasher(_key:str):
+    if isinstance(_key, int): return _key
+
+    _key = str(_key)
+    if  len(_key) <= 0: return 0
+
+    _hashcode = 69420
+
+    for char in _key:
+        _hashcode  = ((_hashcode << 5) - _hashcode) + ord(char)
+        _hashcode |= 0
+    return _hashcode
 
 
 class Node(object):
@@ -26,7 +29,8 @@ class LinkedList(Node):
 
     def append(self, _data:Node):
         
-        _last = self
+        _head = self
+        _last = _head
         while _last:
 
             if _last.nkey == _data.nkey:
@@ -34,9 +38,10 @@ class LinkedList(Node):
                 _last.data = _data.data
                 return 
 
+            _head = _last
             _last = _last.tail
 
-        self.tail = _data
+        _head.tail = _data
         return
     
     def __str__(self) :
@@ -75,7 +80,7 @@ class HashMap(object):
         ]
     
     def put(self, _key:str, _data:object):
-        _bucket_index = hash(_key) % self.__bcount
+        _bucket_index = hasher(_key) % self.__bcount
         if  self.__bucket[_bucket_index] != None:
             # collision | update
             return self.__bucket[_bucket_index].append(Node(_key, _data))
@@ -89,7 +94,7 @@ class HashMap(object):
             self.__rehash()
         
     def get(self, _key:str):
-        _hashed_key = hash(_key) % self.__bcount
+        _hashed_key = hasher(_key) % self.__bcount
         assert self.hasKey(_key), "key error: key '%s' not found!" % _key
 
         _head = self.__bucket[_hashed_key]
@@ -140,7 +145,7 @@ class HashMap(object):
     def hasKey(self, _key:str):
         """ Checks if key exists
         """
-        _bucket_index = hash(_key) % self.__bcount
+        _bucket_index = hasher(_key) % self.__bcount
         if  self.__bucket[_bucket_index] == None:
             return False
         _head = self.__bucket[_bucket_index]

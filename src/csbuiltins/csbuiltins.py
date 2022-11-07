@@ -76,6 +76,20 @@ def is_number(_csobject:CSObject):
     """
     return (is_integer(_csobject) or is_double(_csobject))
 
+
+def is_string(_csobject):
+    """ Checks if CSObject is a string
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return (_csobject.type == CSTypes.TYPE_CSSTRING)
+
 def typeof(_left:CSObject, _right:CSObject):
     """ Checks if CSObject is a number
 
@@ -198,6 +212,9 @@ def csB__object____add__(_env):
 
 def object____add__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
+    if  is_string(_args[2]):
+        # concat mode
+        return _args[0].vheap.cs__malloc(CSString(_args[1].__str__() + _args[2].__str__()))
     # each class must re-implement this
     return _args[0].vheap.cs__malloc(CSNaN())
 
@@ -219,6 +236,10 @@ def csB__object____lshift__(_env):
 
 def object____lshift__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
+    if  is_integer(_args[1]):
+        return _args[1]
+    elif is_integer(_args[2]):
+        return _args[2]
     return _args[0].vheap.cs__malloc(CSInteger(0))
 
 # __rshift__
@@ -227,6 +248,10 @@ def csB__object____rshift__(_env):
 
 def object____rshift__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
+    if  is_integer(_args[1]):
+        return _args[1]
+    elif is_integer(_args[2]):
+        return _args[2]
     return _args[0].vheap.cs__malloc(CSInteger(0))
 
 # __lt__
@@ -285,6 +310,10 @@ def csB__object____and__(_env):
 
 def object____and__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
+    if  is_integer(_args[1]):
+        return _args[1]
+    elif is_integer(_args[2]):
+        return _args[2]
     return _args[0].vheap.cs__malloc(CSInteger(0))
 
 # __xor__
@@ -293,6 +322,10 @@ def csB__object____xor__(_env):
 
 def object____xor__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
+    if  is_integer(_args[1]):
+        return _args[1]
+    elif is_integer(_args[2]):
+        return _args[2]
     return _args[0].vheap.cs__malloc(CSInteger(0))
 
 # __or__
@@ -301,6 +334,10 @@ def csB__object____or__(_env):
 
 def object____or__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
+    if  is_integer(_args[1]):
+        return _args[1]
+    elif is_integer(_args[2]):
+        return _args[2]
     return _args[0].vheap.cs__malloc(CSInteger(0))
 
 # __toString__
@@ -364,14 +401,18 @@ def integer__constructor(_args:list):
 
 # __add__
 def csB__integer____add__(_env):
-    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__lshift__), CSInteger(1), integer____add__))
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__add__), CSInteger(1), integer____add__))
 
 def integer____add__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
     if  not (is_number(_args[1]) and is_number(_args[2])):
+        if  is_string(_args[2]):
+            # concat mode
+            return _args[0].vheap.cs__malloc(CSString(_args[1].__str__() + _args[2].__str__()))
         return _args[0].vheap.cs__malloc(CSNaN())
     # always int
-    return _args[0].vheap.cs__malloc(CSInteger(_args[1].this + _args[2].this))
+    TYPE = typeof(_args[1], _args[2])
+    return _args[0].vheap.cs__malloc(TYPE(_args[1].this + _args[2].this))
 
 
 # __lshift__
@@ -381,6 +422,10 @@ def csB__integer____lshift__(_env):
 def integer____lshift__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
     if  not (is_integer(_args[1]) and is_integer(_args[2])):
+        if  is_integer(_args[1]):
+            return _args[1]
+        elif is_integer(_args[2]):
+            return _args[2]
         return _args[0].vheap.cs__malloc(CSInteger(0))
     # always int
     return _args[0].vheap.cs__malloc(CSInteger(_args[1].this << _args[2].this))
@@ -393,6 +438,10 @@ def csB__integer____rshift__(_env):
 def integer____rshift__(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
     if  not (is_integer(_args[1]) and is_integer(_args[2])):
+        if  is_integer(_args[1]):
+            return _args[1]
+        elif is_integer(_args[2]):
+            return _args[2]
         return _args[0].vheap.cs__malloc(CSInteger(0))
     # always int
     return _args[0].vheap.cs__malloc(CSInteger(_args[1].this >> _args[2].this))
@@ -526,6 +575,7 @@ def integer__toString__(_args:list):
 
 
 
+
 # ============ double|
 # ===================|
 def csB__double_proto(_env, _enherit=None):
@@ -539,6 +589,13 @@ def csB__double_proto(_env, _enherit=None):
 
     # proto attr
     _csdouble.put(CSTypes.TYPE_CSDOUBLE      , csB__double__constructor(_env)) # default constructor
+    _csdouble.put(PROTO_ATTR_NAME__add__     , csB__double____add__    (_env)) # __lt__
+    _csdouble.put(PROTO_ATTR_NAME__lt__      , csB__double____lt__     (_env)) # __lt__
+    _csdouble.put(PROTO_ATTR_NAME__lte__     , csB__double____lte__    (_env)) # __lte__
+    _csdouble.put(PROTO_ATTR_NAME__gt__      , csB__double____gt__     (_env)) # __gt__
+    _csdouble.put(PROTO_ATTR_NAME__gte__     , csB__double____gte__    (_env)) # __gte__
+    _csdouble.put(PROTO_ATTR_NAME__eq__      , csB__double____eq__     (_env)) # __eq__
+    _csdouble.put(PROTO_ATTR_NAME__neq__     , csB__double____neq__    (_env)) # __neq__
     _csdouble.put(PROTO_ATTR_NAME__toString__, csB__double__toString__ (_env)) # default __toString__
     # proto attr
 
@@ -554,6 +611,88 @@ def double__constructor(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
     # return type is null
     return _args[0].vheap.cs__malloc(_args[2])
+
+# __add__
+def csB__double____add__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__add__), CSInteger(1), double____add__))
+
+def double____add__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    if  not (is_number(_args[1]) and is_number(_args[2])):
+        if  is_string(_args[2]):
+            # concat mode
+            return _args[0].vheap.cs__malloc(CSString(_args[1].__str__() + _args[2].__str__()))
+        return _args[0].vheap.cs__malloc(CSNaN())
+        
+    # always int
+    TYPE = typeof(_args[1], _args[2])
+    return _args[0].vheap.cs__malloc(TYPE(_args[1].this + _args[2].this))
+
+# __lt__
+def csB__double____lt__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__lt__), CSInteger(1), double____lt__))
+
+def double____lt__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    if  not (is_number(_args[1]) and is_number(_args[2])):
+        return _args[0].vheap.cs__malloc(CSBoolean(False))
+    # always bool
+    return _args[0].vheap.cs__malloc(CSBoolean(_args[1].this < _args[2].this))
+
+# __lte__
+def csB__double____lte__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__lte__), CSInteger(1), double____lte__))
+
+def double____lte__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    if  not (is_number(_args[1]) and is_number(_args[2])):
+        return _args[0].vheap.cs__malloc(CSBoolean(False))
+    # always bool
+    return _args[0].vheap.cs__malloc(CSBoolean(_args[1].this <= _args[2].this))
+
+# __gt__
+def csB__double____gt__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__gt__), CSInteger(1), double____gt__))
+
+def double____gt__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    if  not (is_number(_args[1]) and is_number(_args[2])):
+        return _args[0].vheap.cs__malloc(CSBoolean(False))
+    # always bool
+    return _args[0].vheap.cs__malloc(CSBoolean(_args[1].this > _args[2].this))
+
+# __gte__
+def csB__double____gte__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__gte__), CSInteger(1), double____gte__))
+
+def double____gte__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    if  not (is_number(_args[1]) and is_number(_args[2])):
+        return _args[0].vheap.cs__malloc(CSBoolean(False))
+    # always bool
+    return _args[0].vheap.cs__malloc(CSBoolean(_args[1].this >= _args[2].this))
+
+# __eq__
+def csB__double____eq__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__eq__), CSInteger(1), double____eq__))
+
+def double____eq__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    if  not (is_number(_args[1]) and is_number(_args[2])):
+        return _args[0].vheap.cs__malloc(CSBoolean(False))
+    # always bool
+    return _args[0].vheap.cs__malloc(CSBoolean(_args[1].this == _args[2].this))
+
+# __neq__
+def csB__double____neq__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__neq__), CSInteger(1), double____neq__))
+
+def double____neq__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    if  not (is_number(_args[1]) and is_number(_args[2])):
+        return _args[0].vheap.cs__malloc(CSBoolean(False))
+    # always bool
+    return _args[0].vheap.cs__malloc(CSBoolean(_args[1].this == _args[2].this))
 
 # __toString__
 def csB__double__toString__(_env):
@@ -575,22 +714,22 @@ def double__toString__(_args:list):
 # ============ string|
 # ===================|
 def csB__string_proto(_env, _enherit):
-    _csboolean = _env.vheap.cs__malloc(CSObject())
+    _csstring = _env.vheap.cs__malloc(CSObject())
     # alter object type
-    _csboolean.type = CSTypes.TYPE_CSSTRING
+    _csstring.type = CSTypes.TYPE_CSSTRING
 
     if  _enherit:
         for _k in _enherit.keys():
-            _csboolean.put(_k, _enherit.get(_k))
+            _csstring.put(_k, _enherit.get(_k))
 
     # proto attr
-    _csboolean.put(CSTypes.TYPE_CSSTRING      , csB__string__constructor(_env)) # default constructor
-    _csboolean.put(PROTO_ATTR_NAME__toString__, csB__string__toString__ (_env)) # default __toString__
-
+    _csstring.put(CSTypes.TYPE_CSSTRING      , csB__string__constructor(_env)) # default constructor
+    _csstring.put(PROTO_ATTR_NAME__add__     , csB__string____add__    (_env)) # __add__
+    _csstring.put(PROTO_ATTR_NAME__toString__, csB__string__toString__ (_env)) # default __toString__
     # proto attr
-    _env.scope[-1].insert(CSTypes.TYPE_CSSTRING, _address=_csboolean.offset, _global=True)
+    _env.scope[-1].insert(CSTypes.TYPE_CSSTRING, _address=_csstring.offset, _global=True)
 
-    return _csboolean
+    return _csstring
 
 # constructor
 def csB__string__constructor(_env):
@@ -600,6 +739,15 @@ def string__constructor(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
     # return type is null
     return _args[0].vheap.cs__malloc(_args[2]) # add cast(again)
+
+# __add__
+def csB__string____add__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__add__), CSInteger(1), string____add__))
+
+def string____add__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    # always str
+    return _args[0].vheap.cs__malloc(CSString(_args[1].__str__() + _args[2].__str__()))
 
 # __toString__
 def csB__string__toString__(_env):
@@ -629,7 +777,6 @@ def csB__boolean_proto(_env, _enherit):
     # proto attr
     _csboolean.put(CSTypes.TYPE_CSBOOLEAN     , csB__boolean__constructor(_env)) # default constructor
     _csboolean.put(PROTO_ATTR_NAME__toString__, csB__boolean__toString__ (_env)) # default __toString__
-
     # proto attr
     _env.scope[-1].insert(CSTypes.TYPE_CSBOOLEAN, _address=_csboolean.offset, _global=True)
 
@@ -673,7 +820,6 @@ def csB__nulltype_proto(_env, _enherit):
     # proto attr
     _nulltype.put(CSTypes.TYPE_CSNULLTYPE    , csB__nulltype__constructor(_env)) # default constructor
     _nulltype.put(PROTO_ATTR_NAME__toString__, csB__nulltype__toString__ (_env)) # default __toString__
-
     # proto attr
     _env.scope[-1].insert(CSTypes.TYPE_CSNULLTYPE, _address=_nulltype.offset, _global=True)
 
@@ -704,7 +850,7 @@ def nulltype__toString__(_args:list):
 def csB__nantype_proto(_env, _enherit):
     _nantype = _env.vheap.cs__malloc(CSObject())
     # alter object type
-    _nantype.type = CSTypes.TYPE_CSNULLTYPE
+    _nantype.type = CSTypes.TYPE_CSNANTYPE
 
     if  _enherit:
         for _k in _enherit.keys():
@@ -713,7 +859,6 @@ def csB__nantype_proto(_env, _enherit):
     # proto attr
     _nantype.put(CSTypes.TYPE_CSNANTYPE     , csB__nantype__constructor(_env)) # default constructor
     _nantype.put(PROTO_ATTR_NAME__toString__, csB__nantype__toString__ (_env)) # default __toString__
-
     # proto attr
     _env.scope[-1].insert(CSTypes.TYPE_CSNANTYPE, _address=_nantype.offset, _global=True)
 
@@ -721,7 +866,7 @@ def csB__nantype_proto(_env, _enherit):
 
 # constructor
 def csB__nantype__constructor(_env):
-    return _env.vheap.cs__malloc(CSNativeFunction(CSString(CSTypes.TYPE_CSBOOLEAN), CSInteger(1), nantype__constructor))
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(CSTypes.TYPE_CSNANTYPE), CSInteger(1), nantype__constructor))
 
 def nantype__constructor(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
@@ -741,12 +886,53 @@ def nantype__toString__(_args:list):
 
 
 
+
+
+
+# === native function|
+# ===================|
+def csB__nativefunction_proto(_env, _enherit):
+    _csnfunction = _env.vheap.cs__malloc(CSObject())
+    # alter object type
+    _csnfunction.type = CSTypes.TYPE_CSNATIVEFUNCTION
+
+    if  _enherit:
+        for _k in _enherit.keys():
+            _csnfunction.put(_k, _enherit.get(_k))
+
+    # proto attr
+    _csnfunction.put(PROTO_ATTR_NAME__toString__, csB__nativefunction__toString__ (_env)) # default __toString__
+    # proto attr
+    _env.scope[-1].insert(CSTypes.TYPE_CSNATIVEFUNCTION, _address=_csnfunction.offset, _global=True)
+
+    return _csnfunction
+
+# constructor
+# no default constructor
+
+# __toString__
+def csB__nativefunction__toString__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__toString__), CSInteger(0), nativefunction__toString__))
+
+def nativefunction__toString__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    return _args[0].vheap.cs__malloc(CSString(_args[1].__str__()))
+
+
+
+
+
+
+
+
+
+
 # ========== function|
 # ===================|
 def csB__function_proto(_env, _enherit):
     _csfunction = _env.vheap.cs__malloc(CSObject())
     # alter object type
-    _csfunction.type = CSTypes.TYPE_CSNULLTYPE
+    _csfunction.type = CSTypes.TYPE_CSFUNCTION
 
     if  _enherit:
         for _k in _enherit.keys():
@@ -755,7 +941,6 @@ def csB__function_proto(_env, _enherit):
     # proto attr
     _csfunction.put(CSTypes.TYPE_CSFUNCTION    , csB__function__constructor(_env)) # default constructor
     _csfunction.put(PROTO_ATTR_NAME__toString__, csB__function__toString__ (_env)) # default __toString__
-
     # proto attr
     _env.scope[-1].insert(CSTypes.TYPE_CSFUNCTION, _address=_csfunction.offset, _global=True)
 
@@ -763,7 +948,7 @@ def csB__function_proto(_env, _enherit):
 
 # constructor
 def csB__function__constructor(_env):
-    return _env.vheap.cs__malloc(CSNativeFunction(CSString(CSTypes.TYPE_CSBOOLEAN), CSInteger(3), function__constructor))
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(CSTypes.TYPE_CSFUNCTION), CSInteger(3), function__constructor))
 
 def function__constructor(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
