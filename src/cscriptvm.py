@@ -411,6 +411,7 @@ def cs__store_name(_env:CSXEnvironment, _var_name:str, _value:CSObject):
         _var_name : str
         _value : CSObject
     """
+    assert cs__var_exists(_env, _var_name) or cs__local_exists(_env, _var_name), "var does not exist %s" % _var_name
     _env.scope[-1].update(_var_name, _address=_value.offset)
 
 
@@ -502,7 +503,6 @@ def cs__invoke_method(_env:CSXEnvironment, _csobject:CSObject, _method_name:str,
     """
     """
     assert cs__has_method(_env, _csobject, _method_name), "no method %s" % _method_name
-
 
     _env.scope.append(Scope(_parent=_env.scope[-1]))
 
@@ -676,6 +676,9 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
     _ipointer = 0
     _returned = False
 
+    for i in _code:
+        print(i)
+
     while _ipointer < len(_code.code) and (not _returned):
 
         _instruction = _code.code[_ipointer]
@@ -816,6 +819,57 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
                 match _instruction.get("opt"):
                     case "new":
                         cs__construct_class(_env, _instruction.get("size"))
+                    
+                    case "+":
+                        if  not cs__has_method(_env, _env.stack.peek(), "__uplus__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                        
+                        ######## invoke self __uplus__ method
+                        _a = _env.stack.poll()
+                        cs__invoke_method(_env, _a, "__uplus__", 0)
+
+                    case "++":
+                        if  not cs__has_method(_env, _env.stack.peek(), "__iplusplus__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                        
+                        ######## invoke self __iplusplus__ method
+                        _a = _env.stack.poll()
+                        cs__invoke_method(_env, _a, "__iplusplus__", 0)
+                    
+                    case "-":
+                        if  not cs__has_method(_env, _env.stack.peek(), "__uminus__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                        
+                        ######## invoke self __uminus__ method
+                        _a = _env.stack.poll()
+                        cs__invoke_method(_env, _a, "__uminus__", 0)
+
+                    case "--":
+                        if  not cs__has_method(_env, _env.stack.peek(), "__iminusminus__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                        
+                        ######## invoke self __iminusminus__ method
+                        _a = _env.stack.poll()
+                        cs__invoke_method(_env, _a, "__iminusminus__", 0)
+                    
+                    case _:
+                        raise Exception("not implemented %s" % _instruction.get("opt"))
 
             # multiplicative
             case CSOpCode.BINARY_MUL:

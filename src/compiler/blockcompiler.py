@@ -44,6 +44,8 @@ class BlockCompiler(Compilable):
                 return self.csubscript(_node)
             case ExpressionType.CALL:
                 return self.ccall(_node)
+            case ExpressionType.POSTIFIX_EXPR:
+                return self.cpostfix(_node)
             case ExpressionType.UNARY_EXPR:
                 return self.cunary(_node)
             case ExpressionType.BINARY_EXPR:
