@@ -31,7 +31,7 @@ class RawBlock(BlockCompiler):
 
     # variable
     def cvariable(self, _node:dict):
-        self.push_name(_node["var"])
+        self.push_name(_node["var"], _node["loc"])
 
     # integer
     def cinteger(self, _node:dict):
@@ -90,7 +90,7 @@ class RawBlock(BlockCompiler):
         self.visit(_node["right-hand"])
         
         # unary new
-        self.unary_op("new", len(_node["arguments"]))
+        self.unary_op("new", len(_node["arguments"]), _node["loc"])
     
     # member access
     def cmember(self, _node:dict):
@@ -98,7 +98,7 @@ class RawBlock(BlockCompiler):
         self.visit(_node["left"])
 
         # add get attrib
-        self.get_attrib(_node["member"])
+        self.get_attrib(_node["member"], _node["loc"])
     
     # subscript
     def csubscript(self, _node:dict):
@@ -127,15 +127,15 @@ class RawBlock(BlockCompiler):
                 self.visit(_node["left"]["left"])
 
                 # add get attrib
-                self.get_method(_node["left"]["member"])
+                self.get_method(_node["left"]["member"], _node["left"]["loc"])
 
                 # add call
-                self.call_method(len(_arguments))
+                self.call_method(len(_arguments), _node["loc"])
             case _:
                 self.visit(_node["left"])
 
                 # add call
-                self.call(len(_arguments))
+                self.call(len(_arguments), _node["loc"])
 
     # binary expr
     def cbinary(self, _node:dict):
@@ -171,7 +171,7 @@ class RawBlock(BlockCompiler):
         match _operator:
             # arithmetic
             case "^^":
-                self.binary_pow(_operator)
+                self.binary_pow(_operator, _loc=_node["loc"])
             case '*':
                 self.binary_mul(_operator)
             case '/':
@@ -179,9 +179,9 @@ class RawBlock(BlockCompiler):
             case '%':
                 self.binary_mod(_operator)
             case '+':
-                self.binary_add(_operator)
+                self.binary_add(_operator, _loc=_node["loc"])
             case '-':
-                self.binary_sub(_operator)
+                self.binary_sub(_operator, _loc=_node["loc"])
             # bitwise
             case "<<":
                 self.binary_lshift(_operator)
@@ -315,14 +315,14 @@ class RawBlock(BlockCompiler):
         match _node["left"][TYPE]:
             # variable assignment
             case ExpressionType.VARIABLE:
-                self.store_name(_node["left"]["var"])
+                self.store_name(_node["left"]["var"], _node["left"]["loc"])
             # member assignment
             case ExpressionType.MEMBER:
                 # compile owner
                 self.visit(_node["left"]["left" ])
 
                 # set attibute
-                self.set_attrib(_node["left"]["member"])
+                self.set_attrib(_node["left"]["member"], _node["left"]["loc"])
             # index|member assignment
             case ExpressionType.SUBSCRIPT:
                 # compile index|member
@@ -377,14 +377,14 @@ class RawBlock(BlockCompiler):
         match _node["left"][TYPE]:
             # variable assignment
             case ExpressionType.VARIABLE:
-                self.store_name(_node["left"]["var"])
+                self.store_name(_node["left"]["var"], _node["left"]["loc"])
             # member assignment
             case ExpressionType.MEMBER:
                 # compile owner
                 self.visit(_node["left"]["left" ])
 
                 # set attibute
-                self.set_attrib(_node["left"]["member"])
+                self.set_attrib(_node["left"]["member"], _node["left"]["loc"])
             # index|member assignment
             case ExpressionType.SUBSCRIPT:
                 # compile index|member
@@ -418,10 +418,10 @@ class RawBlock(BlockCompiler):
 
         # call csrawcode before
         # saving value
-        self.call(0)
+        self.call(0, _node["loc"])
 
         # store class
-        self.make_var(_node["name"])
+        self.make_var(_node["name"], _node["loc"])
     
     # class var
     def cvaldec(self, _node:dict):
@@ -476,8 +476,8 @@ class RawBlock(BlockCompiler):
         # build function
         self.make_function()
 
-        # store class
-        self.make_var(_node["name"])
+        # store func
+        self.make_var(_node["name"], _node["loc"])
 
     # block
     def cblock(self, _node:dict):
@@ -503,7 +503,7 @@ class RawBlock(BlockCompiler):
 
             # attribute name
             _varia = _dec["var"]
-            self.make_var(_varia)
+            self.make_var(_varia, _node["loc"])
     
     # let dec
     def cletdec(self, _node:dict):
@@ -517,7 +517,7 @@ class RawBlock(BlockCompiler):
 
             # attribute name
             _varia = _dec["var"]
-            self.make_local(_varia)
+            self.make_local(_varia, _node["loc"])
     
     # return
     def creturn(self, _node:dict):
@@ -629,7 +629,7 @@ class FunctionCompiler(RawBlock, CSEval):
         # ===============|
         for _param in self.node["params"]:
             # compile parameters
-            self.make_local(_param)
+            self.make_local(_param, self.node["loc"])
     
         # ========== body|
         # ===============|

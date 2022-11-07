@@ -1,17 +1,15 @@
 
 
-
-def hasher(_key:str):
-    _key = str(_key)
-    
-    if  len(_key) <= 0: return 0
-
-    _hashcode = 0
-    for char in _key:
-        _hashcode = ((_hashcode << 5) - _hashcode) + ord(char)
-        _hashcode |= 0
-    
-    return _hashcode
+# deprecated: produces alot of collision
+# uses python hash instead
+# def hasher(_key:str):
+#     _key = str(_key)
+#     if  len(_key) <= 0: return 0
+#     _hashcode = 0
+#     for char in _key:
+#         _hashcode  = ((_hashcode << 5) - _hashcode) + ord(char)
+#         _hashcode |= 0
+#     return _hashcode
 
 
 class Node(object):
@@ -40,12 +38,34 @@ class LinkedList(Node):
 
         self.tail = _data
         return
+    
+    def __str__(self) :
+        _count = 0
+        _head = self
+
+        while _head:
+            _count += 1
+            _head = _head.tail
+
+        return "<LinkedList with %d node count/>" % _count
 
 
 
 class HashMap(object):
     """ 
     """
+
+    def walk(self, _key:str):
+        for _ll in self.__bucket:
+            if  _ll:
+                _head = _ll
+                while _head:
+                    if  _head.nkey == _key:
+                        return _head.data
+                    
+                    _head = _head.tail
+
+        return _head
 
     def __init__(self):
         self.__nitems =  0
@@ -55,7 +75,7 @@ class HashMap(object):
         ]
     
     def put(self, _key:str, _data:object):
-        _bucket_index = hasher(_key) % self.__bcount
+        _bucket_index = hash(_key) % self.__bcount
         if  self.__bucket[_bucket_index] != None:
             # collision | update
             return self.__bucket[_bucket_index].append(Node(_key, _data))
@@ -69,8 +89,8 @@ class HashMap(object):
             self.__rehash()
         
     def get(self, _key:str):
-        _hashed_key = hasher(_key) % self.__bcount
-        assert self.__bucket[_hashed_key] != None, "key error: key '%s' not found!" % _key
+        _hashed_key = hash(_key) % self.__bcount
+        assert self.hasKey(_key), "key error: key '%s' not found!" % _key
 
         _head = self.__bucket[_hashed_key]
 
@@ -90,13 +110,15 @@ class HashMap(object):
         """
         # increase by mupltiply of 2 := 16 * 2 = 32
         self.__bcount *= 2
-        self.copy = self.__bucket
+        self.__nitems = 0
+
+        _copy = self.__bucket
         self.__bucket = [
             None for _ in range(self.__bcount)
         ]
 
-        for node in self.__bucket:
-            if  node != None:
+        for node in _copy:
+            if  node:
                 last = node
                 while last:
                     self.put(last.nkey, last.data)
@@ -112,13 +134,13 @@ class HashMap(object):
                 while _last:
                     _keys.append(_last.nkey)
                     _last = _last.tail
-        
+       
         return _keys
     
     def hasKey(self, _key:str):
         """ Checks if key exists
         """
-        _bucket_index = hasher(_key) % self.__bcount
+        _bucket_index = hash(_key) % self.__bcount
         if  self.__bucket[_bucket_index] == None:
             return False
         _head = self.__bucket[_bucket_index]

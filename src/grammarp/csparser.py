@@ -2,7 +2,7 @@ from enum import Enum
 
 
 # .
-from .cstoken import TokenType
+from .cstoken import CSToken, TokenType
 from .cslexer import CSLexer
 
 # utility
@@ -38,6 +38,27 @@ class ContextUtils(object):
         if  not _binded:
             return show_error("invalid \"%s\" outside %s scope" % (self.cstoken.token, _context_type.name.lower()), self.cstoken)
 
+
+class CSParser(ContextUtils):pass
+
+
+def getLocation(_phase:CSLexer|CSParser, _start:CSToken, _end:CSToken=None) -> CSToken:
+    ...
+    if not _end: return _start.trace
+
+    _loc = CSToken(TokenType.DYNAMIC_LOCATION)
+    _loc.fsrce = _phase.fpath
+    _loc.xS    = _start.xS
+    _loc.xE    = _end.xE
+    _loc.yS    = _start.yS
+    _loc.yE    = _end.yE
+
+    _loc.addTrace(_phase)
+
+    return _loc.trace
+
+
+
 class CSParser(ContextUtils):
     """ CSParser
 
@@ -53,6 +74,7 @@ class CSParser(ContextUtils):
         self.scode:str = _scode
         self.cslexer   = CSLexer(self.fpath, self.scode)
         self.cstoken   = self.cslexer.getNext()
+        self.previous  = self.cstoken
 
     def eat(self, _token, _ttype=None):
         """ Consumes current token
@@ -68,9 +90,11 @@ class CSParser(ContextUtils):
         if  self.cstoken.matches(_token):
             if  _ttype:
                 if  self.cstoken.matches(_ttype):
+                    self.previous = self.cstoken
                     self.cstoken = self.cslexer.getNext()
                     return
             else:
+                self.previous = self.cstoken
                 self.cstoken = self.cslexer.getNext()
                 return
         
@@ -139,6 +163,7 @@ class CSParser(ContextUtils):
             return ({
                 TYPE   : ExpressionType.BOOLEAN,
                 "const": _bool.token,
+                "loc"  : getLocation(self, _bool)
             })
         
         # null:
@@ -153,7 +178,8 @@ class CSParser(ContextUtils):
             # return as null
             return ({
                 TYPE   : ExpressionType.NULL,
-                "const": _null.token
+                "const": _null.token,
+                "loc"  : getLocation(self, _null)
             })
         
         # function(){...}
@@ -161,6 +187,8 @@ class CSParser(ContextUtils):
             self.enter(ContextType.FUNCTION) # enter function
             self.enter(ContextType.LOCAL)       # enter local ofcourse!
 
+
+            _funcS = self.cstoken
 
             self.eat("func", TokenType.IDENTIFIER)
 
@@ -172,6 +200,10 @@ class CSParser(ContextUtils):
 
             _func_body = function_body()
 
+            _funcE = self.previous
+
+            print(getLocation(self, _funcS, _funcE))
+
             self.leave()      # leave local
             self.leave() # leave function
 
@@ -179,7 +211,8 @@ class CSParser(ContextUtils):
             return ({
                 TYPE   : ExpressionType.FUNCTION_EXPR,
                 "param": _parameters,
-                "body" : _func_body
+                "body" : _func_body,
+                "loc"  : getLocation(self, _funcS, _funcE)
             })
         
         # cstoken: identifier
@@ -210,7 +243,8 @@ class CSParser(ContextUtils):
             # return as ref
             return ({
                 TYPE : ExpressionType.VARIABLE,
-                "var": _idn.token
+                "var": _idn.token,
+                "loc"  : getLocation(self, _idn)
             })
 
         # ineteger
@@ -225,7 +259,8 @@ class CSParser(ContextUtils):
             # return as int
             return ({
                 TYPE   : ExpressionType.INTEGER,
-                "const": _int.token
+                "const": _int.token,
+                "loc"  : getLocation(self, _int)
             })
 
         # float|double
@@ -240,7 +275,8 @@ class CSParser(ContextUtils):
             # return as double
             return ({
                 TYPE   : ExpressionType.DOUBLE,
-                "const": _dbl.token
+                "const": _dbl.token,
+                "loc"  : getLocation(self, _dbl)
             })
 
 
@@ -254,7 +290,8 @@ class CSParser(ContextUtils):
             # return as str
             return ({
                 TYPE   : ExpressionType.STRING,
-                "const": _str.token
+                "const": _str.token,
+                "loc"  : getLocation(self, _str)
             })
         
         # atom: boolean
@@ -292,16 +329,20 @@ class CSParser(ContextUtils):
 
         # array: '[' array_elements ']'
         def array():
+            _arrS = self.cstoken
             self.eat("[", TokenType.OPERATOR)
 
             _elements = array_elements()
 
             self.eat("]", TokenType.OPERATOR)
+            
+            _arrE = self.previous
 
             # return as array
             return ({
                 TYPE      : ExpressionType.ARRAY,
-                "elements": _elements
+                "elements": _elements,
+                "loc"  : getLocation(self, _arrS, _arrE)
             })
         
         # multi-purpose: used in: ["call_args", "array", "switch_matches", "print_stmnt"]
@@ -328,16 +369,20 @@ class CSParser(ContextUtils):
         
         # csobject: '{' csobject_element '}';
         def csobject():
+            _objS = self.cstoken
             self.eat("{", TokenType.OPERATOR)
 
             _elements = csobject_element()
 
             self.eat("}", TokenType.OPERATOR)
 
+            _objE = self.previous
+
             # return as object
             return ({
                 TYPE      : ExpressionType.OBJECT,
-                "elements": _elements
+                "elements": _elements,
+                "loc"  : getLocation(self, _objS, _objE)
             })
         
         # csobject_element: single_attribute*;
@@ -413,7 +458,10 @@ class CSParser(ContextUtils):
         # ;
         def allocation():
             if  self.cstoken.matches(TokenType.IDENTIFIER) and \
-                self.cstoken.matches("new"):
+                 self.cstoken.matches("new"):
+
+                _allocS = self.cstoken
+
                 _unary_opt = self.cstoken
                 self.eat(_unary_opt.ttype)
 
@@ -424,11 +472,14 @@ class CSParser(ContextUtils):
                 _args = array_elements()
 
                 self.eat(")", TokenType.OPERATOR)
+
+                _allocE = self.previous
                 
                 return ({
                     TYPE        : ExpressionType.ALLOCATION,
                     "right-hand": _expression,
-                    "arguments" : _args
+                    "arguments" : _args,
+                    "loc"  : getLocation(self, _allocS, _allocE)
                 })
             
             return other_type()
@@ -438,6 +489,7 @@ class CSParser(ContextUtils):
         # | other_type '[' non_nullable_expression ']'
         # ;
         def member_access():
+            _memS = self.cstoken
             _node = allocation()
             if not _node: return _node
 
@@ -452,10 +504,13 @@ class CSParser(ContextUtils):
                     # attrib
                     _member = raw_identifier()
 
+                    _memE = self.previous
+
                     _node = ({
                         TYPE    : ExpressionType.MEMBER,
                         "left"  : _node,
-                        "member": _member
+                        "member": _member,
+                        "loc"   : getLocation(self, _memS, _memE)
                     })
 
                 elif self.cstoken.matches("["):
@@ -464,11 +519,14 @@ class CSParser(ContextUtils):
                     _expr = non_nullable_expression()
 
                     self.eat("]", TokenType.OPERATOR)
+
+                    _memE = self.previous
                 
                     _node = ({
                         TYPE   : ExpressionType.SUBSCRIPT,
                         "left" : _node,
-                        "index": _expr
+                        "index": _expr,
+                        "loc"  : getLocation(self, _memS, _memE)
                     })
 
             return _node
@@ -484,6 +542,7 @@ class CSParser(ContextUtils):
         # | other_type '(' call_args ')'
         # ;
         def call_expression():
+            _memS = self.cstoken
             _node = member_access()
             if not _node: return _node
 
@@ -499,11 +558,13 @@ class CSParser(ContextUtils):
                     # attrib
                     _attr = raw_identifier()
 
+                    _memE = self.previous
 
                     _node = ({
                         TYPE    : ExpressionType.MEMBER,
                         "left"  : _node,
-                        "member": _attr
+                        "member": _attr,
+                        "loc"   : getLocation(self, _memS, _memE)
                     })
 
 
@@ -513,11 +574,14 @@ class CSParser(ContextUtils):
                     _expr = non_nullable_expression()
 
                     self.eat("]", TokenType.OPERATOR)
-                
-                    node = ({
+
+                    _memE = self.previous
+
+                    _node = ({
                         TYPE   : ExpressionType.SUBSCRIPT,
                         "left" : _node,
-                        "index": _expr
+                        "index": _expr,
+                        "loc"  : getLocation(self, _memS, _memE)
                     })
 
                 elif self.cstoken.matches("("):
@@ -527,10 +591,13 @@ class CSParser(ContextUtils):
 
                     self.eat(")", TokenType.OPERATOR)
 
+                    _memE = self.previous
+
                     _node = ({
                         TYPE  : ExpressionType.CALL,
                         "left": _node,
-                        "args": _args
+                        "args": _args,
+                        "loc" : getLocation(self, _memS, _memE)
                     })
 
             return _node
@@ -539,6 +606,7 @@ class CSParser(ContextUtils):
         # | ('~' | '!' | '+' | '-') unary_op
         # ;
         def unary_op():
+            _unaS = self.cstoken
 
             if   self.cstoken.matches(TokenType.OPERATOR) and \
                 (self.cstoken.matches("~") or \
@@ -550,12 +618,15 @@ class CSParser(ContextUtils):
                 self.eat(_opt.ttype)
 
                 _exp = unary_op()
+
+                _unaE = self.previous
                 
                 # return as unary expr
                 return ({
                     TYPE   : ExpressionType.UNARY_EXPR,
                     "opt"  : _opt.token,
-                    "right": _exp
+                    "right": _exp,
+                    "loc"  : getLocation(self, _unaS, _unaE)
                 })
 
             return call_expression()
@@ -564,6 +635,7 @@ class CSParser(ContextUtils):
         # | unary_op "^^" unary_op
         # ;
         def power():
+            _binS = self.cstoken
             _node = unary_op()
             if not _node: return _node
             
@@ -575,12 +647,15 @@ class CSParser(ContextUtils):
                 _rhs = unary_op()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.BINARY_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -592,6 +667,7 @@ class CSParser(ContextUtils):
         # | power '%' power
         # ;
         def multiplicative():
+            _binS = self.cstoken
             _node = power()
             if not _node: return _node
             
@@ -606,12 +682,15 @@ class CSParser(ContextUtils):
                 _rhs = power()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.BINARY_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -622,6 +701,7 @@ class CSParser(ContextUtils):
         # | multiplicative '-' multiplicative
         # ;
         def addetive():
+            _binS = self.cstoken
             _node = multiplicative()
             if not _node: return _node
 
@@ -635,12 +715,15 @@ class CSParser(ContextUtils):
                 _rhs = multiplicative()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.BINARY_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -651,6 +734,7 @@ class CSParser(ContextUtils):
         # | addetive ">>" addetive
         # ;
         def shift():
+            _binS = self.cstoken
             _node = addetive()
             if not _node: return _node
 
@@ -664,12 +748,15 @@ class CSParser(ContextUtils):
                 _rhs = addetive()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.BINARY_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -682,6 +769,7 @@ class CSParser(ContextUtils):
         # | shift ">=" shift
         # ;
         def relational():
+            _binS = self.cstoken
             _node = shift()
             if not _node: return _node
 
@@ -697,12 +785,15 @@ class CSParser(ContextUtils):
                 _rhs = shift()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.COMPARE_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -713,6 +804,7 @@ class CSParser(ContextUtils):
         # | relational "!=" relational
         # ;
         def equality():
+            _binS = self.cstoken
             _node = relational()
             if not _node: return _node
 
@@ -726,12 +818,15 @@ class CSParser(ContextUtils):
                 _rhs = relational()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.COMPARE_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -743,6 +838,7 @@ class CSParser(ContextUtils):
         # | equality '|' equality 
         # ;
         def bitwise():
+            _binS = self.cstoken
             _node = equality()
             if not _node: return _node
 
@@ -757,12 +853,15 @@ class CSParser(ContextUtils):
                 _rhs = equality()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.BINARY_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -773,6 +872,7 @@ class CSParser(ContextUtils):
         # | bitwise "||" bitwise
         # ;
         def logical():
+            _binS = self.cstoken
             _node = bitwise()
             if not _node: return _node
 
@@ -786,12 +886,15 @@ class CSParser(ContextUtils):
                 _rhs = bitwise()
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
-            
+
+                _binE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.LOGICAL_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _binS, _binE)
                 })
 
             # return node
@@ -799,6 +902,8 @@ class CSParser(ContextUtils):
         
         # ternary: parenthesis ('?'non_nullable_expression ':' non_nullable_expression)? 
         def ternary():
+            _ternS = self.cstoken
+
             _node = logical()
             if not _node: return _node
 
@@ -814,18 +919,22 @@ class CSParser(ContextUtils):
 
             _fv = non_nullable_expression()
 
+            _ternE = self.previous
+
             # return as ternary
             return ({
                 TYPE       : ExpressionType.TERNARY_EXPR,
                 "condition": _node,
                 "ift"      : _tv,
-                "iff"      : _fv
+                "iff"      : _fv,
+                "loc"  : getLocation(self, _ternS, _ternE)
             })
     
         # simple_assignment: logical
         # | logical '=' logical
         # ;
         def simple_assignment():
+            _assS = self.cstoken
             _node = ternary()
             if not _node: return _node
 
@@ -838,11 +947,14 @@ class CSParser(ContextUtils):
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
 
+                _assE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.ASSIGNMENT_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _assS, _assE)
                 })
 
             return _node
@@ -861,6 +973,7 @@ class CSParser(ContextUtils):
         # | simple_assignment "|="  simple_assignment
         # ;
         def augmented_assignment():
+            _augS = self.cstoken
             _node = simple_assignment()
             if not _node: return _node
 
@@ -884,11 +997,14 @@ class CSParser(ContextUtils):
                 if  not _rhs:
                     return show_error("missing right-hand expression \"%s\"" % _opt.token, _opt)
 
+                _augE = self.previous
+
                 _node = ({
                     TYPE   : ExpressionType.AUGMENTED_EXPR,
                     "opt"  : _opt.token,
                     "left" : _node,
-                    "right": _rhs
+                    "right": _rhs,
+                    "loc"  : getLocation(self, _augS, _augE)
                 })
 
             return _node
@@ -915,6 +1031,8 @@ class CSParser(ContextUtils):
         
             self.enter(ContextType.CLASS)
 
+            _clsS = self.cstoken
+
             self.eat("class", TokenType.IDENTIFIER)
 
             # class name
@@ -929,6 +1047,8 @@ class CSParser(ContextUtils):
             # body containing member
             _body = class_body()
 
+            _clsE = self.previous
+
             self.leave()
 
             # return as class
@@ -936,7 +1056,8 @@ class CSParser(ContextUtils):
                 TYPE: SyntaxType.CLASS_DEC,
                 "name": _name,
                 "base": _base,
-                "body": _body
+                "body": _body,
+                "loc"  : getLocation(self, _clsS, _clsE)
             })
         
         def class_body():
@@ -961,16 +1082,22 @@ class CSParser(ContextUtils):
             # ===================|
             self.bind(ContextType.CLASS, _immediate=True)
 
+            _decS = self.cstoken
+
             self.eat("val", TokenType.IDENTIFIER)
 
             _assignments = assignment_list()
 
             self.eat(";", TokenType.OPERATOR)
 
+
+            _decE = self.previous
+
             # return as var node
             return ({
                 TYPE         : SyntaxType.VAL_STMNT,
-                "assignments": _assignments
+                "assignments": _assignments,
+                "loc"        : getLocation(self, _decS, _decE)
             })
 
         # class_func_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;
@@ -979,6 +1106,8 @@ class CSParser(ContextUtils):
 
             self.enter(ContextType.FUNCTION) # enter function
             self.enter(ContextType.LOCAL)       # enter local ofcourse!
+
+            _funS = self.cstoken
 
             self.eat("func", TokenType.IDENTIFIER)
 
@@ -992,6 +1121,8 @@ class CSParser(ContextUtils):
 
             _func_body = function_body()
 
+            _funE = self.previous
+
             self.leave()          # leave local
             self.leave() # leave function
 
@@ -1000,7 +1131,8 @@ class CSParser(ContextUtils):
                 TYPE: SyntaxType.CLASS_FUNC_DEC,
                 "name"  : _func_name,
                 "params": _parameters,
-                "body"  : _func_body
+                "body"  : _func_body,
+                "loc"   : getLocation(self, _funS, _funE)
             })
         
 
@@ -1019,6 +1151,8 @@ class CSParser(ContextUtils):
             self.enter(ContextType.FUNCTION) # enter function
             self.enter(ContextType.LOCAL)       # enter local ofcourse!
 
+            _funS = self.cstoken
+
             self.eat("func", TokenType.IDENTIFIER)
 
             _func_name = raw_identifier()
@@ -1031,6 +1165,8 @@ class CSParser(ContextUtils):
 
             _func_body = function_body()
 
+            _funE = self.previous
+
             self.leave()          # leave local
             self.leave() # leave function
 
@@ -1039,7 +1175,8 @@ class CSParser(ContextUtils):
                 TYPE: SyntaxType.FUNC_DEC,
                 "name"  : _func_name,
                 "params": _parameters,
-                "body"  : _func_body
+                "body"  : _func_body,
+                "loc"   : getLocation(self, _funS, _funE)
             })
         
 
@@ -1091,6 +1228,8 @@ class CSParser(ContextUtils):
 
         # if_stmnt: "if" '(' non_nullable_expression ')' compound_stmnt ("else" compound_stmnt)?;
         def if_stmnt():
+            _ifsS = self.cstoken
+
             self.eat("if", TokenType.IDENTIFIER)
 
             self.eat("(", TokenType.OPERATOR)
@@ -1115,17 +1254,22 @@ class CSParser(ContextUtils):
 
             _else_stmnt = compound_stmnt()
 
+            _ifsE = self.previous
+
             # return as if|else node
             return ({
                 TYPE       : SyntaxType.IF_STMNT,
                 "condition": _condition,
                 "statement": _statement,
-                "else"     : _else_stmnt
+                "else"     : _else_stmnt,
+                "loc"      : getLocation(self, _ifsS, _ifsE)
             })
 
         # while_stmnt: "while" '(' non_nullable_expression ')' compound_stmnt ;
         def while_stmnt():
             self.enter(ContextType.LOOP)
+
+            _whsS = self.cstoken
 
             self.eat("while", TokenType.IDENTIFIER)
             
@@ -1137,18 +1281,23 @@ class CSParser(ContextUtils):
 
             _body = compound_stmnt()
 
+            _whsE = self.previous
+
             self.leave()
 
             # return as while
             return ({
                 TYPE       : SyntaxType.WHILE_STMNT,
                 "condition": _condition,
-                "body"     : _body
+                "body"     : _body,
+                "loc"      : getLocation(self, _whsS, _whsE)
             })
         
         # do_while_stmnt: "do" compound_stmnt "while" '(' non_nullable_expression ')';
         def do_while_stmnt():
             self.enter(ContextType.LOOP)
+
+            _whsS = self.cstoken
 
             self.eat("do", TokenType.IDENTIFIER)
 
@@ -1162,17 +1311,21 @@ class CSParser(ContextUtils):
 
             self.eat(")", TokenType.OPERATOR)
 
+            _whsE = self.previous
+
             self.leave()
 
             # return as do while
             return ({
                 TYPE       : SyntaxType.DO_WHILE_STMNT,
                 "condition": _condition,
-                "body"     : _body
+                "body"     : _body,
+                "loc"      : getLocation(self, _whsS, _whsE)
             })
 
         # switch_stmnt: "switch" '(' non_nullable_expression ')' switch_body;
         def switch_stmnt():
+            _swsS = self.cstoken
             self.eat("switch", TokenType.IDENTIFIER)
 
             self.eat("(", TokenType.OPERATOR)
@@ -1183,11 +1336,14 @@ class CSParser(ContextUtils):
 
             _body = switch_body()
 
+            _swsE = self.previous
+
             # return as switch
             return ({
                 TYPE       : SyntaxType.SWITCH_STMNT,
                 "condition": _condition,
-                "body"     : _body
+                "body"     : _body,
+                "loc"      : getLocation(self, _swsS, _swsE)
             })
         
         # switch_body: '{' ("case" switch_matches ':' compound_stmnt)* ("else" ':' compound_stmnt)? '}'
@@ -1230,6 +1386,7 @@ class CSParser(ContextUtils):
 
         # try/except
         def try_except():
+            _tefS = self.cstoken
             self.eat("try", TokenType.IDENTIFIER)
 
             _try_body = block_stmnt()
@@ -1251,13 +1408,16 @@ class CSParser(ContextUtils):
 
                 _finally_body = block_stmnt()
             
+            _tefE = self.previous
+            
             # return as try/except node
             return ({
                 TYPE           : SyntaxType.TRY_EXCEPT,
                 "try_block"    : _try_body,
                 "except_param" : _parameter,
                 "except_block" : _except_body,
-                "finally_block": _finally_body
+                "finally_block": _finally_body,
+                "loc"          : getLocation(self, _tefS, _tefE)
             })
 
 
@@ -1266,6 +1426,8 @@ class CSParser(ContextUtils):
             self.enter(ContextType.LOCAL)
             
             _statements = []
+
+            _blkS = self.cstoken
 
             self.eat("{", TokenType.OPERATOR)
 
@@ -1276,12 +1438,15 @@ class CSParser(ContextUtils):
 
             self.eat("}", TokenType.OPERATOR)
 
+            _blkE = self.previous
+
             self.leave()
 
             # return as block node
             return ({
                 TYPE   : SyntaxType.BLOCK, 
-                "block": _statements
+                "block": _statements,
+                "loc"  : getLocation(self, _blkS, _blkE)
             })
         
         # compound_stmnt: class_dec
@@ -1317,15 +1482,20 @@ class CSParser(ContextUtils):
         def import_stmnt():
             self.bind(ContextType.GLOBAL, _immediate=True)
 
+            _impS = self.cstoken
+
             self.eat("import", TokenType.IDENTIFIER)
 
             _source = raw_identifier()
 
             self.eat(";", TokenType.OPERATOR)
 
+            _impE = self.previous
+
             return ({
                 TYPE    : SyntaxType.IMPORT_STMNT,
-                "source": _source
+                "source": _source,
+                "loc"   : getLocation(self, _impS, _impE)
             })
 
 
@@ -1335,21 +1505,28 @@ class CSParser(ContextUtils):
             # ===================|
             self.bind(ContextType.GLOBAL, _immediate=True)
 
+            _decS = self.cstoken
+
             self.eat("var", TokenType.IDENTIFIER)
 
             _assignments = assignment_list()
 
             self.eat(";", TokenType.OPERATOR)
 
+            _decE = self.previous
+
             # return as var node
             return ({
                 TYPE         : SyntaxType.VAR_STMNT,
-                "assignments": _assignments
+                "assignments": _assignments,
+                "loc"        : getLocation(self, _decS, _decE)
             })
 
         # let_stmnt: "let" assignment_list;
         def let_stmnt():
             self.bind(ContextType.LOCAL, _immediate=True)
+
+            _decS = self.cstoken
 
             self.eat("let", TokenType.IDENTIFIER)
 
@@ -1357,10 +1534,13 @@ class CSParser(ContextUtils):
 
             self.eat(";", TokenType.OPERATOR)
 
+            _decE = self.previous
+
             # retu as let node
             return ({
                 TYPE         : SyntaxType.LET_STMNT,
-                "assignments": _assignments
+                "assignments": _assignments,
+                "loc"        : getLocation(self, _decS, _decE)
             })
 
         # assignment_list: assignment_pair+;
@@ -1398,19 +1578,25 @@ class CSParser(ContextUtils):
         
         # throw_stmnt: "throw" non_nullable_expression ';' ;
         def throw_stmnt():
+            _thrS = self.cstoken
             self.eat("throw", TokenType.IDENTIFIER)
 
             _expr = non_nullable_expression()
 
             self.eat(";", TokenType.OPERATOR)
 
+            _thrE = self.previous
+
             return ({
                 TYPE        : SyntaxType.THROW_STMNT,
-                "expression": _expr
+                "expression": _expr,
+                "loc"       : getLocation(self, _thrS, _thrE)
             })
         
         # assert_stmnt: "assert" non_nullable_expression ',' non_nullable_expression ';';
         def assert_stmnt():
+            _assS = self.cstoken
+
             self.eat("assert", TokenType.IDENTIFIER)
 
             _cond = non_nullable_expression()
@@ -1421,33 +1607,46 @@ class CSParser(ContextUtils):
 
             self.eat(";", TokenType.OPERATOR)
 
+            _assE = self.previous
+
             return ({
                 TYPE: SyntaxType.ASSERTT_STMNT,
                 "condition": _cond,
-                "message"  : _message
+                "message"  : _message,
+                "loc"      : getLocation(self, _assS, _assE)
             })
         
         # break_stmnt: "break" ';';
         def break_stmnt():
             self.bind(ContextType.LOOP)
 
+            _brkS = self.cstoken
+
             self.eat("break", TokenType.IDENTIFIER)
             self.eat(";", TokenType.OPERATOR)
 
-            return ({TYPE: SyntaxType.BREAK_STMNT})
+            _brkE = self.previous
+
+            return ({TYPE: SyntaxType.BREAK_STMNT, "loc": getLocation(self, _brkS, _brkE)})
         
         # continue_stmnt: "continue" ';';
         def continue_stmnt():
             self.bind(ContextType.LOOP)
 
+            _conS = self.cstoken
+
             self.eat("continue", TokenType.IDENTIFIER)
             self.eat(";", TokenType.OPERATOR)
 
-            return ({TYPE: SyntaxType.CONTINUE_STMNT})
+            _conE = self.previous
+
+            return ({TYPE: SyntaxType.CONTINUE_STMNT, "loc": getLocation(self, _conS, _conE)})
 
         # return_stmnt: "return" nullable_expression ';';
         def return_stmnt():
             self.bind(ContextType.FUNCTION)
+
+            _retS = self.cstoken
 
             self.eat("return", TokenType.IDENTIFIER)
 
@@ -1455,14 +1654,19 @@ class CSParser(ContextUtils):
 
             self.eat(";", TokenType.OPERATOR)
 
+            _retE = self.previous
+
             return ({
                 TYPE        : SyntaxType.RETURN_STMNT,
-                "expression": _expr
+                "expression": _expr,
+                "loc"       : getLocation(self, _retS, _retE)
             })
         
         # yes! print is a statement here!
         # print_stmnt: "print" ':' array_elements ';';
         def print_stmnt():
+            _retS = self.cstoken
+
             self.eat("print", TokenType.IDENTIFIER)
             self.eat(":", TokenType.OPERATOR)
 
@@ -1470,24 +1674,32 @@ class CSParser(ContextUtils):
 
             self.eat(";", TokenType.OPERATOR)
 
+            _retE = self.previous
+
             # return as print node
             return ({
                 TYPE         : SyntaxType.PRINT_STMNT,
                 "expressions": _expr_list,
+                "loc"        : getLocation(self, _retS, _retE)
             })
 
         # expression_stmnt: (nullable_expression ';')? ;
         def expression_stmnt():
+            _expS = self.cstoken
+
             _expr = nullable_expression()
             if not _expr: return _expr
 
             # eat
             self.eat(";", TokenType.OPERATOR)
 
+            _expE = self.previous
+
             # return as expr stmnt
             return ({
                 TYPE        : SyntaxType.EXPRESSION_STMNT,
-                "expression": _expr
+                "expression": _expr,
+                "loc"       : getLocation(self, _expS, _expE)
             })
         
 

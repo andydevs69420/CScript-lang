@@ -18,6 +18,7 @@ class Instruction(object):
         self.offset = _offset
         self.opcode = _opcode
         self.kwargs = _kwargs
+        self.hidden = _kwargs["__hidden__"] if "__hidden__" in _kwargs.keys() else []
     
     def get(self, _key:str):
         return self.kwargs[_key]
@@ -26,8 +27,10 @@ class Instruction(object):
         _head = f"[{self.offset}] {self.opcode.name}"
         _args = ""
         for k,v in zip(self.kwargs.keys(), self.kwargs.values()):
-            _args += f"{k} = {v.__str__()}"
-            _args += ", "
+
+            if  k != "__hidden__" and k not in self.hidden:
+                _args += f"{k} = {v.__str__()}"
+                _args += ", "
         if _args.endswith(", "): _args = _args[0:-2]
 
         if len(_args) > 0:
@@ -169,17 +172,20 @@ class Compilable(object):
             )
         )
 
-    def push_name(self, _name:str):
+    def push_name(self, _name:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.PUSH_NAME, name=_name
+                CSOpCode.PUSH_NAME, name=_name, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
     def push_local(self, _name:str, _offset:int):
+        """ Deprecated
+        """
+        raise RuntimeError("use of deprecated methods")
         self.__instructions\
         .append(
             Instruction(
@@ -189,62 +195,65 @@ class Compilable(object):
         )
     
     
-    def get_attrib(self, _attrib:str):
+    def get_attrib(self, _attrib:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.GET_ATTRIB, attr=_attrib
+                CSOpCode.GET_ATTRIB, attr=_attrib, loc=_loc, __hidden__=["loc"]
             )
         )
     
-    def get_method(self, _attrib:str):
+    def get_method(self, _attrib:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.GET_METHOD, attr=_attrib
+                CSOpCode.GET_METHOD, attr=_attrib, loc=_loc, __hidden__=["loc"]
             )
         )
 
     
-    def set_attrib(self, _attrib:str):
+    def set_attrib(self, _attrib:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.SET_ATTRIB, attr=_attrib
+                CSOpCode.SET_ATTRIB, attr=_attrib, loc=_loc, __hidden__=["loc"]
             )
         )
     
-    def make_var(self, _name:str):
+    def make_var(self, _name:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.MAKE_VAR, name=_name
+                CSOpCode.MAKE_VAR, name=_name, loc=_loc, __hidden__=["loc"]
             )
         )
 
-    def store_name(self, _name:str):
+    def make_local(self, _name:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.STORE_NAME, name=_name
+                CSOpCode.MAKE_LOCAL, name=_name, loc=_loc, __hidden__=["loc"]
             )
         )
-    
-    def make_local(self, _name:str):
+
+    def store_name(self, _name:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.MAKE_LOCAL, name=_name
+                CSOpCode.STORE_NAME, name=_name, loc=_loc, __hidden__=["loc"]
             )
         )
     
     def store_local(self, _name:str):
+        """ Deprecated
+        """
+        raise RuntimeError("use of deprecated methods")
         self.__instructions\
         .append(
             Instruction(
@@ -254,141 +263,141 @@ class Compilable(object):
         )
     
     
-    def call(self, _size:int):
+    def call(self, _size:int, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.CALL, size=_size
+                CSOpCode.CALL, size=_size, loc=_loc, __hidden__=["loc"]
             )
         )
     
-    def call_method(self, _size:int):
+    def call_method(self, _size:int, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.CALL_METHOD, size=_size
+                CSOpCode.CALL_METHOD, size=_size, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def unary_op(self, _operator:str, _size:int):
+    def unary_op(self, _operator:str, _size:int, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.UNARY_OP, opt=_operator, size=_size
-            )
-        )
-
-    
-    def binary_pow(self, _operator:str):
-        self.__instructions\
-        .append(
-            Instruction(
-                len(self.__instructions) * 2,
-                CSOpCode.BINARY_POW, opt=_operator
+                CSOpCode.UNARY_OP, opt=_operator, size=_size, loc=_loc, __hidden__=["loc"]
             )
         )
 
     
-    def binary_mul(self, _operator:str):
+    def binary_pow(self, _operator:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.BINARY_MUL, opt=_operator
-            )
-        )
-    
-    
-    def binary_div(self, _operator:str):
-        self.__instructions\
-        .append(
-            Instruction(
-                len(self.__instructions) * 2,
-                CSOpCode.BINARY_DIV, opt=_operator
-            )
-        )
-    
-    
-    def binary_mod(self, _operator:str):
-        self.__instructions\
-        .append(
-            Instruction(
-                len(self.__instructions) * 2,
-                CSOpCode.BINARY_MOD, opt=_operator
+                CSOpCode.BINARY_POW, opt=_operator, loc=_loc, __hidden__=["loc"]
             )
         )
 
     
-    def binary_add(self, _operator:str):
+    def binary_mul(self, _operator:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.BINARY_ADD, opt=_operator
+                CSOpCode.BINARY_MUL, opt=_operator, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def binary_sub(self, _operator:str):
+    def binary_div(self, _operator:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.BINARY_SUB, opt=_operator
-            )
-        )
-
-    
-    def binary_lshift(self, _operator:str):
-        self.__instructions\
-        .append(
-            Instruction(
-                len(self.__instructions) * 2,
-                CSOpCode.BINARY_LSHIFT, opt=_operator
-            )
-        )
-
-    
-    def binary_rshift(self, _operator:str):
-        self.__instructions\
-        .append(
-            Instruction(
-                len(self.__instructions) * 2,
-                CSOpCode.BINARY_RSHIFT, opt=_operator
+                CSOpCode.BINARY_DIV, opt=_operator, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def binary_and(self, _operator:str):
+    def binary_mod(self, _operator:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.BINARY_AND, opt=_operator
+                CSOpCode.BINARY_MOD, opt=_operator, loc=_loc, __hidden__=["loc"]
             )
         )
 
     
-    def binary_xor(self, _operator:str):
+    def binary_add(self, _operator:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.BINARY_XOR, opt=_operator
+                CSOpCode.BINARY_ADD, opt=_operator, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def binary_or(self, _operator:str):
+    def binary_sub(self, _operator:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.BINARY_OR, opt=_operator
+                CSOpCode.BINARY_SUB, opt=_operator, loc=_loc, __hidden__=["loc"]
+            )
+        )
+
+    
+    def binary_lshift(self, _operator:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.BINARY_LSHIFT, opt=_operator, loc=_loc, __hidden__=["loc"]
+            )
+        )
+
+    
+    def binary_rshift(self, _operator:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.BINARY_RSHIFT, opt=_operator, loc=_loc, __hidden__=["loc"]
+            )
+        )
+    
+    
+    def binary_and(self, _operator:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.BINARY_AND, opt=_operator, loc=_loc, __hidden__=["loc"]
+            )
+        )
+
+    
+    def binary_xor(self, _operator:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.BINARY_XOR, opt=_operator, loc=_loc, __hidden__=["loc"]
+            )
+        )
+    
+    
+    def binary_or(self, _operator:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.BINARY_OR, opt=_operator, loc=_loc, __hidden__=["loc"]
             )
         )
     
@@ -413,12 +422,12 @@ class Compilable(object):
         )
     
     
-    def compare_op(self, _operator:str):
+    def compare_op(self, _operator:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.COMPARE_OP, opt=_operator
+                CSOpCode.COMPARE_OP, opt=_operator, loc=_loc, __hidden__=["loc"]
             )
         )
     

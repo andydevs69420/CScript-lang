@@ -9,7 +9,7 @@ from utility import ExpressionType
 
 class CSEval(object):
 
-    def evaluate(self,_node:dict):
+    def evaluate(self, _node:dict):
         match _node["type"]:
             case ExpressionType.INTEGER:
                 return self.ev_integer(_node)
@@ -57,7 +57,7 @@ class CSEval(object):
         _a = self.evaluate(_node["left" ])
         _b = self.evaluate(_node["right"])
 
-        if  ((_a or _b) == ...):
+        if  ((_a and _b) == ...):
             # specify ellipsis return
             return ...
         
@@ -98,16 +98,24 @@ class CSEval(object):
             elif _b == None:
                 _rename_b = "null"
 
-            CSXCompileError.csx_Error("TypeError: invalid expression %s %s %s!" % (_rename_a, _node["opt"], _rename_b))
+            return \
+                CSXCompileError.csx_Error(
+                    ("TypeError: illegal expression \"%s %s %s\" ! \n" % (_rename_a, _node["opt"], _rename_b))
+                    + _node["loc"]
+                )
         except ZeroDivisionError:
-            ...
+            return \
+                CSXCompileError.csx_Error(
+                    ("ZeroDivisionError: division by zero \"%s %s %s\" ! \n" % (_rename_a, _node["opt"], _rename_b))
+                    + _node["loc"]
+                )
 
     # eval compare
     def ev_compare(self, _node:dict):
         _a = self.evaluate(_node["left" ])
         _b = self.evaluate(_node["right"])
 
-        if  ((_a or _b) == ...):
+        if  ((_a and _b) == ...):
             # specify ellipsis return
             return ...
         
@@ -138,13 +146,17 @@ class CSEval(object):
             elif _b == None:
                 _rename_b = "null"
 
-            CSXCompileError.csx_Error("TypeError: invalid expression %s %s %s!" % (_rename_a, _node["opt"], _rename_b))
+            return \
+                CSXCompileError.csx_Error(
+                    ("TypeError: illegal expression \"%s %s %s\" ! \n" % (_rename_a, _node["opt"], _rename_b))
+                    + _node["loc"]
+                )
     
     def ev_logical(self, _node:dict):
         _a = self.evaluate(_node["left" ])
         _b = self.evaluate(_node["right"])
 
-        if  ((_a or _b) == ...):
+        if  ((_a and _b) == ...):
             # specify ellipsis return
             return ...
 
