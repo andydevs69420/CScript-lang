@@ -13,28 +13,29 @@ from .csfunction import CSFunction
 from .csnativefunction import CSNativeFunction
 
 
-# utility
-from utility import logger
+PROTO_ATTR_NAME__uplus__       = "__uplus__"
+PROTO_ATTR_NAME__iplusplus__   = "__iplusplus__"
+PROTO_ATTR_NAME__uminus__      = "__uminus__"
+PROTO_ATTR_NAME__iminusminus__ = "__iminusminus__"
 
-
-PROTO_ATTR_NAME__pow__       = "__pow__"
-PROTO_ATTR_NAME__mul__       = "__mul__"
-PROTO_ATTR_NAME__div__       = "__div__"
-PROTO_ATTR_NAME__mod__       = "__mod__"
-PROTO_ATTR_NAME__add__       = "__add__"
-PROTO_ATTR_NAME__sub__       = "__sub__"
-PROTO_ATTR_NAME__lshift__    = "__lshift__"
-PROTO_ATTR_NAME__rshift__    = "__rshift__"
-PROTO_ATTR_NAME__lt__        = "__lt__"
-PROTO_ATTR_NAME__lte__       = "__lte__"
-PROTO_ATTR_NAME__gt__        = "__gt__"
-PROTO_ATTR_NAME__gte__       = "__gte__"
-PROTO_ATTR_NAME__eq__        = "__eq__"
-PROTO_ATTR_NAME__neq__       = "__neq__"
-PROTO_ATTR_NAME__and__       = "__and__"
-PROTO_ATTR_NAME__xor__       = "__xor__"
-PROTO_ATTR_NAME__or__        = "__or__"
-PROTO_ATTR_NAME__toString__  = "__toString__"
+PROTO_ATTR_NAME__pow__         = "__pow__"
+PROTO_ATTR_NAME__mul__         = "__mul__"
+PROTO_ATTR_NAME__div__         = "__div__"
+PROTO_ATTR_NAME__mod__         = "__mod__"
+PROTO_ATTR_NAME__add__         = "__add__"
+PROTO_ATTR_NAME__sub__         = "__sub__"
+PROTO_ATTR_NAME__lshift__      = "__lshift__"
+PROTO_ATTR_NAME__rshift__      = "__rshift__"
+PROTO_ATTR_NAME__lt__          = "__lt__"
+PROTO_ATTR_NAME__lte__         = "__lte__"
+PROTO_ATTR_NAME__gt__          = "__gt__"
+PROTO_ATTR_NAME__gte__         = "__gte__"
+PROTO_ATTR_NAME__eq__          = "__eq__"
+PROTO_ATTR_NAME__neq__         = "__neq__"
+PROTO_ATTR_NAME__and__         = "__and__"
+PROTO_ATTR_NAME__xor__         = "__xor__"
+PROTO_ATTR_NAME__or__          = "__or__"
+PROTO_ATTR_NAME__toString__    = "__toString__"
 
 
 def is_integer(_csobject:CSObject):
@@ -123,25 +124,30 @@ def csB__object_proto(_env):
     _csobject = _env.vheap.cs__malloc(CSObject())
 
     # proto attr
-    _csobject.put(CSTypes.TYPE_CSOBJECT      , csB__object__constructor(_env)) # default constructor
-    _csobject.put(PROTO_ATTR_NAME__pow__     , csB__object____pow__    (_env)) # __pow__
-    _csobject.put(PROTO_ATTR_NAME__mul__     , csB__object____mul__    (_env)) # __mul__
-    _csobject.put(PROTO_ATTR_NAME__div__     , csB__object____div__    (_env)) # __div__
-    _csobject.put(PROTO_ATTR_NAME__mod__     , csB__object____mod__    (_env)) # __mod__
-    _csobject.put(PROTO_ATTR_NAME__add__     , csB__object____add__    (_env)) # __add__
-    _csobject.put(PROTO_ATTR_NAME__sub__     , csB__object____sub__    (_env)) # __sub__
-    _csobject.put(PROTO_ATTR_NAME__lshift__  , csB__object____lshift__ (_env)) # __lshift__
-    _csobject.put(PROTO_ATTR_NAME__rshift__  , csB__object____rshift__ (_env)) # __rshift__
-    _csobject.put(PROTO_ATTR_NAME__lt__      , csB__object____lt__     (_env)) # __lt__
-    _csobject.put(PROTO_ATTR_NAME__lte__     , csB__object____lte__    (_env)) # __lte__
-    _csobject.put(PROTO_ATTR_NAME__gt__      , csB__object____gt__     (_env)) # __gt__
-    _csobject.put(PROTO_ATTR_NAME__gte__     , csB__object____gte__    (_env)) # __gte__
-    _csobject.put(PROTO_ATTR_NAME__eq__      , csB__object____eq__     (_env)) # __eq__
-    _csobject.put(PROTO_ATTR_NAME__neq__     , csB__object____neq__    (_env)) # __neq__
-    _csobject.put(PROTO_ATTR_NAME__and__     , csB__object____and__    (_env)) # __and__
-    _csobject.put(PROTO_ATTR_NAME__xor__     , csB__object____xor__    (_env)) # __xor__
-    _csobject.put(PROTO_ATTR_NAME__or__      , csB__object____or__     (_env)) # __or__
-    _csobject.put(PROTO_ATTR_NAME__toString__, csB__object__toString__ (_env)) # default __toString__
+    _csobject.put(CSTypes.TYPE_CSOBJECT          , csB__object__constructor    (_env)) # default constructor
+    _csobject.put(PROTO_ATTR_NAME__uplus__       , csB__object____uplus__      (_env)) # __uplus__
+    _csobject.put(PROTO_ATTR_NAME__iplusplus__   , csB__object____iplusplus__  (_env)) # __iplusplus__
+    _csobject.put(PROTO_ATTR_NAME__uminus__      , csB__object____uminus__     (_env)) # __uminus__
+    _csobject.put(PROTO_ATTR_NAME__iminusminus__ , csB__object____iminusminus__(_env)) # __iminusminus__
+
+    _csobject.put(PROTO_ATTR_NAME__pow__         , csB__object____pow__        (_env)) # __pow__
+    _csobject.put(PROTO_ATTR_NAME__mul__         , csB__object____mul__        (_env)) # __mul__
+    _csobject.put(PROTO_ATTR_NAME__div__         , csB__object____div__        (_env)) # __div__
+    _csobject.put(PROTO_ATTR_NAME__mod__         , csB__object____mod__        (_env)) # __mod__
+    _csobject.put(PROTO_ATTR_NAME__add__         , csB__object____add__        (_env)) # __add__
+    _csobject.put(PROTO_ATTR_NAME__sub__         , csB__object____sub__        (_env)) # __sub__
+    _csobject.put(PROTO_ATTR_NAME__lshift__      , csB__object____lshift__     (_env)) # __lshift__
+    _csobject.put(PROTO_ATTR_NAME__rshift__      , csB__object____rshift__     (_env)) # __rshift__
+    _csobject.put(PROTO_ATTR_NAME__lt__          , csB__object____lt__         (_env)) # __lt__
+    _csobject.put(PROTO_ATTR_NAME__lte__         , csB__object____lte__        (_env)) # __lte__
+    _csobject.put(PROTO_ATTR_NAME__gt__          , csB__object____gt__         (_env)) # __gt__
+    _csobject.put(PROTO_ATTR_NAME__gte__         , csB__object____gte__        (_env)) # __gte__
+    _csobject.put(PROTO_ATTR_NAME__eq__          , csB__object____eq__         (_env)) # __eq__
+    _csobject.put(PROTO_ATTR_NAME__neq__         , csB__object____neq__        (_env)) # __neq__
+    _csobject.put(PROTO_ATTR_NAME__and__         , csB__object____and__        (_env)) # __and__
+    _csobject.put(PROTO_ATTR_NAME__xor__         , csB__object____xor__        (_env)) # __xor__
+    _csobject.put(PROTO_ATTR_NAME__or__          , csB__object____or__         (_env)) # __or__
+    _csobject.put(PROTO_ATTR_NAME__toString__    , csB__object__toString__     (_env)) # default __toString__
     # proto attr
 
     _env.scope[-1].insert(CSTypes.TYPE_CSOBJECT, _address=_csobject.offset, _global=True)
@@ -156,6 +162,38 @@ def object__constructor(_args:list):
     # args: [0]. _env, [1]. thisArg, ...arguments
     return _args[0].vheap.cs__malloc(CSObject())
 
+
+# __uplus__
+def csB__object____uplus__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__uplus__), CSInteger(1), object____uplus__))
+
+def object____uplus__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    return _args[0].vheap.cs__malloc(CSNaN())
+
+# __iplusplus__
+def csB__object____iplusplus__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__iplusplus__), CSInteger(1), object____iplusplus__))
+
+def object____iplusplus__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    return _args[0].vheap.cs__malloc(CSNaN())
+
+# __uminus__
+def csB__object____uminus__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__uplus__), CSInteger(1), object____uminus__))
+
+def object____uminus__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    return _args[0].vheap.cs__malloc(CSNaN())
+
+# __iminusminus__
+def csB__object____iminusminus__(_env):
+    return _env.vheap.cs__malloc(CSNativeFunction(CSString(PROTO_ATTR_NAME__iplusplus__), CSInteger(1), object____iminusminus__))
+
+def object____iminusminus__(_args:list):
+    # args: [0]. _env, [1]. thisArg, ...arguments
+    return _args[0].vheap.cs__malloc(CSNaN())
 
 # __pow__
 def csB__object____pow__(_env):

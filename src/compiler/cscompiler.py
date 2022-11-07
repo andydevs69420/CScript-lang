@@ -136,6 +136,50 @@ class RawBlock(BlockCompiler):
 
                 # add call
                 self.call(len(_arguments), _node["loc"])
+    
+    # postfix expr
+    def cpostfix(self, _node:dict):
+        """ Compile the same way as unary op
+        """
+        # compile left hand
+        self.visit(_node["left"])
+
+        match _node["opt"]:
+            case "++"|"--":
+                match _node["left"][TYPE]:
+                    case ExpressionType.VARIABLE |\
+                         ExpressionType.MEMBER   |\
+                         ExpressionType.SUBSCRIPT:
+                        pass
+                    case _:
+                        return CSXCompileError.csx_Error(
+                            ("SemanticError: invalid left-hand of operator (%s) !" % _node["opt"])
+                            + "\n"
+                            + _node["loc"]
+                        )
+        # add operator
+        self.unary_op(_node["opt"], 0, _node["loc"])
+
+    # unary expr
+    def cunary(self, _node:dict):
+        # compile right hand
+        self.visit(_node["right"])
+
+        match _node["opt"]:
+            case "++"|"--":
+                match _node["right"][TYPE]:
+                    case ExpressionType.VARIABLE |\
+                         ExpressionType.MEMBER   |\
+                         ExpressionType.SUBSCRIPT:
+                        pass
+                    case _:
+                        return CSXCompileError.csx_Error(
+                            ("SemanticError: invalid right-hand of operator (%s) !" % _node["opt"])
+                            + "\n"
+                            + _node["loc"]
+                        )
+        # add operator
+        self.unary_op(_node["opt"], 0, _node["loc"])
 
     # binary expr
     def cbinary(self, _node:dict):

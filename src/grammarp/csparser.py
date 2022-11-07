@@ -602,6 +602,33 @@ class CSParser(ContextUtils):
 
             return _node
         
+        # postifix_op: call_expression
+        # | call_expression "++"
+        # | call_expression "--"
+        # ;
+        def postfix_op():
+            _posS = self.cstoken
+            _node = call_expression()
+            if not _node: return _node
+
+            if   self.cstoken.matches(TokenType.OPERATOR) and \
+                (self.cstoken.matches("++") or \
+                 self.cstoken.matches("--")):
+                
+                _opt = self.cstoken
+                self.eat(_opt.ttype)
+
+                _posE = self.previous
+
+                return ({
+                    TYPE  : ExpressionType.POSTIFIX_EXPR,
+                    "left": _node,
+                    "opt" : _opt.token,
+                    "loc" : getLocation(self, _posS, _posE)
+                })
+            
+            return _node
+        
         # unary_op: ternary
         # | ('~' | '!' | '+' | '-') unary_op
         # ;
@@ -609,10 +636,12 @@ class CSParser(ContextUtils):
             _unaS = self.cstoken
 
             if   self.cstoken.matches(TokenType.OPERATOR) and \
-                (self.cstoken.matches("~") or \
-                 self.cstoken.matches("!") or \
-                 self.cstoken.matches("+") or \
-                 self.cstoken.matches("-")):
+                (self.cstoken.matches("~" ) or \
+                 self.cstoken.matches("!" ) or \
+                 self.cstoken.matches("+" ) or \
+                 self.cstoken.matches("++") or \
+                 self.cstoken.matches("-" ) or \
+                 self.cstoken.matches("--")):
                 
                 _opt = self.cstoken
                 self.eat(_opt.ttype)
@@ -629,7 +658,7 @@ class CSParser(ContextUtils):
                     "loc"  : getLocation(self, _unaS, _unaE)
                 })
 
-            return call_expression()
+            return postfix_op()
         
         # power: unary_op 
         # | unary_op "^^" unary_op

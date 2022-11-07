@@ -100,13 +100,15 @@ class CSEval(object):
 
             return \
                 CSXCompileError.csx_Error(
-                    ("TypeError: illegal expression \"%s %s %s\" ! \n" % (_rename_a, _node["opt"], _rename_b))
+                    ("TypeError: illegal expression \"%s %s %s\" !" % (_rename_a, _node["opt"], _rename_b))
+                    + "\n"
                     + _node["loc"]
                 )
         except ZeroDivisionError:
             return \
                 CSXCompileError.csx_Error(
-                    ("ZeroDivisionError: division by zero \"%s %s %s\" ! \n" % (_rename_a, _node["opt"], _rename_b))
+                    ("ZeroDivisionError: division by zero \"%s %s %s\" !" % (_rename_a, _node["opt"], _rename_b))
+                    + "\n"
                     + _node["loc"]
                 )
 
@@ -148,7 +150,8 @@ class CSEval(object):
 
             return \
                 CSXCompileError.csx_Error(
-                    ("TypeError: illegal expression \"%s %s %s\" ! \n" % (_rename_a, _node["opt"], _rename_b))
+                    ("TypeError: illegal expression \"%s %s %s\" !" % (_rename_a, _node["opt"], _rename_b))
+                    + "\n"
                     + _node["loc"]
                 )
     
