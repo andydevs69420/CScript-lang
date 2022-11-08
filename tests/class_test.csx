@@ -1,6 +1,7 @@
 
 
+var x = 20.1;
 
 
-var x = 0;
-print: 2 + x++;
+print: ++x;
+

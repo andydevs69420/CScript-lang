@@ -158,7 +158,7 @@ class RawBlock(BlockCompiler):
                             + _node["loc"]
                         )
         # add operator
-        self.unary_op(_node["opt"], 0, _node["loc"])
+        self.postfix_op(_node["opt"], _node["loc"])
 
     # unary expr
     def cunary(self, _node:dict):

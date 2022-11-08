@@ -280,7 +280,15 @@ class Compilable(object):
                 CSOpCode.CALL_METHOD, size=_size, loc=_loc, __hidden__=["loc"]
             )
         )
-    
+
+    def postfix_op(self, _operator:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.POSTFIX_OP, opt=_operator, loc=_loc, __hidden__=["loc"]
+            )
+        )
     
     def unary_op(self, _operator:str, _size:int, _loc:str):
         self.__instructions\

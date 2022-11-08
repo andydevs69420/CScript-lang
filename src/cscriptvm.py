@@ -3,6 +3,8 @@
 from compiler import Instruction
 from compiler import CSOpCode
 
+from linkage import __ALL__ as ln
+
 # builtins
 from csbuiltins import CSTypes
 from csbuiltins import CSObject
@@ -14,18 +16,6 @@ from csbuiltins import CSBoolean
 from csbuiltins.csnativefunction import CSNativeFunction
 from csbuiltins.csnulltype import CSNullType
 from csbuiltins.csfunction import CSFunction
-from csbuiltins.csbuiltins import (
-    csB__nantype_proto,
-    csB__nativefunction_proto,
-    csB__object_proto, 
-    csB__integer_proto, 
-    csB__double_proto, 
-     csB__string_proto,
-    csB__boolean_proto, 
-    csB__nulltype_proto, 
-    csB__function_proto, 
-)
-
 
 # utility
 from utility import __throw__
@@ -55,6 +45,9 @@ class STACK(object):
     
     def peek(self):
         return self.__internal[-1]
+    
+    def all(self):
+        print(self.__internal)
 
 
 class CSXMemory(object):
@@ -439,6 +432,8 @@ def cs__raw_call(_env:CSXEnvironment, _csobject:CSFunction|CSNativeFunction, _ar
     """
     assert cs__is_callable(_csobject), "not callable %s" % _csobject.__str__()
 
+    assert _csobject.get("argc").this == _arg_count, "insufficient argument count (%d != %d) !" % (_csobject.get("argc").this, _arg_count)
+
     match _csobject.type:
         case CSTypes.TYPE_CSFUNCTION:
             cs__call(_env, _csobject.get("code"))
@@ -648,7 +643,6 @@ def cs__construct_class(_env:CSXEnvironment, _arg_count:int):
 
     _keys = _class_proto.keys()
     for _k in _keys:
-
         # make a copy for non function
         if  not cs__is_callable(_class_proto.get(_k)):
             _new.put(_k, _class_proto.get(_k))
@@ -661,11 +655,12 @@ def cs__construct_class(_env:CSXEnvironment, _arg_count:int):
         _constructor = _class_proto.get(_class_proto.type)
         cs__raw_call(_env, _constructor, _arg_count)
 
+    if  _constructor.type != CSTypes.TYPE_CSNATIVEFUNCTION:
         # hack!!!
         _env.stack.poll() # pop defult return
-
-    # push newly created!
-    _env.stack.push(_new)
+   
+        # push newly created!
+        _env.stack.push(_new)
 
     _env.scope.pop()
 
@@ -811,14 +806,91 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
               
 
 
+            # postfix
+            case CSOpCode.POSTFIX_OP:
+                match _instruction.get("opt"):
+                    case "++":
+                        if  not cs__has_method(_env, _env.stack.peek(), "__inc__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) for left operand!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                            
+                        _top = _env.stack.peek().this
+                        
+                        ######## invoke self __inc__ method
+                        _a = _env.stack.poll()
+                        cs__invoke_method(_env, _a, "__inc__", 0)
 
+                        # pop incremented
+                        _env.stack.poll()
 
+                        # push old value
+                        cs__new_number(_env, _top)
+                    
+                    case "--":
+                        if  not cs__has_method(_env, _env.stack.peek(), "__dec__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) for left operand!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                            
+                        _top = _env.stack.peek().this
+                        
+                        ######## invoke self __inc__ method
+                        _a = _env.stack.poll()
+                        cs__invoke_method(_env, _a, "__dec__", 0)
+
+                        # pop decremented
+                        _env.stack.poll()
+
+                        # push old value
+                        cs__new_number(_env, _top)
+
+                    case _:
+                        raise Exception("not implemented %s" % _instruction.get("opt"))
 
             # unary
             case CSOpCode.UNARY_OP:
                 match _instruction.get("opt"):
                     case "new":
+                        """ A class/constructor must have an "attribute" named to itself.
+                        """
+                        if  not _env.stack.peek().hasKey(_env.stack.peek().type):
+                            cs__error(
+                                _env, ("TypeError: %s is not a constructor !" % _env.stack.peek().__str__()),
+                                _instruction.get("loc")
+                            )
+                            continue
+
+                        ######## construct class
                         cs__construct_class(_env, _instruction.get("size"))
+                    
+                    case "~":
+                        _a = _env.stack.poll()
+                        if  not cs__has_method(_env, _a, "__bit_not__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                        
+                        ######## invoke self __bit_not__ method
+                        cs__invoke_method(_env, _a, "__bit_not__", 0)
+                    
+                    case "!":
+                        _a = _env.stack.poll()
+                        if  not cs__has_method(_env, _a, "__log_not__"):
+                            cs__error(
+                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
+                                _instruction.get("loc")
+                            )
+                            continue
+                        
+                        ######## invoke self __log_not__ method
+                        cs__invoke_method(_env, _a, "__log_not__", 0)
                     
                     case "+":
                         if  not cs__has_method(_env, _env.stack.peek(), "__uplus__"):
@@ -833,16 +905,16 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
                         cs__invoke_method(_env, _a, "__uplus__", 0)
 
                     case "++":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__iplusplus__"):
+                        if  not cs__has_method(_env, _env.stack.peek(), "__inc__"):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __iplusplus__ method
+                        ######## invoke self __inc__ method
                         _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__iplusplus__", 0)
+                        cs__invoke_method(_env, _a, "__inc__", 0)
                     
                     case "-":
                         if  not cs__has_method(_env, _env.stack.peek(), "__uminus__"):
@@ -857,219 +929,249 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
                         cs__invoke_method(_env, _a, "__uminus__", 0)
 
                     case "--":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__iminusminus__"):
+                        if  not cs__has_method(_env, _env.stack.peek(), "__dec__"):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __iminusminus__ method
+                        ######## invoke self __dec__ method
                         _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__iminusminus__", 0)
+                        cs__invoke_method(_env, _a, "__dec__", 0)
                     
                     case _:
                         raise Exception("not implemented %s" % _instruction.get("opt"))
 
             # multiplicative
-            case CSOpCode.BINARY_MUL:
-                if  not cs__has_method(_env, _env.stack.peek(), "__mul__"):
+            case CSOpCode.BINARY_POW:
+                _a = _env.stack.poll()
+                _pow_method = "__pow_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _pow_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __mul__ method
+                ######## invoke self __pow_RHS__ method
+                cs__invoke_method(_env, _a, _pow_method, 1)
+
+            case CSOpCode.BINARY_MUL:
                 _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__mul__", 1)
+                _mul_method = "__mul_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _mul_method):
+                    cs__error(
+                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
+                        _instruction.get("loc")
+                    )
+                    continue
+                
+                ######## invoke self __mul_RHS__ method
+                cs__invoke_method(_env, _a, _mul_method, 1)
                 
             case CSOpCode.BINARY_DIV:
-                if  not cs__has_method(_env, _env.stack.peek(), "__div__"):
+                _a = _env.stack.poll()
+                _div_method = "__div_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _div_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __div__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__div__", 1)
+                ######## invoke self __div_RHS__ method
+                cs__invoke_method(_env, _a, _div_method, 1)
 
             case CSOpCode.BINARY_MOD:
-                if  not cs__has_method(_env, _env.stack.peek(), "__mod__"):
+                _a = _env.stack.poll()
+                _mod_method = "__mod_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _mod_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __mod__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__mod__", 1)
+                ######## invoke self __mod_RHS__ method
+                cs__invoke_method(_env, _a, _mod_method, 1)
 
 
 
             # addetive
             case CSOpCode.BINARY_ADD:
-                if  not cs__has_method(_env, _env.stack.peek(), "__add__"):
+                _a = _env.stack.poll()
+                _add_method = "__add_" + _env.stack.peek().type + "__"
+               
+                if  not cs__has_method(_env, _a, _add_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __add__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__add__", 1)
+                ######## invoke self __add_RHS__ method
+                cs__invoke_method(_env, _a, _add_method, 1)
             
             case CSOpCode.BINARY_SUB:
-                if  not cs__has_method(_env, _env.stack.peek(), "__sub__"):
+                _a = _env.stack.poll()
+                _sub_method = "__sub_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _sub_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __sub__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__sub__", 1)
+                ######## invoke self __sub_RHS__ method
+                cs__invoke_method(_env, _a, _sub_method, 1)
             
             case CSOpCode.BINARY_LSHIFT:
-                if  not cs__has_method(_env, _env.stack.peek(), "__lshift__"):
+                _a = _env.stack.poll()
+                _lshift_method = "__lshift_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _lshift_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __lshift__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__lshift__", 1)
+                ######## invoke self __lshift_RHS__ method
+                cs__invoke_method(_env, _a, _lshift_method, 1)
             
             case CSOpCode.BINARY_RSHIFT:
-                if  not cs__has_method(_env, _env.stack.peek(), "__rshift__"):
+                _a = _env.stack.poll()
+                _rshift_method = "__rshift_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _rshift_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __rshift__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__rshift__", 1)
+                ######## invoke self __rshift_RHS__ method
+                cs__invoke_method(_env, _a, _rshift_method, 1)
             
             # comparison
             case CSOpCode.COMPARE_OP:
                 match _instruction.get("opt"):
                     case "<":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__lt__"):
+                        _a = _env.stack.poll()
+                        _lt_method = "__lt_" + _env.stack.peek().type + "__"
+                        if  not cs__has_method(_env, _a, _lt_method):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __lt__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__lt__", 1)
+                        ######## invoke self __lt_RHS__ method
+                        cs__invoke_method(_env, _a, _lt_method, 1)
                     
                     case "<=":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__lte__"):
+                        _a = _env.stack.poll()
+                        _lte_method = "__lte_" + _env.stack.peek().type + "__"
+                        if  not cs__has_method(_env, _a, _lte_method):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __lte__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__lte__", 1)
+                        ######## invoke self __lte_RHS__ method
+                        cs__invoke_method(_env, _a, _lte_method, 1)
                     
                     case ">":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__gt__"):
+                        _a = _env.stack.poll()
+                        _gt_method = "__gt_" + _env.stack.peek().type + "__"
+                        if  not cs__has_method(_env, _a, _gt_method):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __gt__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__gt__", 1)
+                        ######## invoke self __gt_RHS__ method
+                        cs__invoke_method(_env, _a, _gt_method, 1)
                     
                     case ">=":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__gte__"):
+                        _a = _env.stack.poll()
+                        _gte_method = "__gte_" + _env.stack.peek().type + "__"
+                        if  not cs__has_method(_env, _a, _gte_method):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __gte__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__gte__", 1)
+                        ######## invoke self __gte_RHS__ method
+                        cs__invoke_method(_env, _a, _gte_method, 1)
 
                     case "==":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__eq__"):
+                        _a = _env.stack.poll()
+                        _eq_method = "__eq_" + _env.stack.peek().type + "__"
+                        if  not cs__has_method(_env, _a, _eq_method):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __eq__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__eq__", 1)
+                        ######## invoke self __eq_RHS__ method
+                        cs__invoke_method(_env, _a, _eq_method, 1)
                     
                     case "!=":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__neq__"):
+                        _a = _env.stack.poll()
+                        _neq_method = "__neq_" + _env.stack.peek().type + "__"
+                        if  not cs__has_method(_env, _a, _neq_method):
                             cs__error(
                                 _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                                 _instruction.get("loc")
                             )
                             continue
                         
-                        ######## invoke self __neq__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__neq__", 1)
+                        ######## invoke self __neq_RHS__ method
+                        cs__invoke_method(_env, _a, _neq_method, 1)
             
             # bitwise logics
             case CSOpCode.BINARY_AND:
-                if  not cs__has_method(_env, _env.stack.peek(), "__and__"):
+                _a = _env.stack.poll()
+                _and_method = "__and_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _and_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __and__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__and__", 1)
+                ######## invoke self __and_RHS__ method
+                cs__invoke_method(_env, _a, _and_method, 1)
             
             case CSOpCode.BINARY_XOR:
-                if  not cs__has_method(_env, _env.stack.peek(), "__xor__"):
+                _a = _env.stack.poll()
+                _xor_method = "__xor_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _xor_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __xor__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__xor__", 1)
+                ######## invoke self __xor_RHS__ method
+                cs__invoke_method(_env, _a, _xor_method, 1)
             
             case CSOpCode.BINARY_OR:
-                if  not cs__has_method(_env, _env.stack.peek(), "__or__"):
+                _a = _env.stack.poll()
+                _or_method = "__or_" + _env.stack.peek().type + "__"
+                if  not cs__has_method(_env, _a, _or_method):
                     cs__error(
                         _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
                         _instruction.get("loc")
                     )
                     continue
                 
-                ######## invoke self __or__ method
-                _a = _env.stack.poll()
-                cs__invoke_method(_env, _a, "__or__", 1)
+                ######## invoke self __or_RHS__ method
+                cs__invoke_method(_env, _a, _or_method, 1)
             
 
             # simple assignment
@@ -1125,16 +1227,11 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
 def cs__init_builtin(_env:CSXEnvironment):
     """
     """
-    _base = csB__object_proto(_env)
-    csB__integer_proto(_env, _base)
-    csB__double_proto(_env, _base)
-    csB__string_proto(_env, _base)
-    csB__boolean_proto(_env, _base)
-    csB__nulltype_proto(_env, _base)
-    csB__nantype_proto(_env, _base)
-    csB__nativefunction_proto(_env, _base)
-    csB__function_proto(_env, _base)
-    
+    # linkage
+
+    for each_class in ln:
+        each_class().link([_env])
+
 def cs__run(_code:csrawcode):
     _env = CSXEnvironment()
 
