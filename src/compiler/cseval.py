@@ -51,6 +51,34 @@ class CSEval(object):
     # eval null
     def ev_null(self, _node:dict):
         return None
+    
+    # eval unary
+    def ev_unary(self, _node:dict):
+        _rhs = self.evaluate(_node["right"])
+
+        try:
+            match _node["opt"]:
+                case "!":
+                    return not _rhs
+                case '~':
+                    return ~ _rhs
+                case '+':
+                    return + _rhs
+                case '-':
+                    return - _rhs
+                case "++":
+                    _rhs += 1
+                    return _rhs
+                case "--":
+                    _rhs -= 1
+                    return _rhs
+        except TypeError:
+            return \
+                CSXCompileError.csx_Error(
+                    ("TypeError: invalid operation (%s) of right operand!" % _node["opt"])
+                    + "\n"
+                    + _node["loc"]
+                )
 
     # eval binary
     def ev_binary(self, _node:dict):
@@ -86,28 +114,16 @@ class CSEval(object):
                 case '|':
                     return _a |  _b
         except TypeError:
-            _rename_a = _a
-            if  type(_a) == bool:
-                _rename_a = "true" if _a else "false"
-            elif _a == None:
-                _rename_a = "null"
-            
-            _rename_b = _b
-            if  type(_b) == bool:
-                _rename_b = "true" if _b else "false"
-            elif _b == None:
-                _rename_b = "null"
-
             return \
                 CSXCompileError.csx_Error(
-                    ("TypeError: illegal expression \"%s %s %s\" !" % (_rename_a, _node["opt"], _rename_b))
+                    ("TypeError: invalid operation (%s) of operands!" % _node["opt"])
                     + "\n"
                     + _node["loc"]
                 )
         except ZeroDivisionError:
             return \
                 CSXCompileError.csx_Error(
-                    ("ZeroDivisionError: division by zero \"%s %s %s\" !" % (_rename_a, _node["opt"], _rename_b))
+                    ("ZeroDivisionError: division by zero.!")
                     + "\n"
                     + _node["loc"]
                 )
@@ -136,21 +152,9 @@ class CSEval(object):
                 case "!=":
                     return _a != _b
         except TypeError:
-            _rename_a = _a
-            if  type(_a) == bool:
-                _rename_a = "true" if _a else "false"
-            elif _a == None:
-                _rename_a = "null"
-            
-            _rename_b = _b
-            if  type(_b) == bool:
-                _rename_b = "true" if _b else "false"
-            elif _b == None:
-                _rename_b = "null"
-
             return \
                 CSXCompileError.csx_Error(
-                    ("TypeError: illegal expression \"%s %s %s\" !" % (_rename_a, _node["opt"], _rename_b))
+                    ("TypeError: invalid operation (==) of operands!" % _node["opt"])
                     + "\n"
                     + _node["loc"]
                 )

@@ -140,10 +140,11 @@ class CSParser(ContextUtils):
 
         def invalid_raw_identifier():
             if  self.cstoken.matches(TokenType.IDENTIFIER) and \
-                (self.cstoken.matches("false"  ) or \
-                 self.cstoken.matches("true"   ) or \
-                 self.cstoken.matches("null"   ) or \
-                 self.cstoken.matches("func"   )):
+                (self.cstoken.matches("false") or \
+                 self.cstoken.matches("true" ) or \
+                 self.cstoken.matches("null" ) or \
+                 self.cstoken.matches("this" ) or \
+                 self.cstoken.matches("func" )):
                 # throw
                 return show_error("unexpected keyword for identifier \"%s\"" % self.cstoken.token, self.cstoken)
             
@@ -180,6 +181,24 @@ class CSParser(ContextUtils):
                 TYPE   : ExpressionType.NULL,
                 "const": _null.token,
                 "loc"  : getLocation(self, _null)
+            })
+        
+        # this:
+        def thisref():
+            _this = self.cstoken
+            if  not _this.matches("this"):
+                return None
+            
+            self.bind(ContextType.FUNCTION)
+
+            # eat type
+            self.eat(_this.ttype)
+
+            # return as null
+            return ({
+                TYPE   : ExpressionType.THIS,
+                "this" : _this.token,
+                "loc"  : getLocation(self, _this)
             })
         
         # function(){...}
@@ -313,6 +332,9 @@ class CSParser(ContextUtils):
             elif self.cstoken.matches(TokenType.IDENTIFIER) and \
                 self.cstoken.matches("null"):
                 return nulltype()
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and \
+                self.cstoken.matches("this"):
+                return thisref()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and \
                 self.cstoken.matches("func"):
                 return function_expression()
@@ -494,12 +516,12 @@ class CSParser(ContextUtils):
             if not _node: return _node
 
             while  self.cstoken.matches(TokenType.OPERATOR) and \
-                  (self.cstoken.matches("->") or \
-                   self.cstoken.matches("[" )):
+                  (self.cstoken.matches(".") or \
+                   self.cstoken.matches("[")):
 
-                if  self.cstoken.matches("->"):
+                if  self.cstoken.matches("."):
                     # eat type
-                    self.eat("->", TokenType.OPERATOR)
+                    self.eat(".", TokenType.OPERATOR)
 
                     # attrib
                     _member = raw_identifier()
@@ -547,13 +569,13 @@ class CSParser(ContextUtils):
             if not _node: return _node
 
             while  self.cstoken.matches(TokenType.OPERATOR) and \
-                  (self.cstoken.matches("->") or \
-                   self.cstoken.matches("[" ) or \
-                   self.cstoken.matches("(" )):
+                  (self.cstoken.matches(".") or \
+                   self.cstoken.matches("[") or \
+                   self.cstoken.matches("(")):
 
-                if  self.cstoken.matches("->"):
+                if  self.cstoken.matches("."):
                     # eat type
-                    self.eat("->", TokenType.OPERATOR)
+                    self.eat(".", TokenType.OPERATOR)
 
                     # attrib
                     _attr = raw_identifier()

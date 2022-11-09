@@ -52,6 +52,10 @@ class RawBlock(BlockCompiler):
     # null
     def cnull(self, _node:dict):
         self.push_null(self.evaluate(_node))
+    
+    # this
+    def cthis(self, _node:dict):
+        self.this_op()
 
     # array build
     def carray(self, _node:dict):
@@ -131,6 +135,7 @@ class RawBlock(BlockCompiler):
 
                 # add call
                 self.call_method(len(_arguments), _node["loc"])
+
             case _:
                 self.visit(_node["left"])
 
@@ -162,6 +167,26 @@ class RawBlock(BlockCompiler):
 
     # unary expr
     def cunary(self, _node:dict):
+        # evaluated
+        _value = self.evaluate(_node)
+
+        # ensure ellipsis instead None|bool
+        if  _value != ...:
+            if   type(_value) == int  :
+                self.push_integer(_value)
+            elif type(_value) == float:
+                self.push_double(_value)
+            elif type(_value) == str  :
+                self.push_string(_value)
+            elif type(_value) == bool :
+                self.push_boolean(_value)
+            # if None
+            elif not _value:
+                self.push_null(_value)
+            else:
+                raise TypeError("unsupported type %s" % type(_value).__name__)
+            return
+
         # compile right hand
         self.visit(_node["right"])
 

@@ -4,14 +4,17 @@ import dis
 
 code = """
 
-vv ="www"
-
 
 class Dog:
 
-    def cat():print
+    def cat(self):print
 
-Dog.cat.meow()
+
+
+x = Dog()
+
+x.cat()
+
 
 """
 

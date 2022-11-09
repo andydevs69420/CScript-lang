@@ -6,6 +6,7 @@ from .csinteger import CSInteger
 from .csdouble import CSDouble
 from .csstring import CSString
 from .csboolean import CSBoolean
+from .csmethod import CSMethod
 from .csfunction import CSFunction
 from .csnativefunction import CSNativeFunction
 

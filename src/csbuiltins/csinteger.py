@@ -18,6 +18,9 @@ class CSInteger(CSObject):
         self.type = CSTypes.TYPE_CSINTEGER
         self.this = int(_raw_py_int)\
             if type(_raw_py_int) != int else _raw_py_int
+    
+    def __get__(self):
+        return self.type
 
     def __str__(self):
         return "%d" % self.this

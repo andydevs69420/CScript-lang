@@ -7,7 +7,6 @@ from .csdouble import CSDouble
 from .csstring import CSString
 from .csboolean import CSBoolean
 from .csnulltype import CSNullType
-from .csnan import CSNaN
 from .csfunction import CSFunction
 from .csnativefunction import CSNativeFunction
 
@@ -73,7 +72,6 @@ class PyLinkInterface(object):
         # args: [0]. _env, [1]. thisArg, [2~N]. ...arguments
 
         _csobject = CSObject()
-        _csobject.type = self.linkname
 
         if  not isinstance(self.metadata, dict):
             return self.malloc(_args[0], _csobject)

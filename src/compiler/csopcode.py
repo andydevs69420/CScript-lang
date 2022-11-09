@@ -7,6 +7,7 @@ class CSOpCode(Enum):
    PUSH_STRING = 4
    PUSH_BOOLEAN = 5
    PUSH_NULL = 6
+   THIS_OP  = 600
    PUSH_OBJECT = 7
    PUSH_CODE   = 8
    PUSH_NAME  = 9
