@@ -174,7 +174,7 @@ class HashMap(object):
             if  _keys[k] not in self.hidden:
                 _attrib += f"{_keys[k]}: {_string}"
 
-                if  k < (len(_keys) - 1):
+                if  k < ((len(_keys) - 1) - len(self.hidden)):
                     _attrib += ", "
 
         return "{" + f"{_attrib}" + "}"

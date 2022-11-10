@@ -304,7 +304,7 @@ class Compilable(object):
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.UNARY_OP, opt=_operator, size=_size, loc=_loc, __hidden__=["loc"]
+                CSOpCode.UNARY_OP, opt=_operator, size=_size, loc=_loc, __hidden__=["loc", "size"]
             )
         )
 
@@ -449,42 +449,42 @@ class Compilable(object):
         )
     
     
-    def inplace_pow(self, _opt:str):
+    def inplace_pow(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_POW, opt=_opt
+                CSOpCode.INPLACE_POW, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
 
     
-    def inplace_mul(self, _opt:str):
+    def inplace_mul(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_MUL, opt=_opt
+                CSOpCode.INPLACE_MUL, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def inplace_div(self, _opt:str):
+    def inplace_div(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_DIV, opt=_opt
+                CSOpCode.INPLACE_DIV, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def inplace_mod(self, _opt:str):
+    def inplace_mod(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_MOD, opt=_opt
+                CSOpCode.INPLACE_MOD, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
@@ -499,62 +499,62 @@ class Compilable(object):
         )
     
     
-    def inplace_sub(self, _opt:str):
+    def inplace_sub(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_SUB, opt=_opt
+                CSOpCode.INPLACE_SUB, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def inplace_lshift(self, _opt:str):
+    def inplace_lshift(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_LSHIFT, opt=_opt
+                CSOpCode.INPLACE_LSHIFT, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def inplace_rshift(self, _opt:str):
+    def inplace_rshift(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_RSHIFT, opt=_opt
+                CSOpCode.INPLACE_RSHIFT, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def inplace_and(self, _opt:str):
+    def inplace_and(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_AND, opt=_opt
+                CSOpCode.INPLACE_AND, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def inplace_xor(self, _opt:str):
+    def inplace_xor(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_XOR, opt=_opt
+                CSOpCode.INPLACE_XOR, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def inplace_or(self, _opt:str):
+    def inplace_or(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_OR, opt=_opt
+                CSOpCode.INPLACE_OR, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
 

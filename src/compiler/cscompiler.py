@@ -53,9 +53,20 @@ class RawBlock(BlockCompiler):
     def cnull(self, _node:dict):
         self.push_null(self.evaluate(_node))
     
-    # this
-    def cthis(self, _node:dict):
-        self.this_op()
+    # function expr
+    def cfuncexpr(self, _node:dict):
+        _fcom = FunctionCompiler(_node)
+        self.push_code(_fcom.compile())
+
+        # # push arg count
+        self.push_integer(len(_node["params"]))
+
+        # push func name
+        self.push_string(_node["name"])
+
+        # build function
+        self.make_function()
+
 
     # array build
     def carray(self, _node:dict):
@@ -416,11 +427,12 @@ class RawBlock(BlockCompiler):
     
     # augmented
     def caugmented(self, _node:dict):
-        # compile rhs
-        self.visit(_node["right"])
 
         # compile left
         self.visit(_node["left" ])
+
+        # compile rhs
+        self.visit(_node["right"])
 
         _operator = _node["opt"]
         match _operator:
@@ -556,6 +568,265 @@ class RawBlock(BlockCompiler):
 
         # store func
         self.make_var(_node["name"], _node["loc"])
+    
+    # if statement
+    def cifstmnt(self, _node:dict):
+        _condition = self.evaluate(_node["condition"])
+    
+        if  _condition != ...:
+            if  _condition:
+                # compile if true
+                self.visit(_node["statement"])
+            else:
+                if  _node["else"]:
+                    # compile else
+                    self.visit(_node["else"])
+            return
+            #####
+        
+        # compile whole statement
+
+        match _node["condition"][TYPE]:
+
+            case ExpressionType.LOGICAL_EXPR:
+                _lhs = _node["condition"]["left" ]
+                _rhs = _node["condition"]["right"]
+
+
+                # compile rhs
+                self.visit(_rhs)
+
+                if  _node["condition"]["opt"] == "&&":
+                    self.pop_jump_if_false(...)
+                else:
+                    self.pop_jump_if_true(...)
+                
+                _jump_t0 = self.peekLast()
+                
+                # compile lhs
+                self.visit(_lhs)
+
+                # jump lhs and rhs evaluates 
+                # to false
+                self.pop_jump_if_false(...)
+                _jump_t1 = self.peekLast()
+
+
+                # jump here if logical or
+                # and rhs is satisfiable
+                if  _node["condition"]["opt"] == "||":
+                    _jump_t0.kwargs["target"] = self.getLine()
+
+                # compile statement
+                self.visit(_node["statement"])
+
+                # jump to end if
+                if  _node["else"]:
+                    self.jump_to(...)
+                    _jump_t2 = self.peekLast()
+
+                if  _node["condition"]["opt"] == "&&":
+                    _jump_t0.kwargs["target"] = self.getLine()
+
+                # set jump target 1 here if 
+                # condition is false
+                _jump_t1.kwargs["target"] = self.getLine()
+
+                # compile else
+                if  _node["else"]:
+                    self.visit(_node["else"])
+                
+                # set jump target 2 here
+                # denotes finished control
+                if  _node["else"]:
+                    _jump_t2.kwargs["target"] = self.getLine()
+
+            case _:
+
+                # compile condition
+                self.visit(_node["condition"])
+
+                # jump to "else" if false
+                self.pop_jump_if_false(...)
+                _jump_t0 = self.peekLast()
+
+                # compile statement
+                self.visit(_node["statement"])
+
+                # jump to end if
+                self.jump_to(...)
+                _jump_t1 = self.peekLast()
+
+                # set jump target 0 here if false
+                _jump_t0.kwargs["target"] = self.getLine()
+
+                if  _node["else"]:
+                    # compile else
+                    self.visit(_node["else"])
+                
+                # set jump target 1 to end if
+                _jump_t1.kwargs["target"] = self.getLine()
+
+
+    # while statement
+    def cwhile(self, _node:dict):
+        _condition = self.evaluate(_node["condition"])
+    
+        if  _condition != ...:
+            if  not _condition:
+                # do not compile
+                self.no_operation()
+                return
+            #####
+        
+        # compile whole statement
+        # start
+        _begin_while = self.getLine()
+        
+        match _node["condition"][TYPE]:
+
+            case ExpressionType.LOGICAL_EXPR:
+                
+                _lhs = _node["condition"]["left" ]
+                _rhs = _node["condition"]["right"]
+
+                # compile rhs
+                self.visit(_rhs)
+
+                if  _node["condition"]["opt"] == "&&":
+                    self.pop_jump_if_false(...)
+                else:
+                    self.pop_jump_if_true(...)
+                
+                _jump_t0 = self.peekLast()
+                
+                # compile lhs
+                self.visit(_lhs)
+
+                # jump lhs and rhs evaluates 
+                # to false
+                self.pop_jump_if_false(...)
+                _jump_t1 = self.peekLast()
+
+
+                # jump here if logical or
+                # and rhs is satisfiable
+                if  _node["condition"]["opt"] == "||":
+                    _jump_t0.kwargs["target"] = self.getLine()
+
+                # compile statement
+                self.visit(_node["body"])
+
+                # repeat top
+                self.absolute_jump(_begin_while)
+
+                if  _node["condition"]["opt"] == "&&":
+                    _jump_t0.kwargs["target"] = self.getLine()
+
+                # set jump target 1 here if 
+                # condition is false
+                _jump_t1.kwargs["target"] = self.getLine()
+
+
+            case _:
+
+                # compile condition
+                self.visit(_node["condition"])
+
+                # jump lhs and rhs evaluates 
+                # to false
+                self.pop_jump_if_false(...)
+                _jump_t0 = self.peekLast()
+
+                # compile statement
+                self.visit(_node["body"])
+
+                # repeat top
+                self.absolute_jump(_begin_while)
+
+                # jump to end while
+                _jump_t0.kwargs["target"] = self.getLine()
+    
+    # do while
+    def cdowhile(self, _node:dict):
+        _condition = self.evaluate(_node["condition"])
+    
+        if  _condition != ...:
+            if  not _condition:
+                # do not compile
+                self.no_operation()
+                return
+            #####
+        
+        # compile whole statement
+        # start
+        _begin_while = self.getLine()
+
+        match _node["condition"][TYPE]:
+
+            case ExpressionType.LOGICAL_EXPR:
+                
+                _lhs = _node["condition"]["left" ]
+                _rhs = _node["condition"]["right"]
+
+                # compile body
+                self.visit(_node["body"])
+                
+                # compile rhs
+                self.visit(_rhs)
+
+                if  _node["condition"]["opt"] == "&&":
+                    self.pop_jump_if_false(...)
+                else:
+                    self.pop_jump_if_true(...)
+                
+                _jump_t0 = self.peekLast()
+                
+                # compile lhs
+                self.visit(_lhs)
+
+                # jump lhs and rhs evaluates 
+                # to false
+                self.pop_jump_if_false(...)
+                _jump_t1 = self.peekLast()
+
+
+                # jump here if logical or
+                # and rhs is satisfiable
+                if  _node["condition"]["opt"] == "||":
+                    _jump_t0.kwargs["target"] = self.getLine()
+
+                # compile statement
+                self.visit(_node["body"])
+
+                # repeat top
+                self.absolute_jump(_begin_while)
+
+                if  _node["condition"]["opt"] == "&&":
+                    _jump_t0.kwargs["target"] = self.getLine()
+
+                # set jump target 1 here if 
+                # condition is false
+                _jump_t1.kwargs["target"] = self.getLine()
+            
+            case _:
+                
+                # compile body
+                self.visit(_node["body"])
+
+                # compile condition
+                self.visit(_node["condition"])
+
+                # jump to end do while
+                self.pop_jump_if_false(...)
+                _jump_t0 = self.peekLast()
+
+                # repeat top
+                self.absolute_jump(_begin_while)
+
+                # jump here if false
+                _jump_t0.kwargs["target"] = self.getLine()
+
 
     # block
     def cblock(self, _node:dict):

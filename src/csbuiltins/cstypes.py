@@ -8,6 +8,7 @@ class CSTypes:
     TYPE_CSSTRING   = "CSString"
     TYPE_CSBOOLEAN  = "CSBoolean"
     TYPE_CSNULLTYPE = "CSNullType"
+    TYPE_CSHASHMAP  = "CSHashMap"
     TYPE_CSMETHOD   = "CSMETHOD"
     TYPE_CSFUNCTION = "CSFunction"
     TYPE_CSNATIVEFUNCTION = "CSNativeFunction"

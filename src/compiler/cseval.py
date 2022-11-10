@@ -56,6 +56,8 @@ class CSEval(object):
     def ev_unary(self, _node:dict):
         _rhs = self.evaluate(_node["right"])
 
+        if  _rhs == ...: return ...
+
         try:
             match _node["opt"]:
                 case "new":
@@ -129,7 +131,7 @@ class CSEval(object):
         except ZeroDivisionError:
             return \
                 CSXCompileError.csx_Error(
-                    ("ZeroDivisionError: division by zero.!")
+                    ("ZeroDivisionError: divisor of dividend produces zero !!!")
                     + "\n"
                     + _node["loc"]
                 )
