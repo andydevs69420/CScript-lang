@@ -65,7 +65,7 @@ class PyLinkInterface(object):
             def some_method(self, _args:list) -> CSString:
                 # args: [0]. _env, [1]. thisArg, [2~N]. ...arguments
 
-                return self.malloc(CSString("Hello World!"))
+                return self.malloc(_args[0], CSString("Hello World!"))
 
             Parameters
             ----------
