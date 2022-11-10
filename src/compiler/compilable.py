@@ -107,6 +107,15 @@ class Compilable(object):
             )
         )
     
+    def this_op(self):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.THIS_OP
+            )
+        )
+    
     def push_object(self):
         self.__instructions\
         .append(
@@ -480,12 +489,12 @@ class Compilable(object):
         )
     
     
-    def inplace_add(self, _opt:str):
+    def inplace_add(self, _opt:str, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.INPLACE_ADD, opt=_opt
+                CSOpCode.INPLACE_ADD, opt=_opt, loc=_loc, __hidden__=["loc"]
             )
         )
     

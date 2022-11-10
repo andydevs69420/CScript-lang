@@ -416,6 +416,7 @@ class TokenBuilder(LexUtils):
             self.clook == '}' or \
             self.clook == '(' or \
             self.clook == ')' or \
+            self.clook == '.' or \
             self.clook == '~':
             _part += append()
 
@@ -438,7 +439,6 @@ class TokenBuilder(LexUtils):
             _part += append()
 
             if  self.clook == '-' or \
-                self.clook == '>' or \
                 self.clook == '=':
                 _part += append()
 
@@ -510,6 +510,9 @@ class TokenBuilder(LexUtils):
         
         elif self.clook == ':':
             _part += append()
+
+            if self.clook == ':':
+                _part += append()
             
         elif self.clook == '#':
             _part += append()

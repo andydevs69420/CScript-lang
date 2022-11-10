@@ -78,6 +78,8 @@ class HashMap(object):
         self.__bucket = [
             None for _ in range(self.__bcount)
         ]
+
+        self.hidden = []
     
     def put(self, _key:str, _data:object):
         _bucket_index = hasher(_key) % self.__bcount
@@ -169,11 +171,11 @@ class HashMap(object):
             else:
                 _string = _value.__str__()
 
-                  
-            _attrib += f"{_keys[k]}: {_string}"
+            if  _keys[k] not in self.hidden:
+                _attrib += f"{_keys[k]}: {_string}"
 
-            if  k < (len(_keys) - 1):
-                _attrib += ", "
+                if  k < (len(_keys) - 1):
+                    _attrib += ", "
 
         return "{" + f"{_attrib}" + "}"
 

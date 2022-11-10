@@ -1,33 +1,39 @@
+from builtins import len
 
-from . import PyLinkInterface
-from . import CSInteger, CSDouble, CSString, CSBoolean, CSTypes
+from . import PyLinkInterface, CSTypes, CSString, CSBoolean, CSInteger
 
 
-""" Serves as CSDouble prototype
+""" Serves as CSString prototype
 
     Strictly: do not modify!!!
     NOTE: you an create your own custom prototype attribute inside cscript
 """
 
-class CSDoubleLink(PyLinkInterface):
+class CSStringLink(PyLinkInterface):
 
     def __init__(self, _enherit=None):
         super().__init__(_enherit)
-        self.linkname = CSTypes.TYPE_CSDOUBLE
-        
+        self.linkname = CSTypes.TYPE_CSSTRING
+
         self.variable = ({
             "qualname" : CSString(self.linkname)
         })
 
         self.metadata = ({
-            "initialize"  : {"name": "initialize"   , "argc": 1},
-            "__toString__": {"name": "__toString__" , "argc": 0},
+            "initialize"   : {"name": "initialize"   , "argc": 1},
+            "length"       : {"name": "length"       , "argc": 0},
+            "__toString__" : {"name": "__toString__" , "argc": 0},
         })
     
+    # constructor
     def initialize(self, _args:list):
         return _args[2]
     
-    # toString
+    # length
+    def length(self, _args:list):
+        return self.malloc(_args[0], CSInteger(len(self.getName(_args[0], "this").this)))
+    
+    # __toString__
     def __toString__(self, _args:list):
         # check if "this exist!"
         if  not _args[0].scope[-1].exists("this"):
@@ -37,5 +43,9 @@ class CSDoubleLink(PyLinkInterface):
         _this = self.getName(_args[0], "this")
 
         # return
-        return self.malloc(_args[0], CSString(_this.__str__()))
-        
+        return _this
+    
+
+
+
+

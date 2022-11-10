@@ -17,6 +17,10 @@ class CSNativeFunction(CSObject):
         self.put(CSNativeFunction.KEY_NAME, _name)
         self.put(CSNativeFunction.KEY_ARGC, _argc)
         self.call = _py_callable
+
+        # debug:
+        assert _name.offset != -69420, "not allocated!!!"
+        assert _argc.offset != -69420, "not allocated!!!"
     
     def __str__(self):
         """ Specify as native when printing in python

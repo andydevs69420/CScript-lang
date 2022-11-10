@@ -1,4 +1,6 @@
 
+from copy import deepcopy
+import re
 
 from compiler import Instruction
 from compiler import CSOpCode
@@ -13,6 +15,7 @@ from csbuiltins import CSInteger
 from csbuiltins import CSDouble
 from csbuiltins import CSString
 from csbuiltins import CSBoolean
+from csbuiltins import CSMethod
 from csbuiltins.csnativefunction import CSNativeFunction
 from csbuiltins.csnulltype import CSNullType
 from csbuiltins.csfunction import CSFunction
@@ -21,6 +24,12 @@ from csbuiltins.csfunction import CSFunction
 from utility import __throw__
 from utility import logger
 
+
+__ATTRIBUTE_INITIALIZE__ = "initialize"
+__ATTRIBUTE_QUALNAME__   = "qualname"
+__ATTRIBUTE_PROTO__      = "__proto__"
+
+
 class CSXEnvironment(object):
     """ environment while running
     """
@@ -28,26 +37,26 @@ class CSXEnvironment(object):
         self.scope = [Scope()] # scope 0 is the global scope
         self.stack = STACK()
         self.vheap = CSXMemory(self)
-        self.current = None
+        
 
 
 class STACK(object):
+
     def __init__(self):
-        self.__internal = []
+        self.__internal = [
+        ]
     
     def push(self, _any:CSObject):
         self.__internal.append(_any)
 
-    def poll(self):
-        if  len(self.__internal) > 0:
-            return self.__internal.pop()
-        return None
+    def pop(self):
+        return self.__internal.pop()
     
-    def peek(self):
+    def top(self):
         return self.__internal[-1]
     
     def all(self):
-        print(self.__internal)
+        return self.__internal
 
 
 class CSXMemory(object):
@@ -61,7 +70,6 @@ class CSXMemory(object):
         self.__scopes = _env.scope
     
     def cs__malloc(self, _csobject:CSObject):
-        
         # for singleton objects!!
         assert _csobject.offset == -69420, "double allocation!"
 
@@ -111,7 +119,7 @@ class Scope(object):
         self.symbols[_symbol].update(_props)
     
     def lookup(self, _symbol:str):
-        assert self.exists(_symbol, False), "null possibility not handled!"
+        assert self.exists(_symbol, False), "null possibility not handled '%s'!" % _symbol
         if  (_symbol in self.symbols.keys()):
             return self.symbols[_symbol]
         
@@ -145,7 +153,13 @@ class Scope(object):
 
 
 def cs__error(_env:CSXEnvironment, _message:str, _location:str):
-    """
+    """ ThrowsError or flush to try/except
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _message : str
+        _location : str
     """
     return __throw__(
         _message
@@ -153,1084 +167,1351 @@ def cs__error(_env:CSXEnvironment, _message:str, _location:str):
         + _location
     )
 
-def cs__define_prop(_env:CSXEnvironment, _name:str, _csObject):
-    """
-    """
-    _env.scope[-1].insert(_name, _address=_csObject.offset,_global=False)
-
-def cs__get_prototype(
-    _env:CSXEnvironment, 
-    _constructor_name:str
-):
-    """
-    """
-    _info = _env.scope[-1].lookup(_constructor_name)
-    _type = \
-        _env.vheap\
-        .cs__object_at(_info["_address"])
-    return _type
-
-
-def cs__get_prototype_attribute(
-    _env:CSXEnvironment, 
-    _constructor_name:str,
-    _prototype_name:str
-):
-    """
-    """
-    _type  = cs__get_prototype(_env, _constructor_name)
-
-    if not _type.hasKey(_prototype_name):\
-    cs__error(_env, "AttributeError: %s has no attribute %s" % (_type.__str__(), _prototype_name))
-
-    return _type.get(_prototype_name)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ======================== OBJECT CREATION|
-# ========================================|
-def cs__new_number(_env:CSXEnvironment, _raw_py_number:int|float):
-    """ Allocates new int|double
+def cs_format_name_error_0(_env:CSXEnvironment, _name:str):
+    """ Formats name error message if not defined!
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _raw_py_number : int|float
+        _name : str
+
+        Returns
+        -------
+        str
     """
-    if  type(_raw_py_number) == int:
-        _env.stack.push(_env.vheap.cs__malloc(CSInteger(_raw_py_number)))
-    else:
-        _env.stack.push(_env.vheap.cs__malloc(CSDouble(_raw_py_number)))
+    return "NameError: name '%s' is not defined in scope !!!" % _name
 
 
-def cs__new_string(_env:CSXEnvironment, _raw_py_string:str):
-    """ Allocates new string
+def cs_format_name_error_1(_env:CSXEnvironment, _name:str):
+    """ Formats name error message if defined!
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _raw_py_string : str
+        _name : str
+
+        Returns
+        -------
+        str
     """
-    _env.stack.push(_env.vheap.cs__malloc(CSString(_raw_py_string)))
+    return "NameError: name '%s' was already defined in scope !!!" % _name
 
 
-
-def cs__new_boolean(_env:CSXEnvironment, _raw_py_bool:bool):
-    """ Allocates|reuse boolean
+def cs_format_att_error(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
+    """ Formats attribute error message
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _raw_py_bool : bool
+        _func : CSObject
+        _attribute : str
+
+        Returns
+        -------
+        str
     """
-    _env.stack.push(_env.vheap.cs__malloc(CSBoolean(_raw_py_bool)))
+    return "AttributeError: missing attribute %s::%s !!!" % (_obj.type, _attribute)
 
 
-
-def cs__new_null(_env:CSXEnvironment):
-    """ Allocates|reuse null
+def cs_format_method_error(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
+    """ Formats attribute error message
 
         Parameters
         ----------
         _env : CSXEnvironment
+        _func : CSObject
+        _attribute : str
+
+        Returns
+        -------
+        str
     """
-    _env.stack.push(_env.vheap.cs__malloc(CSNullType()))
+    return "AttributeError: missing method %s::%s !!!" % (_obj.type, _attribute)
+
+def cs_format_arg_error(_env:CSXEnvironment, _func:CSObject, _arg_size:int):
+    """ Formats argument error message
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _func : CSObject
+        _arg_size : int
+
+        Returns
+        -------
+        str
+    """
+    _fname = _func.get("name").__str__()
+    _fargc = _func.get("argc").__str__()
+    return "ArgumentError: %s expected arg count %s, got %d !!!" % (_fname, _fargc, _arg_size)
 
 
-def cs__new_code(_env:CSXEnvironment, _raw_code:csrawcode):
-    """ Allocates new code
+def cs_format_post_type_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject):
+    """ Formats type error message for postfix expression
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _opt : str
+        _lhs : CSObject
+
+        Returns
+        -------
+        str
+    """
+    return "TypeError: invalid postfix operator (%s) for type %s !!!" % (_opt, _lhs.type)
+
+def cs_format_not_constructor_error(_env:CSXEnvironment, _obj:CSObject):
+    """ Formats constructor error
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+
+        Returns
+        -------
+        str
+    """
+    return "TypeError: %s is not a constructor !!!" % (_obj.type)
+
+def cs_format_una_type_error(_env:CSXEnvironment, _opt:str, _rhs:CSObject):
+    """ Formats type error message for unary expression
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _opt : str
+        _rhs : CSObject
+
+        Returns
+        -------
+        str
+    """
+    return "TypeError: invalid unary operator (%s) for type %s !!!" % (_opt, _rhs.type)
+
+
+def cs_format_bin_type_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject, _rhs:CSObject):
+    """ Formats type error message for binary expression
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _opt : str
+        _lhs : CSObject
+        _rhs : CSObject
+
+        Returns
+        -------
+        str
+    """
+    return "TypeError: invalid operator (%s) for operands type %s and %s !!!" % (_opt, _lhs.type, _rhs.type)
+
+
+def cs_format_zero_division_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject, _rhs:CSObject):
+    """ Formats type error message for zero division
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _opt : str
+        _lhs : CSObject
+        _rhs : CSObject
+
+        Returns
+        -------
+        str
+    """
+    return "ZeroDivisionError: divisor of dividend produces zero !!!"
+
+
+
+def cs__call(_env:CSXEnvironment, _code:csrawcode):
+    ...
+
+    _ipointer = 0
+
+    for i in _code:
+        print(i)
+
+    while _ipointer < len(_code):
+
+        _opc = _code.code[_ipointer]
+        _ipointer += 1
+
+        match _opc.opcode:
+
+            case CSOpCode.PUSH_CODE:
+                """"""
+                cs_new_code(_env, _opc.get("code"))
+
+            case CSOpCode.PUSH_INTEGER:
+                """"""
+                cs_new_number(_env, _opc.get("const"))
+
+            case CSOpCode.PUSH_DOUBLE:
+                """"""
+                cs_new_number(_env, _opc.get("const"))
+            
+            case CSOpCode.PUSH_STRING:
+                """"""
+                cs_new_string(_env, _opc.get("const"))
+            
+            case CSOpCode.PUSH_BOOLEAN:
+                """"""
+                cs_new_boolean(_env, _opc.get("const"))
+            
+            case CSOpCode.PUSH_NULL:
+                """"""
+                cs_new_nulltype(_env)
+
+            case CSOpCode.PUSH_NAME:
+                """"""
+                if  not cs_has_name(_env, _opc.get("name")):
+                    cs__error(_env, cs_format_name_error_0(_env, _opc.get("name")), _opc.get("loc"))
+                    continue
+                    
+                #####
+                cs_push_name(_env, _opc.get("name"))
+            
+
+            case CSOpCode.GET_ATTRIB:
+                """"""
+                if  not cs_has_attribute(_env, _env.stack.top(), _opc.get("attr")):
+                    cs__error(_env, cs_format_att_error(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_get_attrib(_env, _opc.get("attr"))
+            
+            case CSOpCode.GET_METHOD:
+                """"""
+                if  not cs_has_method(_env, _env.stack.top(), _opc.get("attr")):
+                    cs__error(_env, cs_format_method_error(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_get_method(_env, _opc.get("attr"))
+            
+            case CSOpCode.CALL_METHOD:
+                """"""
+                if  _env.stack.top().get("argc").this != _opc.get("size"):
+                    cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                    continue
+                    
+                #####
+                cs_method_call(_env, _opc.get("size"))
+            
+
+
+            case CSOpCode.CALL:
+                """"""
+                if  _env.stack.top().get("argc").this != _opc.get("size"):
+                    cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                    continue
+                    
+                #####
+                cs_function_call(_env, _opc.get("size"))
+            
+
+            case CSOpCode.POSTFIX_OP:
+
+                match _opc.get("opt"):
+
+                    case "++":
+                        _top = _env.stack.pop()
+
+                        if  not cs_is_number(_top):
+                            cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
+                            continue
+                    
+                        #####
+                        # push old
+                        cs_new_number(_env, _top.this)
+
+                        # inc
+                        _top.this += 1
+
+                    case "--":
+                        _top = _env.stack.pop()
+
+                        if  not cs_is_number(_top):
+                            cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
+                            continue
+                    
+                        #####
+                        # push old
+                        cs_new_number(_env, _top.this)
+
+                        # dec
+                        _top.this -= 1
+
+
+            case CSOpCode.UNARY_OP:
+
+                match _opc.get("opt"):
+
+                    case "new":
+                        """"""
+                        if  not cs_is_constructor(_env.stack.top()):
+                            cs__error(_env, cs_format_not_constructor_error(_env, _env.stack.top()), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_constructor(_env, _opc.get("size"))
+                    
+                    case "typeof":
+                        """"""
+                        cs_new_string(_env, _env.stack.pop().type)
+
+                    case "!":
+                        _rhs = _env.stack.pop()
+
+                        #####
+                        cs_new_boolean(_env, not _rhs.this)
+
+                    case "~":
+                        _rhs = _env.stack.pop()
+
+                        if  not cs_is_integer(_rhs):
+                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_new_number(_env, ~ _rhs.this)
+                    
+
+                    case "+":
+                        _rhs = _env.stack.pop()
+
+                        if  not cs_is_number(_rhs):
+                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_new_number(_env, + _rhs.this)
+                    
+
+                    case "-":
+                        _rhs = _env.stack.pop()
+
+                        if  not cs_is_number(_rhs):
+                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_new_number(_env, - _rhs.this)
+                    
+
+                    case "++":
+                        _rhs = _env.stack.top()
+
+                        if  not cs_is_number(_rhs):
+                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        _rhs.this += 1
+                    
+                    case "--":
+                        _rhs = _env.stack.top()
+
+                        if  not cs_is_number(_rhs):
+                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        _rhs.this -= 1
+
+
+            case CSOpCode.BINARY_POW:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_new_number(_env, _lhs.this ** _rhs.this)
+            
+
+            case CSOpCode.BINARY_MUL:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_new_number(_env, _lhs.this * _rhs.this)
+            
+
+            case CSOpCode.BINARY_DIV:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                # zero divisor
+                if  _rhs.this == 0:
+                    cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_new_number(_env, _lhs.this / _rhs.this)
+            
+
+            case CSOpCode.BINARY_MOD:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                # zero divisor
+                if  _rhs.this == 0:
+                    cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_new_number(_env, _lhs.this % _rhs.this)
+
+
+            case CSOpCode.BINARY_ADD:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+              
+                if  not ((cs_is_number(_lhs) and cs_is_number(_rhs)) or \
+                         (cs_is_string(_lhs) and cs_is_string(_rhs))):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+                
+                #####
+                if cs_is_number(_lhs) and cs_is_number(_rhs):
+                    cs_new_number(_env, _lhs.this + _rhs.this)
+                else:
+                    cs_new_string(_env, _lhs.this + _rhs.this)
+            
+
+            case CSOpCode.BINARY_SUB:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_new_number(_env, _lhs.this - _rhs.this)
+            
+            case CSOpCode.BINARY_LSHIFT:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_new_number(_env, _lhs.this << _rhs.this)
+            
+
+            case CSOpCode.BINARY_RSHIFT:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_new_number(_env, _lhs.this >> _rhs.this)
+            
+            case CSOpCode.COMPARE_OP:
+                match _opc.get("opt"):
+
+                    case "<":
+                        _lhs = _env.stack.pop()
+                        _rhs = _env.stack.pop()
+
+                        if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_new_boolean(_env, _lhs.this < _rhs.this)
+                    
+                    case "<=":
+                        _lhs = _env.stack.pop()
+                        _rhs = _env.stack.pop()
+
+                        if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_new_boolean(_env, _lhs.this <= _rhs.this)
+                    
+
+                    case ">":
+                        _lhs = _env.stack.pop()
+                        _rhs = _env.stack.pop()
+
+                        if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_new_boolean(_env, _lhs.this > _rhs.this)
+                    
+                    case ">=":
+                        _lhs = _env.stack.pop()
+                        _rhs = _env.stack.pop()
+
+                        if  not cs_is_number(_lhs) and cs_is_number(_rhs):
+                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_new_boolean(_env, _lhs.this >= _rhs.this)
+                    
+                    case "==":
+                        _lhs = _env.stack.pop()
+                        _rhs = _env.stack.pop()
+
+                        if  not (cs_is_pointer(_lhs) and cs_is_pointer(_rhs)):
+                            cs_new_boolean(_env, _lhs.this == _rhs.this)
+                            continue
+                      
+                        ##### pointer: compare memory address
+                        cs_new_boolean(_env, _lhs.offset == _rhs.offset)
+                    
+
+                    case "!=":
+                        _lhs = _env.stack.pop()
+                        _rhs = _env.stack.pop()
+
+                        if  not (cs_is_pointer(_lhs) and cs_is_pointer(_rhs)):
+                            cs_new_boolean(_env, _lhs.this != _rhs.this)
+                            continue
+                      
+                        ##### pointer: compare memory address
+                        cs_new_boolean(_env, _lhs.offset != _rhs.offset)
+                    
+
+            case CSOpCode.BINARY_AND:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+                
+                #####
+                cs_new_number(_env, _lhs.this & _rhs.this)
+            
+
+            case CSOpCode.BINARY_XOR:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+                
+                #####
+                cs_new_number(_env, _lhs.this ^ _rhs.this)
+            
+
+            case CSOpCode.BINARY_OR:
+                _lhs = _env.stack.pop()
+                _rhs = _env.stack.pop()
+
+                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                    continue
+                
+                #####
+                cs_new_number(_env, _lhs.this | _rhs.this)
+
+            case CSOpCode.MAKE_CLASS:
+                """"""
+                cs_new_class(_env, _opc.get("size"))
+
+            case CSOpCode.MAKE_FUNCTION:
+                """"""
+                cs_new_function(_env)
+
+            case CSOpCode.MAKE_VAR:
+                """"""
+                if  cs_has_name(_env, _opc.get("name")):
+                    cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_make_var(_env, _opc.get("name"))
+            
+            case CSOpCode.MAKE_LOCAL:
+                """"""
+                if  cs_has_local(_env, _opc.get("name")):
+                    cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
+                    continue
+
+                #####
+                cs_make_local(_env, _opc.get("name"))
+            
+            case CSOpCode.DUP_TOP:
+                """"""
+                _env.stack.push(_env.stack.top())
+
+            case CSOpCode.POP_TOP:
+                """"""
+                _env.stack.pop()
+
+            
+            case CSOpCode.PRINT_OBJECT:
+                """"""
+                _size = _opc.get("size")
+                _frmt = ""
+
+                for _r in range(_size):
+                    _frmt += _env.stack.pop().__str__()
+
+                    if  _r < (_size - 1):
+                        _frmt += " "
+                
+                print(_frmt)
+            
+            case CSOpCode.RETURN_OP:
+                return
+
+            case _:
+                print("Not implemented", _opc.opcode.name)
+                exit(1)
+
+
+
+"""HELPERS"""
+def cs_ifdef(_env:CSXEnvironment, _name:str):
+    """ Checks if name exists to local scope
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+
+        Returns
+        -------
+        bool
+    """
+    return _env.scope[-1].exists(_name, _local=True)
+
+def cs_has_name(_env:CSXEnvironment, _name:str):
+    """ Checks if name exists to scope
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+
+        Returns
+        -------
+        bool
+    """
+    return _env.scope[-1].exists(_name, _local=False)
+
+
+def cs_has_local(_env:CSXEnvironment, _name:str):
+    """ Checks if name exists to local scope
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+
+        Returns
+        -------
+        bool
+    """
+    return _env.scope[-1].exists(_name, _local=True)
+
+
+def cs_has_class(_env:CSXEnvironment, _class_name:str):
+    """ Checks if class exist
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _class_name : str
+
+        Returns
+        -------
+        bool
+    """
+    _exist = _env.scope[-1].exists(_class_name, _local=False)
+    if not _exist: return _exist
+
+    # retirieve
+    _infor = _env.scope[-1].lookup(_class_name)
+   
+    _class = _env.vheap.cs__object_at(_infor["_address"])
+    
+    # check if valid class
+    return cs_is_constructor(_class)
+
+
+
+
+def cs_has_method(_env:CSXEnvironment, _obj:CSObject, _method_name:str):
+    """ Checks if _obj has _method_name to its class proto
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+        _method_name : str
+
+        Returns
+        -------
+        bool
+    """
+    # if contains "__proto__"
+    if  not cs_has_attribute(_env, _obj, __ATTRIBUTE_PROTO__): 
+        return False
+
+    # search in class
+    _class = _obj.get(__ATTRIBUTE_PROTO__)
+
+    if  not cs_has_attribute(_env, _class, _method_name):
+        return False
+
+    return cs_is_callable(_class.get(_method_name))
+
+
+
+def cs_has_attribute(_env:CSXEnvironment, _obj:CSObject, _attribute_name:str):
+    """ Check if object has direct attribute/key
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+        _method_name : str
+
+        Returns
+        -------
+        bool
+    """
+    if  _obj.hasKey(_attribute_name):
+        return True
+    
+    # search in prototype
+    if  not _obj.hasKey(__ATTRIBUTE_PROTO__):
+        return False
+    
+    _class = _obj.get(__ATTRIBUTE_PROTO__)
+
+    return _class.hasKey(_attribute_name)
+
+
+def cs_is_callable(_obj:CSObject):
+    """ Checks if object is a function
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+
+        Returns
+        -------
+        bool
+    """ 
+    return (
+        _obj.type == CSTypes.TYPE_CSNATIVEFUNCTION or
+        _obj.type == CSTypes.TYPE_CSFUNCTION       or
+        _obj.type == CSTypes.TYPE_CSMETHOD
+    )
+
+
+def cs_is_rawcode(_csobject:CSObject):
+    """ Checks if object is csrawcode
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return  _csobject.type == CSTypes.TYPE_CSRAWCODE
+
+
+
+def cs_is_number(_csobject:CSObject):
+    """ Checks if object is CSInteger or CSDouble
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return  cs_is_integer(_csobject) or cs_is_double(_csobject)
+
+
+def cs_is_integer(_csobject:CSObject):
+    """ Checks if object is CSInteger
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return _csobject.type == CSTypes.TYPE_CSINTEGER
+
+
+def cs_is_double(_csobject:CSObject):
+    """ Checks if object is CSDouble
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return _csobject.type == CSTypes.TYPE_CSDOUBLE
+
+
+def cs_is_string(_csobject:CSObject):
+    """ Checks if object is CSString
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return  _csobject.type == CSTypes.TYPE_CSSTRING
+
+
+def cs_is_boolean(_csobject:CSObject):
+    """ Checks if object is CSBoolean
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return  _csobject.type == CSTypes.TYPE_CSBOOLEAN
+
+
+
+def cs_is_nulltype(_csobject:CSObject):
+    """ Checks if object is CSNullType
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return  _csobject.type == CSTypes.TYPE_CSNULLTYPE
+
+
+def cs_is_constructor(_csobject:CSObject):
+    """ Checks if object is a constructor
+        
+        A valid class should have
+            the following: 
+            
+            [1]. initialize method(constructor)
+
+            [2]. qualname attribute
+
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+
+    # check if object has "qualname"
+    if  not _csobject.hasKey(__ATTRIBUTE_QUALNAME__):
+        return False
+    
+    # is qualname a string?
+    if  not cs_is_string(_csobject.get(__ATTRIBUTE_QUALNAME__)):
+        # invalid qualname
+        return False
+    
+    # has qualname!
+
+    # check if has "initialize" method
+    if  not _csobject.hasKey(__ATTRIBUTE_INITIALIZE__):
+        # no valid constructor
+        return False
+    
+    # is constructor callable?
+    return cs_is_callable(_csobject.get(__ATTRIBUTE_INITIALIZE__))
+
+
+def cs_is_pointer(_csobject:CSObject):
+    """ Checks if object is a pointer type
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return not (cs_is_number(_csobject) or cs_is_string(_csobject) or cs_is_boolean(_csobject) or cs_is_nulltype(_csobject))
+
+
+"""OPCODE METHODS"""
+
+
+def cs_define(_env:CSXEnvironment, _name:str, _value:CSObject):
+    """ Creates local variable
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+        _value : CSObject
+    """
+    assert not cs_ifdef(_env, _name), "name '%s' already defined!" % _name
+
+    # save var
+    _env.scope[-1].insert(_name, _address=_value.offset, _global=False)
+
+
+def cs_make_var(_env:CSXEnvironment, _name:str):
+    """ Creates global variable
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+    """
+    assert not cs_has_name(_env, _name), "name '%s' already defined!" % _name
+
+    # save var
+    _env.scope[-1].insert(_name, _address=_env.stack.pop().offset, _global=True)
+
+
+def cs_make_local(_env:CSXEnvironment, _name:str):
+    """ Creates local variable
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+    """
+    assert not cs_has_local(_env, _name), "name '%s' already defined!" % _name
+
+    # save var
+    _env.scope[-1].insert(_name, _address=_env.stack.pop().offset, _global=False)
+
+
+def cs_new_code(_env:CSXEnvironment, _raw_code:csrawcode):
+    """ Push number to stack
 
         Parameters
         ----------
         _env : CSXEnvironment
         _raw_code : csrawcode
-    """
+    """ 
     _env.stack.push(_env.vheap.cs__malloc(_raw_code))
 
 
-def cs__new_function(_env:CSXEnvironment):
-    """ Allocates function
+def cs_new_number(_env:CSXEnvironment, _py_number:int|float):
+    """ Push number to stack
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _py_number : int|float
+    """ 
+    _obj = None
+    if  type(_py_number) == int:
+        _obj = _env.vheap.cs__malloc(CSInteger(_py_number))
+
+    else:
+        _obj = _env.vheap.cs__malloc(CSDouble (_py_number))
+
+    if  cs_has_class(_env, _obj.type): #$
+        # push to top
+        cs_get_class(_env, _obj.type)
+
+        # pop and put
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+    else:
+        print("No class")
+
+    # push #
+    _env.stack.push(_obj)
+
+
+
+def cs_new_string(_env:CSXEnvironment, _py_string:str):
+    """ Push string to stack
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _py_string : str
+    """ 
+
+    _obj = CSString(_py_string)
+
+    if  cs_has_class(_env, _obj.type): #$
+        # push to top
+        cs_get_class(_env, _obj.type)
+
+        # pop and put
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+
+    _env.stack.push(_env.vheap.cs__malloc(_obj))
+
+
+def cs_new_boolean(_env:CSXEnvironment, _py_boolean:bool):
+    """ Push boolean to stack
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _py_boolean : bool
+    """ 
+
+    _obj = CSBoolean(_py_boolean)
+
+    if  cs_has_class(_env, _obj.type): #$
+        # push to top
+        cs_get_class(_env, _obj.type)
+
+        # pop and put
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+
+    _env.stack.push(_env.vheap.cs__malloc(_obj))
+
+
+
+def cs_new_nulltype(_env:CSXEnvironment):
+    """ Push boolean to stack
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+    """ 
+
+    _obj = CSNullType()
+
+    if  cs_has_class(_env, _obj.type): #$
+        # push to top
+        cs_get_class(_env, _obj.type)
+
+        # pop and put
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+
+    _env.stack.push(_env.vheap.cs__malloc(_obj))
+
+
+def cs_new_class(_env:CSXEnvironment, _pop_size:int):
+    """ Push/Builds a class prototype
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _pop_size : int
+    """
+    _class_proto_name = _env.stack.pop()
+
+    # creates new object as class proto
+    _obj = _env.vheap.cs__malloc(CSObject())
+
+    # set qualifed name
+    _obj.put(__ATTRIBUTE_QUALNAME__, _class_proto_name)
+
+    for _r in range(_pop_size):
+        _key = _env.stack.pop()
+        _val = _env.stack.pop()
+        # put object
+        _obj.put(_key.__str__(), _val)
+    
+    _env.stack.push(_obj)
+
+
+def cs_new_function(_env:CSXEnvironment):
+    """ Push/Builds a function
 
         Parameters
         ----------
         _env : CSXEnvironment
     """
-    _fname = _env.stack.poll()
-    _fargc = _env.stack.poll()
-    _fcode = _env.stack.poll()
-    _env.stack.push(_env.vheap.cs__malloc(CSFunction(_fname, _fargc, _fcode)))
+    _fname = _env.stack.pop()
+    _fargc = _env.stack.pop()
+    _fcode = _env.stack.pop()
+
+    _obj = CSFunction(_fname, _fargc, _fcode)
+    
+    if  cs_has_class(_env, _obj.type): #$
+        # push to top
+        cs_get_class(_env, _obj.type)
+
+        # pop and put
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
 
 
-def cs__new_class(_env:CSXEnvironment, _size:int):
-    """ Allocates new class declairation
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _size : int
-    """
-
-    _csclass = _env.vheap.cs__malloc(CSObject())
-    _csclass.type = _env.stack.poll().this
-
-    if  cs__var_exists(_env, CSTypes.TYPE_CSOBJECT):
-        # if not extended. use CSObject as super class
-        _proto = cs__get_prototype(_env, CSTypes.TYPE_CSOBJECT)
-        _keys = _proto.keys()
-        for _k in _keys:
-            _csclass.put(_k, _proto.get(_k))
-
-    for _r in range(_size):
-        _key = _env.stack.poll()
-        _val = _env.stack.poll()
-
-        # check
-        if cs__has_method(_env, _csclass, _key.__str__()):\
-        logger("cs__new_class", "overriding native \"%s::%s\" method..." % (_csclass.type, _key.__str__()))
-        
-        # put
-        _csclass.put(_key.__str__(), _val)
-
-    _env.stack.push(_csclass)
+    _env.stack.push(_env.vheap.cs__malloc(_obj))
 
 
 
-
-
-
-
-
-
-
-
-
-# ======================= OBJECT RETRIEVAL|
-# ========================================|
-
-def cs__var_exists(_env:CSXEnvironment, _var_name:str):
-    """ Check if variable exists in local->parent scope
-
-        starts at local(important)
-            until parent is None
-        
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _var_name : str
-    """
-    return _env.scope[-1].exists(_var_name, _local=False)
-
-
-
-
-def cs__local_exists(_env:CSXEnvironment, _var_name:str):
-    """ Check if variable exists in local->parent scope
-
-        starts at local(important)
-            until parent is None
-        
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _var_name : str
-    """
-    return _env.scope[-1].exists(_var_name, _local=True)
-
-
-
-
-def cs__make_variable(_env:CSXEnvironment, _var_name:str, _value:CSObject):
-    """ Creates a new variable if target _var_name does not exists locally!
+def cs_push_name(_env:CSXEnvironment, _name:str):
+    """ Gets variable value
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _var_name : str
-        _address : int
+        _name : str
     """
-    assert not cs__var_exists(_env, _var_name), "already exists!"
-    _env.scope[-1].insert(_var_name, _address=_value.offset, _global=True)
+    assert cs_has_name(_env, _name), "no such name '%s'" % _name
 
-
-
-
-def cs__make_local(_env:CSXEnvironment, _var_name:str, _value:CSObject):
-    """ Creates a new local variable if target _var_name does not exists locally!
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _var_name : str
-        _address : int
-    """
-    assert not cs__local_exists(_env, _var_name), "already exists!"
-    _env.scope[-1].insert(_var_name, _address=_value.offset, _global=False)
-
-
-
-def cs__get_variable(_env:CSXEnvironment, _var_name:str):
-    """ Retrieve variable value if exists in current scope!
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _var_name : str
-    """
-    assert cs__var_exists(_env, _var_name) or cs__local_exists(_env, _var_name), "not existed!"
-    _ref = _env.scope[-1].lookup(_var_name)
-   
     # retrieve
-    _env.stack.push(_env.vheap.cs__object_at(_ref["_address"]))
+    _info = _env.scope[-1].lookup(_name)
     
+    # push stack
+    _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
 
 
-def cs__store_name(_env:CSXEnvironment, _var_name:str, _value:CSObject):
-    """ Re-assign variable
+
+def cs_get_class(_env:CSXEnvironment, _class_name:str):
+    """ Retrievs class prototype
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _var_name : str
-        _value : CSObject
+        _class_name : str
     """
-    assert cs__var_exists(_env, _var_name) or cs__local_exists(_env, _var_name), "var does not exist %s" % _var_name
-    _env.scope[-1].update(_var_name, _address=_value.offset)
+    assert cs_has_class(_env, _class_name), "No such class" % _class_name
+
+    # retrieve
+    _info = _env.scope[-1].lookup(_class_name)
+    
+    # push stack
+    _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
 
 
+def cs_get_attrib(_env:CSXEnvironment, _attribute_name:str):
+    """ Gets attribute of an object
 
-
-
-
-
-
-
-
-
-# ================================== EVENT|
-# ========================================|
-def cs__is_callable(_object:CSObject):
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _attribute_name : str
     """
+    assert cs_has_attribute(_env, _env.stack.top(), _attribute_name), "No such attribute '%s'" % _attribute_name
+
+    _top = _env.stack.pop()
+    if  _top.hasKey(_attribute_name):
+        _env.stack.push(_top.get(_attribute_name))
+        return 
+    
+    # search in class
+    _class = _top.get(__ATTRIBUTE_PROTO__)
+
+    # push to stack
+    _env.stack.push(_class.get(_attribute_name))
+
+
+
+def cs_get_method(_env:CSXEnvironment, _method_name:str):
+    """ Extracts method from class prototype
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _method_name : str
+        
     """
-    return  _object.type == CSTypes.TYPE_CSNATIVEFUNCTION or \
-            _object.type == CSTypes.TYPE_CSFUNCTION
+    assert cs_has_method(_env, _env.stack.top(), _method_name), "No such method '%s'" % _method_name
+
+    # top object
+    _objct = _env.stack.pop()
+    
+    # class becomes __proto__
+    _class = _objct.get(__ATTRIBUTE_PROTO__)
+
+    # push to stack
+    _env.stack.push(_env.vheap.cs__malloc(CSMethod(_objct, _class.get(_method_name))))
 
 
+"""FUNCTIONS"""
+def cs_method_call(_env:CSXEnvironment, _argument_size:int):
+    """ Calls a method
 
-def cs__raw_call(_env:CSXEnvironment, _csobject:CSFunction|CSNativeFunction, _arg_count:int):
-    """ Calls a CSFunction or CSNativeFunction
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _argument_size : int
     """
-    assert cs__is_callable(_csobject), "not callable %s" % _csobject.__str__()
+    #   stack
+    # ---------
+    #  method
+    #  args 0
+    #  args N
 
-    assert _csobject.get("argc").this == _arg_count, "insufficient argument count (%d != %d) !" % (_csobject.get("argc").this, _arg_count)
+    # new scope
+    _env.scope.append(Scope(_env.scope[-1]))
 
-    match _csobject.type:
-        case CSTypes.TYPE_CSFUNCTION:
-            cs__call(_env, _csobject.get("code"))
+    assert cs_is_callable(_env.stack.top()), "not a function!"
 
+    # method
+    _func = _env.stack.pop()
+
+    # define "this"
+    cs_define(_env, "this", _func.get("owner"))
+
+    match _func.meth:
         case CSTypes.TYPE_CSNATIVEFUNCTION:
-            _args = [
-                _env, # environment,
-                _env.current, # this,
-                # arg_0,
-                # arg_1,
-                # arg_N,
-            ]
+            # call function
+            _args = [_env]
 
-            for _r in range(_arg_count): _args.append(_env.stack.poll())
-            # 
-            _env.stack.push(_csobject.call(_args))
+            for _r in range(_argument_size):
+                _args.append(_env.stack.pop())
 
+            _env.stack.push(_func.call(_args))
 
-def cs__call_function(_env:CSXEnvironment, _top_object:CSObject, _arg_count:int):
-    """ Handles function call
+        case CSTypes.TYPE_CSFUNCTION:
+            # call function
+            cs__call(_env, _func.get("code"))
 
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _top_object : CSObject
-        _arg_count : int
-    """
-    # NOTE: watch recursion
-
-    _env.scope.append(Scope(_parent=_env.scope[-1]))
-
-    cs__raw_call(_env, _top_object, _arg_count)
-
+    # end scope
     _env.scope.pop()
 
 
-def cs__call_method(_env:CSXEnvironment, _top_object, _arg_count:int):
-    """ Handles method call
+def cs_function_call(_env:CSXEnvironment, _argument_size:int):
+    """ Calls a function
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _top_object : CSObject
-        _arg_count : int
+        _argument_size : int
     """
-    # NOTE: watch recursion
-    
-    _env.scope.append(Scope(_parent=_env.scope[-1]))
+    #   stack
+    # ---------
+    #  method
+    #  args 0
+    #  args N
 
-    # put this to current scope
-    cs__define_prop(_env, "this", _env.current)
+    # new scope
+    _env.scope.append(Scope(_env.scope[-1]))
 
-    cs__raw_call(_env, _top_object, _arg_count)
+    assert cs_is_callable(_env.stack.top()), "not a function!"
 
-    # cleanup current
-    _env.current = None
+    # method
+    _func = _env.stack.pop()
 
+    match _func.type:
+        case CSTypes.TYPE_CSNATIVEFUNCTION:
+            # call function
+            _args = [_env]
+
+            for _r in range(_argument_size):
+                _args.append(_env.stack.pop())
+
+            _env.stack.push(_func.call(_args))
+
+        case CSTypes.TYPE_CSFUNCTION:
+            # call function
+            cs__call(_env, _func.get("code"))
+
+    # end scope
     _env.scope.pop()
 
 
-def cs__invoke_method(_env:CSXEnvironment, _csobject:CSObject, _method_name:str, _arg_count:int):
-    """
-    """
-    assert cs__has_method(_env, _csobject, _method_name), "no method %s" % _method_name
-
-    _env.scope.append(Scope(_parent=_env.scope[-1]))
-
-    _env.current = _csobject
-
-    # define this
-    cs__define_prop(_env, "this", _env.current)
-
-    cs__raw_call(_env, cs__get_prototype_attribute(_env, _csobject.type, _method_name), _arg_count)
-
-    # cleanup current
-    _env.current = None
-
-    _env.scope.pop()
-
-
-
-# ================================= MEMBER|
-# ========================================|
-def cs__has_attribute(_env:CSXEnvironment, _top_object:CSObject, _attribute:str):
-    """ Checks if object has attribute
-
+"""CLASS"""
+def cs_constructor(_env:CSXEnvironment, _argument_size:int):
+    """ Creates a new class
+        
         Parameters
         ----------
         _env : CSXEnvironment
-        _top_object : CSObject
-        _attribute : str
+        _argument_size : int
     """
-    if _top_object.hasKey(_attribute): return True
 
-    # check prototype
-    if  not cs__var_exists(_env, _top_object.type):
-        return False
+    assert cs_is_constructor(_env.stack.top()), "not a constructor '%s'!" % _env.stack.top().type
+
+    _class_proto = _env.stack.pop()
+
+    _new_class = _env.vheap.cs__malloc(CSObject())
+    _new_class.put(__ATTRIBUTE_PROTO__, _class_proto)
+
+    # get qualname
+    _new_class.type = _class_proto.get(__ATTRIBUTE_QUALNAME__).__str__()
     
-    _proto = cs__get_prototype(_env, _top_object.type)
-    if  _proto.hasKey(_attribute):
-        return True
 
-    return False
+    # ============= PUSH STACK|
+    # ========================|
+    _env.stack.push(_new_class)
 
-def cs__has_method(_env:CSXEnvironment, _top_object:CSObject, _attribute:str):
-    """ Checks if object has method
+    # push method to stack
+    cs_get_method(_env, __ATTRIBUTE_INITIALIZE__)
 
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _top_object : CSObject
-        _attribute : str
-    """
-    if  _top_object.hasKey(_attribute):
-        # check if callable
-        return cs__is_callable(_top_object.get(_attribute))
+    # call constructor if any
+    cs_method_call(_env, _argument_size)
 
-    # check prototype
-    if  not cs__var_exists(_env, _top_object.type):
-        return False
+    # a constructor/initialize mu return null!!!!!
+    # otherwise use return type as immediate return.
+    if cs_is_nulltype(_env.stack.top()):
+
+        # pop initialize return value
+        _env.stack.pop()
+        
+        # push back instance
+        _env.stack.push(_new_class)
     
-    _proto = cs__get_prototype(_env, _top_object.type)
-    if  _proto.hasKey(_attribute):
-        # check if callable
-        return cs__is_callable(_proto.get(_attribute))
-
-    return False
-
-
-def cs__get_attribute(_env:CSXEnvironment, _top_object:CSObject, _attr:str):
-    """ Returns attribute of an object, otherwise error
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _top_object : CSObject
-        _attr : str
-    """  
-    assert cs__has_attribute(_env, _top_object, _attr), "no attribute %s" % _attr
-
-    # check has attribute
-    if  _top_object.hasKey(_attr):
-        return _env.stack.push(_top_object.get(_attr))
-
-    _prototype = cs__get_prototype(_env, _top_object.type)
-    if   _prototype.hasKey(_attr):
-        return _env.stack.push(_prototype.get(_attr))
-
-
-
-def cs__get_method(_env:CSXEnvironment, _top_object:CSObject, _attr:str):
-    """ Get specific method of a type
-
-        Parameters
-        ----------
-        _env : CXEnvironment
-        _top_object : CSObject
-        _attr : str
-    """
-    assert cs__has_method(_env, _top_object, _attr), "no method %s" % _attr
-
-    # set this
-    _env.current = _top_object
-
-    # check proto
-    cs__get_variable(_env, _top_object.type)
-    
-    _env.stack.push(_env.stack.poll().get(_attr))
-
-
-def cs__set_attribute(_env:CSXEnvironment, _attr:str):
-    """ Sets object attribute
-
-        Parameters
-        ----------
-        _env : CXEnvironment
-        _attr : str
-    """
-    if cs__has_method(_env, _env.stack.peek(), _attr):\
-    logger("cs__set_attribte", "overriding native \"%s::%s\" method..." % (_env.stack.peek().type, _attr))
-
-    # set current object
-    _top_object = _env.stack.poll()
-    _top_object.put(_attr, _env.stack.poll())
-
-
-
-
-
-
-
-
-
-# 
-def cs__construct_class(_env:CSXEnvironment, _arg_count:int):
-    """ Creates a new class when unary "new"
-
-        Parameters
-        ----------
-        _env : CXEnvironment
-        _arg_count : int
-    """
-    _class_proto = _env.stack.poll()
-
-    _new = _env.vheap.cs__malloc(CSObject())
-    _new.type = _class_proto.type
-
-    _keys = _class_proto.keys()
-    for _k in _keys:
-        # make a copy for non function
-        if  not cs__is_callable(_class_proto.get(_k)):
-            _new.put(_k, _class_proto.get(_k))
-
-    _env.scope.append(Scope(_parent=_env.scope[-1]))
-
-    cs__define_prop(_env, "this", _new)
-
-    if  _class_proto.hasKey(_class_proto.type):
-        _constructor = _class_proto.get(_class_proto.type)
-        cs__raw_call(_env, _constructor, _arg_count)
-
-    if  _constructor.type != CSTypes.TYPE_CSNATIVEFUNCTION:
-        # hack!!!
-        _env.stack.poll() # pop defult return
-   
-        # push newly created!
-        _env.stack.push(_new)
-
-    _env.scope.pop()
-
-
-def cs__call(_env:CSXEnvironment, _code:csrawcode):
-    """
-    """
-    _ipointer = 0
-    _returned = False
-
-    for i in _code:
-        print(i)
-
-    while _ipointer < len(_code.code) and (not _returned):
-
-        _instruction = _code.code[_ipointer]
-        _ipointer   += 1
-
-        match _instruction.opcode:
-
-            case CSOpCode.PUSH_INTEGER:cs__new_number(_env, _instruction.get("const"))
-            case CSOpCode.PUSH_DOUBLE:cs__new_number(_env, _instruction.get("const"))
-            case CSOpCode.PUSH_STRING:cs__new_string(_env, _instruction.get("const"))
-            case CSOpCode.PUSH_BOOLEAN:cs__new_boolean(_env, _instruction.get("const"))
-            case CSOpCode.PUSH_NULL:cs__new_null(_env)
-            case CSOpCode.PUSH_CODE:cs__new_code(_env, _instruction.get("code"))
-            case CSOpCode.MAKE_FUNCTION:cs__new_function(_env)
-            case CSOpCode.MAKE_CLASS:cs__new_class(_env, _instruction.get("size"))
-            case CSOpCode.PUSH_NAME:
-                _var_name = _instruction.get("name")
-                if  not (cs__var_exists(_env, _var_name) or cs__local_exists(_env, _var_name)):
-                    cs__error(
-                        _env, ("ReferenceError: %s  is not defined!" % _var_name), 
-                        _instruction.get("loc")
-                    )
-                    continue
-
-                ######## get var|get local
-                cs__get_variable(_env, _var_name)
-
-
-
-
-
-
-            # event
-            case CSOpCode.CALL:
-                if  not cs__is_callable(_env.stack.peek()):
-                    cs__error(
-                        _env, ("TypeError: %s (%s) is not callable!" % (_env.stack.peek().type, _env.stack.peek().__str__())), 
-                        _instruction.get("loc")
-                    )
-                    continue
-
-                _name = _env.stack.peek().get("name")
-                _argc = _env.stack.peek().get("argc")
-
-                _passed_argument_size = _instruction.get("size")
-                if  _argc.this != _passed_argument_size:
-                    cs__error(
-                        _env, ("TypeError: %s (%s) requires %s argument(s), got %d" % (_env.stack.peek().type, _name.__str__(), _argc.__str__(), _passed_argument_size)), 
-                        _instruction.get("loc")
-                    )
-                    continue
-
-                ######## call
-                cs__call_function(_env, _env.stack.poll(), _passed_argument_size)
-
-            case CSOpCode.CALL_METHOD:
-                if  not cs__is_callable(_env.stack.peek()):
-                    cs__error(
-                        _env, ("TypeError: %s (%s) is not callable!" % (_env.stack.peek().type, _env.stack.peek().__str__())), 
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                _name = _env.stack.peek().get("name")
-                _argc = _env.stack.peek().get("argc")
-
-                _passed_argument_size = _instruction.get("size")
-                if  _argc.this != _passed_argument_size:
-                    cs__error(
-                        _env, ("TypeError: %s (%s) requires %s argument(s), got %d" % (_env.stack.peek().type, _name.__str__(), _argc.__str__(), _passed_argument_size)), 
-                        _instruction.get("loc")
-                    )
-                    continue
-
-                ######## call
-                cs__call_method(_env, _env.stack.poll(), _passed_argument_size)
-
-            case CSOpCode.MAKE_VAR:
-                _var_name = _instruction.get("name")
-                if  cs__var_exists(_env, _var_name):
-                    cs__error(
-                        _env, ("NameError: %s was already defined!" % _var_name), 
-                        _instruction.get("loc")
-                    )
-                    continue
-
-                ######## global var
-                cs__make_variable(_env, _var_name, _env.stack.poll())
-
-            case CSOpCode.MAKE_LOCAL:
-                _loc_name = _instruction.get("name")
-                if  cs__var_exists(_env, _loc_name):
-                    cs__error(
-                        _env, ("NameError: %s was already defined!" % _loc_name), 
-                        _instruction.get("loc")
-                    )
-                    continue
-
-                ######## local var
-                cs__make_local(_env, _instruction.get("name"), _env.stack.poll())
-
-
-            # attributes
-            case CSOpCode.GET_ATTRIB:
-                _attribute = _instruction.get("attr")
-                if  not cs__has_attribute(_env,_env.stack.peek(), _attribute):
-                    cs__error(
-                        _env, ("AttributeError: %s has no attribute %s!" % (_env.stack.peek().__str__(), _attribute)),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## get attribute
-                cs__get_attribute(_env, _env.stack.poll(), _attribute)
-
-            case CSOpCode.GET_METHOD:
-                _attribute = _instruction.get("attr")
-                if  not cs__has_method(_env,_env.stack.peek(), _attribute):
-                    cs__error(
-                        _env, ("AttributeError: %s has no attribute %s!" % (_env.stack.peek().__str__(), _attribute)),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## get method
-                cs__get_method(_env, _env.stack.poll(), _attribute)
-
-            case CSOpCode.SET_ATTRIB:
-                cs__set_attribute(_env, _instruction.get("attr"))
-              
-
-
-            # postfix
-            case CSOpCode.POSTFIX_OP:
-                match _instruction.get("opt"):
-                    case "++":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__inc__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) for left operand!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                            
-                        _top = _env.stack.peek().this
-                        
-                        ######## invoke self __inc__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__inc__", 0)
-
-                        # pop incremented
-                        _env.stack.poll()
-
-                        # push old value
-                        cs__new_number(_env, _top)
-                    
-                    case "--":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__dec__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) for left operand!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                            
-                        _top = _env.stack.peek().this
-                        
-                        ######## invoke self __inc__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__dec__", 0)
-
-                        # pop decremented
-                        _env.stack.poll()
-
-                        # push old value
-                        cs__new_number(_env, _top)
-
-                    case _:
-                        raise Exception("not implemented %s" % _instruction.get("opt"))
-
-            # unary
-            case CSOpCode.UNARY_OP:
-                match _instruction.get("opt"):
-                    case "new":
-                        """ A class/constructor must have an "attribute" named to itself.
-                        """
-                        if  not _env.stack.peek().hasKey(_env.stack.peek().type):
-                            cs__error(
-                                _env, ("TypeError: %s is not a constructor !" % _env.stack.peek().__str__()),
-                                _instruction.get("loc")
-                            )
-                            continue
-
-                        ######## construct class
-                        cs__construct_class(_env, _instruction.get("size"))
-                    
-                    case "~":
-                        _a = _env.stack.poll()
-                        if  not cs__has_method(_env, _a, "__bit_not__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __bit_not__ method
-                        cs__invoke_method(_env, _a, "__bit_not__", 0)
-                    
-                    case "!":
-                        _a = _env.stack.poll()
-                        if  not cs__has_method(_env, _a, "__log_not__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __log_not__ method
-                        cs__invoke_method(_env, _a, "__log_not__", 0)
-                    
-                    case "+":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__uplus__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __uplus__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__uplus__", 0)
-
-                    case "++":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__inc__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __inc__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__inc__", 0)
-                    
-                    case "-":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__uminus__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __uminus__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__uminus__", 0)
-
-                    case "--":
-                        if  not cs__has_method(_env, _env.stack.peek(), "__dec__"):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) for right operand!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __dec__ method
-                        _a = _env.stack.poll()
-                        cs__invoke_method(_env, _a, "__dec__", 0)
-                    
-                    case _:
-                        raise Exception("not implemented %s" % _instruction.get("opt"))
-
-            # multiplicative
-            case CSOpCode.BINARY_POW:
-                _a = _env.stack.poll()
-                _pow_method = "__pow_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _pow_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __pow_RHS__ method
-                cs__invoke_method(_env, _a, _pow_method, 1)
-
-            case CSOpCode.BINARY_MUL:
-                _a = _env.stack.poll()
-                _mul_method = "__mul_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _mul_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __mul_RHS__ method
-                cs__invoke_method(_env, _a, _mul_method, 1)
-                
-            case CSOpCode.BINARY_DIV:
-                _a = _env.stack.poll()
-                _div_method = "__div_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _div_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __div_RHS__ method
-                cs__invoke_method(_env, _a, _div_method, 1)
-
-            case CSOpCode.BINARY_MOD:
-                _a = _env.stack.poll()
-                _mod_method = "__mod_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _mod_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __mod_RHS__ method
-                cs__invoke_method(_env, _a, _mod_method, 1)
-
-
-
-            # addetive
-            case CSOpCode.BINARY_ADD:
-                _a = _env.stack.poll()
-                _add_method = "__add_" + _env.stack.peek().type + "__"
-               
-                if  not cs__has_method(_env, _a, _add_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __add_RHS__ method
-                cs__invoke_method(_env, _a, _add_method, 1)
-            
-            case CSOpCode.BINARY_SUB:
-                _a = _env.stack.poll()
-                _sub_method = "__sub_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _sub_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __sub_RHS__ method
-                cs__invoke_method(_env, _a, _sub_method, 1)
-            
-            case CSOpCode.BINARY_LSHIFT:
-                _a = _env.stack.poll()
-                _lshift_method = "__lshift_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _lshift_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __lshift_RHS__ method
-                cs__invoke_method(_env, _a, _lshift_method, 1)
-            
-            case CSOpCode.BINARY_RSHIFT:
-                _a = _env.stack.poll()
-                _rshift_method = "__rshift_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _rshift_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __rshift_RHS__ method
-                cs__invoke_method(_env, _a, _rshift_method, 1)
-            
-            # comparison
-            case CSOpCode.COMPARE_OP:
-                match _instruction.get("opt"):
-                    case "<":
-                        _a = _env.stack.poll()
-                        _lt_method = "__lt_" + _env.stack.peek().type + "__"
-                        if  not cs__has_method(_env, _a, _lt_method):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __lt_RHS__ method
-                        cs__invoke_method(_env, _a, _lt_method, 1)
-                    
-                    case "<=":
-                        _a = _env.stack.poll()
-                        _lte_method = "__lte_" + _env.stack.peek().type + "__"
-                        if  not cs__has_method(_env, _a, _lte_method):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __lte_RHS__ method
-                        cs__invoke_method(_env, _a, _lte_method, 1)
-                    
-                    case ">":
-                        _a = _env.stack.poll()
-                        _gt_method = "__gt_" + _env.stack.peek().type + "__"
-                        if  not cs__has_method(_env, _a, _gt_method):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __gt_RHS__ method
-                        cs__invoke_method(_env, _a, _gt_method, 1)
-                    
-                    case ">=":
-                        _a = _env.stack.poll()
-                        _gte_method = "__gte_" + _env.stack.peek().type + "__"
-                        if  not cs__has_method(_env, _a, _gte_method):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __gte_RHS__ method
-                        cs__invoke_method(_env, _a, _gte_method, 1)
-
-                    case "==":
-                        _a = _env.stack.poll()
-                        _eq_method = "__eq_" + _env.stack.peek().type + "__"
-                        if  not cs__has_method(_env, _a, _eq_method):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __eq_RHS__ method
-                        cs__invoke_method(_env, _a, _eq_method, 1)
-                    
-                    case "!=":
-                        _a = _env.stack.poll()
-                        _neq_method = "__neq_" + _env.stack.peek().type + "__"
-                        if  not cs__has_method(_env, _a, _neq_method):
-                            cs__error(
-                                _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                                _instruction.get("loc")
-                            )
-                            continue
-                        
-                        ######## invoke self __neq_RHS__ method
-                        cs__invoke_method(_env, _a, _neq_method, 1)
-            
-            # bitwise logics
-            case CSOpCode.BINARY_AND:
-                _a = _env.stack.poll()
-                _and_method = "__and_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _and_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __and_RHS__ method
-                cs__invoke_method(_env, _a, _and_method, 1)
-            
-            case CSOpCode.BINARY_XOR:
-                _a = _env.stack.poll()
-                _xor_method = "__xor_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _xor_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __xor_RHS__ method
-                cs__invoke_method(_env, _a, _xor_method, 1)
-            
-            case CSOpCode.BINARY_OR:
-                _a = _env.stack.poll()
-                _or_method = "__or_" + _env.stack.peek().type + "__"
-                if  not cs__has_method(_env, _a, _or_method):
-                    cs__error(
-                        _env, ("TypeError: invalid operation (%s) of operands!" % _instruction.get("opt")),
-                        _instruction.get("loc")
-                    )
-                    continue
-                
-                ######## invoke self __or_RHS__ method
-                cs__invoke_method(_env, _a, _or_method, 1)
-            
-
-            # simple assignment
-            case CSOpCode.STORE_NAME:
-                _var_name = _instruction.get("name")
-                if  not (cs__var_exists(_env, _var_name) or cs__local_exists(_env, _var_name)):
-                    cs__error(
-                        _env, ("NameError: %s is not defined!" % _var_name),
-                        _instruction.get("loc")
-                    )
-                    continue
-
-                ######## store var
-                cs__store_name(_env, _var_name, _env.stack.poll())
-            
-            case CSOpCode.DUP_TOP:
-                _env.stack.push(_env.stack.peek())
-
-            case CSOpCode.PRINT_OBJECT:
-                _size = _instruction.get("size")
-                _format = ""
-
-                for idx in range(_size):
-                    _current = _env.stack.poll()
-                    _string  = ""
-
-                    if  cs__has_method(_env, _current, "__toString__"):
-                        cs__invoke_method(_env, _current, "__toString__", 0)
-                        _string = _env.stack.poll().__str__()
-                    
-                    else:
-                        _string = _current.__str__()
-
-                    _format += _string
-
-                    if  idx < _size - 1:
-                        _format += " "
-                
-                print(_format)
-
-            case CSOpCode.POP_TOP:
-                _env.stack.poll()
-
-            case CSOpCode.RETURN_OP:
-                return
-
-            case _:
-                raise NotImplementedError("invalid opcode %s" % _instruction.opcode.name)
-    
-    print("DONE!")
+    else:
+        logger("class", "class constructor '%s'should return null !!!" % _new_class.type)
 
 
 def cs__init_builtin(_env:CSXEnvironment):
-    """
-    """
-    # linkage
+    """ Initialize builtins
 
-    for each_class in ln:
-        each_class().link([_env])
+        Parameters
+        ----------
+        _env : CSXEnvironment
+    """ 
+    # linkage
+    for each_class in ln:\
+    each_class().link([_env])
+
+
 
 def cs__run(_code:csrawcode):
     _env = CSXEnvironment()
