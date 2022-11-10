@@ -3,10 +3,7 @@ from builtins import len
 from . import PyLinkInterface, CSTypes, CSString, CSBoolean, CSInteger
 
 
-""" Serves as CSInteger prototype
-        and all CSInteger operation
-            from
-            constructo, concat, __toString__
+""" Serves as CSString prototype
 
     Strictly: do not modify!!!
     NOTE: you an create your own custom prototype attribute inside cscript
@@ -17,23 +14,36 @@ class CSStringLink(PyLinkInterface):
     def __init__(self, _enherit=None):
         super().__init__(_enherit)
         self.linkname = CSTypes.TYPE_CSSTRING
+
+        self.variable = ({
+            "qualname" : CSString(self.linkname)
+        })
+
         self.metadata = ({
-            self.linkname      : {"name": self.linkname      , "argc": 1},
-            "length"           : {"name": "length"           , "argc": 0},
-            "__toString__"     : {"name": "__toString__"     , "argc": 1},
+            "initialize"   : {"name": "initialize"   , "argc": 1},
+            "length"       : {"name": "length"       , "argc": 0},
+            "__toString__" : {"name": "__toString__" , "argc": 0},
         })
     
     # constructor
-    def CSString(self, _args:list):
+    def initialize(self, _args:list):
         return _args[2]
     
     # length
     def length(self, _args:list):
-        return self.malloc(_args[0], CSInteger(len(_args[1].this)))
+        return self.malloc(_args[0], CSInteger(len(self.getName(_args[0], "this").this)))
     
     # __toString__
     def __toString__(self, _args:list):
-        return _args[1]
+        # check if "this exist!"
+        if  not _args[0].scope[-1].exists("this"):
+            return self.malloc(_args[0], CSString(""))
+
+        # invoke "this"
+        _this = self.getName(_args[0], "this")
+
+        # return
+        return _this
     
 
 

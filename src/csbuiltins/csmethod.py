@@ -27,6 +27,10 @@ class CSMethod(CSObject):
         else:
             self.put(CSMethod.KEY_CODE, _method.get(CSMethod.KEY_CODE))
         
+
+        # debug:
+        assert _owner.offset != -69420, "not allocated!!!"
+        
     
     def __str__(self):
         return "<CSMethod %s />" % self.get(CSMethod.KEY_FCALL).get("name").__str__()

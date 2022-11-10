@@ -1,4 +1,6 @@
 
+from copy import deepcopy
+import re
 
 from compiler import Instruction
 from compiler import CSOpCode
@@ -21,6 +23,12 @@ from csbuiltins.csfunction import CSFunction
 # utility
 from utility import __throw__
 from utility import logger
+
+
+__ATTRIBUTE_INITIALIZE__ = "initialize"
+__ATTRIBUTE_QUALNAME__   = "qualname"
+__ATTRIBUTE_PROTO__      = "__proto__"
+
 
 class CSXEnvironment(object):
     """ environment while running
@@ -111,7 +119,7 @@ class Scope(object):
         self.symbols[_symbol].update(_props)
     
     def lookup(self, _symbol:str):
-        assert self.exists(_symbol, False), "null possibility not handled!"
+        assert self.exists(_symbol, False), "null possibility not handled '%s'!" % _symbol
         if  (_symbol in self.symbols.keys()):
             return self.symbols[_symbol]
         
@@ -253,6 +261,20 @@ def cs_format_post_type_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject):
     """
     return "TypeError: invalid postfix operator (%s) for type %s !!!" % (_opt, _lhs.type)
 
+def cs_format_not_constructor_error(_env:CSXEnvironment, _obj:CSObject):
+    """ Formats constructor error
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+
+        Returns
+        -------
+        str
+    """
+    return "TypeError: %s is not a constructor !!!" % (_obj.type)
+
 def cs_format_una_type_error(_env:CSXEnvironment, _opt:str, _rhs:CSObject):
     """ Formats type error message for unary expression
 
@@ -373,12 +395,12 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
             
             case CSOpCode.CALL_METHOD:
                 """"""
-                if  _env.stack.top().get("argc").this != _opc.get("size") +1:
-                    cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size") +1), _opc.get("loc"))
+                if  _env.stack.top().get("argc").this != _opc.get("size"):
+                    cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
                     continue
                     
                 #####
-                cs_method_call(_env, _opc.get("size") +1)
+                cs_method_call(_env, _opc.get("size"))
             
 
 
@@ -430,7 +452,17 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
                 match _opc.get("opt"):
 
                     case "new":
-                        raise NotImplementedError("Not implemented class builder!!")
+                        """"""
+                        if  not cs_is_constructor(_env.stack.top()):
+                            cs__error(_env, cs_format_not_constructor_error(_env, _env.stack.top()), _opc.get("loc"))
+                            continue
+
+                        #####
+                        cs_constructor(_env, _opc.get("size"))
+                    
+                    case "typeof":
+                        """"""
+                        cs_new_string(_env, _env.stack.pop().type)
 
                     case "!":
                         _rhs = _env.stack.pop()
@@ -707,6 +739,9 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
                 #####
                 cs_new_number(_env, _lhs.this | _rhs.this)
 
+            case CSOpCode.MAKE_CLASS:
+                """"""
+                cs_new_class(_env, _opc.get("size"))
 
             case CSOpCode.MAKE_FUNCTION:
                 """"""
@@ -730,9 +765,14 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
                 #####
                 cs_make_local(_env, _opc.get("name"))
             
+            case CSOpCode.DUP_TOP:
+                """"""
+                _env.stack.push(_env.stack.top())
+
             case CSOpCode.POP_TOP:
                 """"""
                 _env.stack.pop()
+
             
             case CSOpCode.PRINT_OBJECT:
                 """"""
@@ -757,6 +797,19 @@ def cs__call(_env:CSXEnvironment, _code:csrawcode):
 
 
 """HELPERS"""
+def cs_ifdef(_env:CSXEnvironment, _name:str):
+    """ Checks if name exists to local scope
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+
+        Returns
+        -------
+        bool
+    """
+    return _env.scope[-1].exists(_name, _local=True)
 
 def cs_has_name(_env:CSXEnvironment, _name:str):
     """ Checks if name exists to scope
@@ -803,18 +856,13 @@ def cs_has_class(_env:CSXEnvironment, _class_name:str):
     _exist = _env.scope[-1].exists(_class_name, _local=False)
     if not _exist: return _exist
 
+    # retirieve
     _infor = _env.scope[-1].lookup(_class_name)
-    # check if valid class
    
     _class = _env.vheap.cs__object_at(_infor["_address"])
     
-    # check if has constructor
-    # constructor must named to itself
-    if  not _class.hasKey(_class_name):
-        return False
-    
-    # check if callable
-    return cs_is_callable(_env, _class.get(_class_name))
+    # check if valid class
+    return cs_is_constructor(_class)
 
 
 
@@ -832,17 +880,17 @@ def cs_has_method(_env:CSXEnvironment, _obj:CSObject, _method_name:str):
         -------
         bool
     """
-    if  not cs_has_class(_env, _obj.type): 
+    # if contains "__proto__"
+    if  not cs_has_attribute(_env, _obj, __ATTRIBUTE_PROTO__): 
         return False
 
     # search in class
-    _infor = _env.scope[-1].lookup(_obj.type)
-    _class = _env.vheap.cs__object_at(_infor["_address"])
+    _class = _obj.get(__ATTRIBUTE_PROTO__)
 
     if  not cs_has_attribute(_env, _class, _method_name):
         return False
 
-    return cs_is_callable(_env, _class.get(_method_name))
+    return cs_is_callable(_class.get(_method_name))
 
 
 
@@ -859,10 +907,19 @@ def cs_has_attribute(_env:CSXEnvironment, _obj:CSObject, _attribute_name:str):
         -------
         bool
     """
-    return _obj.hasKey(_attribute_name)
+    if  _obj.hasKey(_attribute_name):
+        return True
+    
+    # search in prototype
+    if  not _obj.hasKey(__ATTRIBUTE_PROTO__):
+        return False
+    
+    _class = _obj.get(__ATTRIBUTE_PROTO__)
+
+    return _class.hasKey(_attribute_name)
 
 
-def cs_is_callable(_env:CSXEnvironment, _obj:CSObject):
+def cs_is_callable(_obj:CSObject):
     """ Checks if object is a function
 
         Parameters
@@ -981,6 +1038,47 @@ def cs_is_nulltype(_csobject:CSObject):
     return  _csobject.type == CSTypes.TYPE_CSNULLTYPE
 
 
+def cs_is_constructor(_csobject:CSObject):
+    """ Checks if object is a constructor
+        
+        A valid class should have
+            the following: 
+            
+            [1]. initialize method(constructor)
+
+            [2]. qualname attribute
+
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+
+    # check if object has "qualname"
+    if  not _csobject.hasKey(__ATTRIBUTE_QUALNAME__):
+        return False
+    
+    # is qualname a string?
+    if  not cs_is_string(_csobject.get(__ATTRIBUTE_QUALNAME__)):
+        # invalid qualname
+        return False
+    
+    # has qualname!
+
+    # check if has "initialize" method
+    if  not _csobject.hasKey(__ATTRIBUTE_INITIALIZE__):
+        # no valid constructor
+        return False
+    
+    # is constructor callable?
+    return cs_is_callable(_csobject.get(__ATTRIBUTE_INITIALIZE__))
+
+
 def cs_is_pointer(_csobject:CSObject):
     """ Checks if object is a pointer type
 
@@ -996,6 +1094,22 @@ def cs_is_pointer(_csobject:CSObject):
 
 
 """OPCODE METHODS"""
+
+
+def cs_define(_env:CSXEnvironment, _name:str, _value:CSObject):
+    """ Creates local variable
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+        _value : CSObject
+    """
+    assert not cs_ifdef(_env, _name), "name '%s' already defined!" % _name
+
+    # save var
+    _env.scope[-1].insert(_name, _address=_value.offset, _global=False)
+
 
 def cs_make_var(_env:CSXEnvironment, _name:str):
     """ Creates global variable
@@ -1056,10 +1170,13 @@ def cs_new_number(_env:CSXEnvironment, _py_number:int|float):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put("__proto__", _env.stack.pop())
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+    else:
+        print("No class")
 
     # push #
     _env.stack.push(_obj)
+
 
 
 def cs_new_string(_env:CSXEnvironment, _py_string:str):
@@ -1078,7 +1195,7 @@ def cs_new_string(_env:CSXEnvironment, _py_string:str):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put("__proto__", _env.stack.pop())
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
 
@@ -1099,7 +1216,7 @@ def cs_new_boolean(_env:CSXEnvironment, _py_boolean:bool):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put("__proto__", _env.stack.pop())
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
 
@@ -1120,9 +1237,34 @@ def cs_new_nulltype(_env:CSXEnvironment):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put("__proto__", _env.stack.pop())
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
+
+
+def cs_new_class(_env:CSXEnvironment, _pop_size:int):
+    """ Push/Builds a class prototype
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _pop_size : int
+    """
+    _class_proto_name = _env.stack.pop()
+
+    # creates new object as class proto
+    _obj = _env.vheap.cs__malloc(CSObject())
+
+    # set qualifed name
+    _obj.put(__ATTRIBUTE_QUALNAME__, _class_proto_name)
+
+    for _r in range(_pop_size):
+        _key = _env.stack.pop()
+        _val = _env.stack.pop()
+        # put object
+        _obj.put(_key.__str__(), _val)
+    
+    _env.stack.push(_obj)
 
 
 def cs_new_function(_env:CSXEnvironment):
@@ -1143,10 +1285,12 @@ def cs_new_function(_env:CSXEnvironment):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put("__proto__", _env.stack.pop())
+        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
 
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
+
+
 
 def cs_push_name(_env:CSXEnvironment, _name:str):
     """ Gets variable value
@@ -1163,6 +1307,7 @@ def cs_push_name(_env:CSXEnvironment, _name:str):
     
     # push stack
     _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
+
 
 
 def cs_get_class(_env:CSXEnvironment, _class_name:str):
@@ -1193,9 +1338,15 @@ def cs_get_attrib(_env:CSXEnvironment, _attribute_name:str):
     assert cs_has_attribute(_env, _env.stack.top(), _attribute_name), "No such attribute '%s'" % _attribute_name
 
     _top = _env.stack.pop()
+    if  _top.hasKey(_attribute_name):
+        _env.stack.push(_top.get(_attribute_name))
+        return 
+    
+    # search in class
+    _class = _top.get(__ATTRIBUTE_PROTO__)
 
     # push to stack
-    _env.stack.push(_top.get(_attribute_name))
+    _env.stack.push(_class.get(_attribute_name))
 
 
 
@@ -1212,14 +1363,9 @@ def cs_get_method(_env:CSXEnvironment, _method_name:str):
 
     # top object
     _objct = _env.stack.pop()
-   
-    # get class
-    _infor = _env.scope[-1]\
-        .lookup(_objct.type)
-
-    _class = _env\
-        .vheap\
-        .cs__object_at(_infor["_address"])
+    
+    # class becomes __proto__
+    _class = _objct.get(__ATTRIBUTE_PROTO__)
 
     # push to stack
     _env.stack.push(_env.vheap.cs__malloc(CSMethod(_objct, _class.get(_method_name))))
@@ -1243,13 +1389,13 @@ def cs_method_call(_env:CSXEnvironment, _argument_size:int):
     # new scope
     _env.scope.append(Scope(_env.scope[-1]))
 
-    assert cs_is_callable(_env, _env.stack.top()), "not a function!"
+    assert cs_is_callable(_env.stack.top()), "not a function!"
 
     # method
     _func = _env.stack.pop()
 
-    # push_owner
-    _env.stack.push(_func.get("owner"))
+    # define "this"
+    cs_define(_env, "this", _func.get("owner"))
 
     match _func.meth:
         case CSTypes.TYPE_CSNATIVEFUNCTION:
@@ -1286,7 +1432,7 @@ def cs_function_call(_env:CSXEnvironment, _argument_size:int):
     # new scope
     _env.scope.append(Scope(_env.scope[-1]))
 
-    assert cs_is_callable(_env, _env.stack.top()), "not a function!"
+    assert cs_is_callable(_env.stack.top()), "not a function!"
 
     # method
     _func = _env.stack.pop()
@@ -1308,6 +1454,50 @@ def cs_function_call(_env:CSXEnvironment, _argument_size:int):
     # end scope
     _env.scope.pop()
 
+
+"""CLASS"""
+def cs_constructor(_env:CSXEnvironment, _argument_size:int):
+    """ Creates a new class
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _argument_size : int
+    """
+
+    assert cs_is_constructor(_env.stack.top()), "not a constructor '%s'!" % _env.stack.top().type
+
+    _class_proto = _env.stack.pop()
+
+    _new_class = _env.vheap.cs__malloc(CSObject())
+    _new_class.put(__ATTRIBUTE_PROTO__, _class_proto)
+
+    # get qualname
+    _new_class.type = _class_proto.get(__ATTRIBUTE_QUALNAME__).__str__()
+    
+
+    # ============= PUSH STACK|
+    # ========================|
+    _env.stack.push(_new_class)
+
+    # push method to stack
+    cs_get_method(_env, __ATTRIBUTE_INITIALIZE__)
+
+    # call constructor if any
+    cs_method_call(_env, _argument_size)
+
+    # a constructor/initialize mu return null!!!!!
+    # otherwise use return type as immediate return.
+    if cs_is_nulltype(_env.stack.top()):
+
+        # pop initialize return value
+        _env.stack.pop()
+        
+        # push back instance
+        _env.stack.push(_new_class)
+    
+    else:
+        logger("class", "class constructor '%s'should return null !!!" % _new_class.type)
 
 
 def cs__init_builtin(_env:CSXEnvironment):

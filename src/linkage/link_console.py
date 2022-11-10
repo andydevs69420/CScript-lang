@@ -21,21 +21,21 @@ class ConsoleLink(PyLinkInterface):
     
 
     def log(self, _args:list):
-        print(_args[2])
+        print(_args[1])
         return self.malloc(_args[0], CSNullType())
     
     def error(self, _args:list):
-        print(f"{Fore.RED}{_args[2].__str__()}{Fore.RESET}")
+        print(f"{Fore.RED}{_args[1].__str__()}{Fore.RESET}")
         return self.malloc(_args[0], CSNullType())
     
     def warn(self, _args:list):
-        print(f"{Fore.YELLOW}{_args[2].__str__()}{Fore.RESET}")
+        print(f"{Fore.YELLOW}{_args[1].__str__()}{Fore.RESET}")
         return self.malloc(_args[0], CSNullType())
     
     def readLine(self, _args:list):
         while True:
             try:
-                _input = input(_args[2].__str__())
+                _input = input(_args[1].__str__())
                 return self.malloc(_args[0], CSString(_input))
             except KeyboardInterrupt:
                 pass

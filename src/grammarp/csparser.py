@@ -20,6 +20,9 @@ class ContextUtils(object):
 
     def __init__(self):
         self.contextStack:list[ContextType] = []
+    
+    def inside(self, _context_type:ContextType):
+        return (_context_type in self.contextStack)
 
     def enter(self, _context_type:ContextType):
         self.contextStack.append(_context_type)
@@ -143,8 +146,7 @@ class CSParser(ContextUtils):
                 (self.cstoken.matches("false") or \
                  self.cstoken.matches("true" ) or \
                  self.cstoken.matches("null" ) or \
-                 self.cstoken.matches("this" ) or \
-                 self.cstoken.matches("func" )):
+                 self.cstoken.matches("function" )):
                 # throw
                 return show_error("unexpected keyword for identifier \"%s\"" % self.cstoken.token, self.cstoken)
             
@@ -209,7 +211,7 @@ class CSParser(ContextUtils):
 
             _funcS = self.cstoken
 
-            self.eat("func", TokenType.IDENTIFIER)
+            self.eat("function", TokenType.IDENTIFIER)
 
             self.eat("(", TokenType.OPERATOR)
 
@@ -333,10 +335,7 @@ class CSParser(ContextUtils):
                 self.cstoken.matches("null"):
                 return nulltype()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and \
-                self.cstoken.matches("this"):
-                return thisref()
-            elif self.cstoken.matches(TokenType.IDENTIFIER) and \
-                self.cstoken.matches("func"):
+                self.cstoken.matches("function"):
                 return function_expression()
             elif self.cstoken.matches(TokenType.IDENTIFIER):
                 return identifier()
@@ -507,7 +506,7 @@ class CSParser(ContextUtils):
             return other_type()
 
         # member_access: other_type
-        # | other_type->raw_identifier
+        # | other_type '.' raw_identifier
         # | other_type '[' non_nullable_expression ']'
         # ;
         def member_access():
@@ -516,8 +515,9 @@ class CSParser(ContextUtils):
             if not _node: return _node
 
             while  self.cstoken.matches(TokenType.OPERATOR) and \
-                  (self.cstoken.matches(".") or \
-                   self.cstoken.matches("[")):
+                  (self.cstoken.matches("." ) or \
+                   self.cstoken.matches("::") or \
+                   self.cstoken.matches("[" )):
 
                 if  self.cstoken.matches("."):
                     # eat type
@@ -530,6 +530,22 @@ class CSParser(ContextUtils):
 
                     _node = ({
                         TYPE    : ExpressionType.MEMBER,
+                        "left"  : _node,
+                        "member": _member,
+                        "loc"   : getLocation(self, _memS, _memE)
+                    })
+                
+                elif  self.cstoken.matches("::"):
+                    # eat type
+                    self.eat("::", TokenType.OPERATOR)
+
+                    # attrib
+                    _member = raw_identifier()
+
+                    _memE = self.previous
+
+                    _node = ({
+                        TYPE    : ExpressionType.STATIC_MEMBER,
                         "left"  : _node,
                         "member": _member,
                         "loc"   : getLocation(self, _memS, _memE)
@@ -569,9 +585,10 @@ class CSParser(ContextUtils):
             if not _node: return _node
 
             while  self.cstoken.matches(TokenType.OPERATOR) and \
-                  (self.cstoken.matches(".") or \
-                   self.cstoken.matches("[") or \
-                   self.cstoken.matches("(")):
+                  (self.cstoken.matches("." ) or \
+                   self.cstoken.matches("::") or \
+                   self.cstoken.matches("[" ) or \
+                   self.cstoken.matches("(" )):
 
                 if  self.cstoken.matches("."):
                     # eat type
@@ -586,6 +603,23 @@ class CSParser(ContextUtils):
                         TYPE    : ExpressionType.MEMBER,
                         "left"  : _node,
                         "member": _attr,
+                        "loc"   : getLocation(self, _memS, _memE)
+                    })
+                
+
+                elif  self.cstoken.matches("::"):
+                    # eat type
+                    self.eat("::", TokenType.OPERATOR)
+
+                    # attrib
+                    _member = raw_identifier()
+
+                    _memE = self.previous
+
+                    _node = ({
+                        TYPE    : ExpressionType.STATIC_MEMBER,
+                        "left"  : _node,
+                        "member": _member,
                         "loc"   : getLocation(self, _memS, _memE)
                     })
 
@@ -665,6 +699,24 @@ class CSParser(ContextUtils):
                  self.cstoken.matches("-" ) or \
                  self.cstoken.matches("--")):
                 
+                _opt = self.cstoken
+                self.eat(_opt.ttype)
+
+                _exp = unary_op()
+
+                _unaE = self.previous
+                
+                # return as unary expr
+                return ({
+                    TYPE   : ExpressionType.UNARY_EXPR,
+                    "opt"  : _opt.token,
+                    "right": _exp,
+                    "loc"  : getLocation(self, _unaS, _unaE)
+                })
+            
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and \
+                 self.cstoken.matches("typeof"): 
+
                 _opt = self.cstoken
                 self.eat(_opt.ttype)
 
@@ -1116,95 +1168,28 @@ class CSParser(ContextUtils):
 
             self.eat("{", TokenType.OPERATOR)
 
-            _stmntN = allowed_in_class()
+            _stmntN = compound_stmnt()
             while _stmntN:
                 _statements.append(_stmntN)
-                _stmntN = allowed_in_class()
+                _stmntN = compound_stmnt()
 
             self.eat("}", TokenType.OPERATOR)
 
             # return as block node
             return tuple(_statements)
-    
-
-        # val_stmnt: "val" assignment_list;
-        def val_stmnt():
-            # ===== check context|
-            # ===================|
-            self.bind(ContextType.CLASS, _immediate=True)
-
-            _decS = self.cstoken
-
-            self.eat("val", TokenType.IDENTIFIER)
-
-            _assignments = assignment_list()
-
-            self.eat(";", TokenType.OPERATOR)
-
-
-            _decE = self.previous
-
-            # return as var node
-            return ({
-                TYPE         : SyntaxType.VAL_STMNT,
-                "assignments": _assignments,
-                "loc"        : getLocation(self, _decS, _decE)
-            })
-
-        # class_func_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;
-        def class_func_dec():
-            self.bind(ContextType.CLASS, _immediate=True)
-
-            self.enter(ContextType.FUNCTION) # enter function
-            self.enter(ContextType.LOCAL)       # enter local ofcourse!
-
-            _funS = self.cstoken
-
-            self.eat("func", TokenType.IDENTIFIER)
-
-            _func_name = raw_identifier()
-
-            self.eat("(", TokenType.OPERATOR)
-
-            _parameters = function_parameters()
-
-            self.eat(")", TokenType.OPERATOR)
-
-            _func_body = function_body()
-
-            _funE = self.previous
-
-            self.leave()          # leave local
-            self.leave() # leave function
-
-            # return as function
-            return ({
-                TYPE: SyntaxType.CLASS_FUNC_DEC,
-                "name"  : _func_name,
-                "params": _parameters,
-                "body"  : _func_body,
-                "loc"   : getLocation(self, _funS, _funE)
-            })
         
 
-        def allowed_in_class():
-            if  self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("val"):
-                return val_stmnt()
-            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("func"):
-                return class_func_dec()
-            return compound_stmnt()
-
-
-        # function_dec: "func" raw_identifier '(' function_parameters ')' block_stmnt;
+        # function_dec: "function" raw_identifier '(' function_parameters ')' block_stmnt;
         def function_dec():
-            self.bind(ContextType.GLOBAL)
+            if  not (self.inside(ContextType.GLOBAL) and self.inside(ContextType.CLASS)):
+                self.bind(self.contextStack[-1])
 
             self.enter(ContextType.FUNCTION) # enter function
             self.enter(ContextType.LOCAL)       # enter local ofcourse!
 
             _funS = self.cstoken
 
-            self.eat("func", TokenType.IDENTIFIER)
+            self.eat("function", TokenType.IDENTIFIER)
 
             _func_name = raw_identifier()
 
@@ -1220,6 +1205,16 @@ class CSParser(ContextUtils):
 
             self.leave()          # leave local
             self.leave() # leave function
+
+            if  self.inside(ContextType.CLASS):
+                # return as function
+                return ({
+                    TYPE: SyntaxType.CLASS_FUNC_DEC,
+                    "name"  : _func_name,
+                    "params": _parameters,
+                    "body"  : _func_body,
+                    "loc"   : getLocation(self, _funS, _funE)
+                })
 
             # return as function
             return ({
@@ -1512,7 +1507,7 @@ class CSParser(ContextUtils):
         def compound_stmnt():
             if  self.cstoken.matches(TokenType.IDENTIFIER)  and self.cstoken.matches("class"):
                 return class_dec()
-            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("func"):
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("function"):
                 return function_dec()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("if"):
                 return if_stmnt()
@@ -1569,6 +1564,30 @@ class CSParser(ContextUtils):
             # return as var node
             return ({
                 TYPE         : SyntaxType.VAR_STMNT,
+                "assignments": _assignments,
+                "loc"        : getLocation(self, _decS, _decE)
+            })
+        
+        # val_stmnt: "val" assignment_list;
+        def val_stmnt():
+            # ===== check context|
+            # ===================|
+            self.bind(ContextType.CLASS, _immediate=True)
+
+            _decS = self.cstoken
+
+            self.eat("val", TokenType.IDENTIFIER)
+
+            _assignments = assignment_list()
+
+            self.eat(";", TokenType.OPERATOR)
+
+
+            _decE = self.previous
+
+            # return as var node
+            return ({
+                TYPE         : SyntaxType.VAL_STMNT,
                 "assignments": _assignments,
                 "loc"        : getLocation(self, _decS, _decE)
             })
@@ -1766,8 +1785,7 @@ class CSParser(ContextUtils):
             elif self.cstoken.matches(TokenType.IDENTIFIER ) and self.cstoken.matches("var"):
                 return var_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER ) and self.cstoken.matches("val"):
-                # add val here for error
-                return self.bind(ContextType.CLASS, _immediate=True)
+                return val_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("let"):
                 return let_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("throw"):

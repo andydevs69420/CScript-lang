@@ -40,6 +40,8 @@ class BlockCompiler(Compilable):
                 return self.cobject(_node)
             case ExpressionType.ALLOCATION:
                 return self.callocation(_node)
+            case ExpressionType.STATIC_MEMBER:
+                return self.cstaticmember(_node)
             case ExpressionType.MEMBER:
                 return self.cmember(_node)
             case ExpressionType.SUBSCRIPT:

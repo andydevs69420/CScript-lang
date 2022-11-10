@@ -1,20 +1,37 @@
 
 
+class Food 
+{
+    val qualname = "FOOOTA";
 
+    function initialize(_dog, dog_inst, _name) 
+    {
+        print: _dog, typeof dog_inst, "is eating", _name, "...";
 
-var x = 2, y = x + 2;
+    }
 
-print: x++;
-print: x--;
-print: x;
-
-
-
-func add(a, b) {
-
-    return a + b;
+    function __toString__()
+    { return "adad"; }
 }
 
+class Dog
+{
+    function initialize(_dog_name) 
+    {
+        let food = new Food(_dog_name, this, "diaper");
+        print: "AwF!!!", food;
+    }
+
+    function eat(_food) 
+    {
+        print: _food;
+        print: this;
+    }
+}
+
+print: CSInteger;
+
+var x = new Dog("Snoop");
 
 
-print: add(1,2);
+console::warn(x.__proto__);

@@ -23,6 +23,7 @@ class PyLinkInterface(object):
         ----------
         linkname : str
         metadata : dict
+        variable : dict
 
         Methods
         -------
@@ -34,8 +35,26 @@ class PyLinkInterface(object):
     TYPEOF_ARGC =int
 
     def __init__(self, _enherit=None):
-        self.linkname  = "__protoype__"
-        self.metadata  = ({})
+        self.linkname = "__prototype__"
+        self.metadata = ({})
+        self.variable = ({})
+    
+
+    def getName(self, _env, _name:str):
+        """ Gets name from scope
+
+            Paramters
+            --------
+            _env : CSXEnvironment
+            _name : str
+
+
+            Returns
+            -------
+            CSObject
+        """
+        _info = _env.scope[-1].lookup(_name)
+        return _env.vheap.cs__object_at(_info["_address"])
 
     def malloc(self, _env, _csobject):
         """ Allocates object before return,
@@ -71,10 +90,29 @@ class PyLinkInterface(object):
         """
         # args: [0]. _env, [1]. thisArg, [2~N]. ...arguments
 
-        _csobject = CSObject()
+        if  not (isinstance(self.metadata, dict) and isinstance(self.variable, dict)):
+            return self.malloc(_args[0], CSObject())
 
-        if  not isinstance(self.metadata, dict):
-            return self.malloc(_args[0], _csobject)
+        _csobject = CSObject()
+        _obj = self.malloc(_args[0], _csobject)
+        _args[0].scope[-1].insert(self.linkname, _address=_obj.offset, _global=True)
+
+
+        for _var_name, _value in zip(self.variable.keys(), self.variable.values()):
+
+            if  type(_var_name) != PyLinkInterface.TYPEOF_KEYS:
+                logger("PyLinkInterface::link", "skipping %s..." % _method_name.__str__())
+                continue
+            
+            if  not isinstance(_value, CSObject):
+                logger("PyLinkInterface::link", "skipping %s (invalid type)..." % _var_name)
+                continue
+            
+            _csobject.put(
+                _var_name,
+                self.malloc(_args[0], _value)
+            )
+
 
         for _method_name, _data in zip(self.metadata.keys(), self.metadata.values()):
 
@@ -105,9 +143,12 @@ class PyLinkInterface(object):
                 continue
 
             if  _score == len(_data):
+                
+                _name = self.malloc(_args[0], CSString (_data["name"]))
+                _argc = self.malloc(_args[0], CSInteger(_data["argc"]))
+
                 _csobject.put(
                     _data["name"],
-                    self.malloc(_args[0], CSNativeFunction(CSString(_data["name"]), CSInteger(_data["argc"]), getattr(self, _method_name)))
+                    self.malloc(_args[0], CSNativeFunction(_name, _argc, getattr(self, _method_name)))
                 )
-        _obj = self.malloc(_args[0], _csobject)
-        return _args[0].scope[-1].insert(self.linkname, _address=_obj.offset, _global=True)
+        

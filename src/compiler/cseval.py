@@ -58,6 +58,12 @@ class CSEval(object):
 
         try:
             match _node["opt"]:
+                case "new":
+                    # dynamic evaluation
+                    return ...
+                case "typeof":
+                    # dynamic evaluation
+                    return ...
                 case "!":
                     return not _rhs
                 case '~':

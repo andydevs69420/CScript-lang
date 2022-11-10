@@ -96,6 +96,14 @@ class RawBlock(BlockCompiler):
         # unary new
         self.unary_op("new", len(_node["arguments"]), _node["loc"])
     
+    # static member access
+    def cstaticmember(self, _node:dict):
+        # visit left
+        self.visit(_node["left"])
+
+        # add get attrib
+        self.get_attrib(_node["member"], _node["loc"])
+
     # member access
     def cmember(self, _node:dict):
         # visit left
@@ -126,6 +134,7 @@ class RawBlock(BlockCompiler):
 
         # push calling object
         match  _node["left"][TYPE]:
+            
             case ExpressionType.MEMBER:
                 # visit left
                 self.visit(_node["left"]["left"])

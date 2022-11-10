@@ -23,4 +23,4 @@ class CSNullTypeLink(PyLinkInterface):
     
     # __toString__
     def __toString__(self, _args:list):
-        return self.malloc(_args[0], CSString(_args[1].__str__()))
+        return self.malloc(_args[0], CSString("null"))
