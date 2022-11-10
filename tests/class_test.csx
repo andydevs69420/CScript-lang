@@ -1,37 +1,70 @@
 
 
-class Food 
+
+function fact(_n) 
 {
-    val qualname = "FOOOTA";
 
-    function initialize(_dog, dog_inst, _name) 
-    {
-        print: _dog, typeof dog_inst, "is eating", _name, "...";
+    if (_n == 1) return 1;
 
-    }
-
-    function __toString__()
-    { return "adad"; }
+    return _n * fact(_n - 1);
 }
 
-class Dog
+print: fact(5);
+
+var x = false;
+
+if (!true || x) print: "true";
+
+var xx = {
+    a: 0, 
+    b: 2, 
+    c: function(a, b) 
+    { return a + b; } 
+};
+
+console::warn( xx::c(69, 420) );
+
+
+class Dog 
 {
-    function initialize(_dog_name) 
+
+    val x = 2;
+
+    function initialize(_name, _age) 
     {
-        let food = new Food(_dog_name, this, "diaper");
-        print: "AwF!!!", food;
+        let name = _name, age = _age;
+        print: "AwF!", "my name is", name, (typeof this);
+
+        return false;
     }
 
-    function eat(_food) 
+    function eat(_food)
     {
-        print: _food;
-        print: this;
+
     }
+
 }
 
-print: CSInteger;
-
-var x = new Dog("Snoop");
 
 
-console::warn(x.__proto__);
+{
+    let ManualClass = ({
+
+        qualname  : "ManualClass",
+
+        initialize: function() {
+
+            print: "my manual class", this;
+        }
+
+    });
+
+    print: new ManualClass();
+}
+
+
+console::warn("Hello!!!");
+
+var a = CSInteger::tryParse(console::readLine("number 1:>> "));
+var b = CSInteger::tryParse(console::readLine("number 2:>> "));
+print: "sum:", a + b;

@@ -21,6 +21,7 @@ class CSIntegerLink(PyLinkInterface):
 
         self.metadata = ({
             "initialize"  : {"name": "initialize"   , "argc": 1},
+            "tryParse"    : {"name": "tryParse"     , "argc": 1},
             "__toString__": {"name": "__toString__" , "argc": 0},
         })
     
@@ -28,6 +29,17 @@ class CSIntegerLink(PyLinkInterface):
         # constructor
         return _args[1]
     
+
+    def tryParse(self, _args:list):
+        _param = _args[1]
+        if  _param.type == CSTypes.TYPE_CSINTEGER:
+            return _param
+        elif _param.type == CSTypes.TYPE_CSSTRING:
+            _str = _param.this
+            if  _str.isdigit():
+                return self.malloc(_args[0], CSInteger(int(_str)))
+
+        return self.malloc(_args[0], CSInteger(0))
    
     # toString
     def __toString__(self, _args:list):

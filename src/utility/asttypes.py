@@ -10,7 +10,6 @@ class ExpressionType:
     STRING           = 3
     BOOLEAN          = 4
     NULL             = 5
-    THIS             = 6
     FUNCTION_EXPR    = 7
     ARRAY            = 8
     OBJECT           = 9

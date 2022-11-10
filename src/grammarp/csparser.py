@@ -185,24 +185,6 @@ class CSParser(ContextUtils):
                 "loc"  : getLocation(self, _null)
             })
         
-        # this:
-        def thisref():
-            _this = self.cstoken
-            if  not _this.matches("this"):
-                return None
-            
-            self.bind(ContextType.FUNCTION)
-
-            # eat type
-            self.eat(_this.ttype)
-
-            # return as null
-            return ({
-                TYPE   : ExpressionType.THIS,
-                "this" : _this.token,
-                "loc"  : getLocation(self, _this)
-            })
-        
         # function(){...}
         def function_expression():
             self.enter(ContextType.FUNCTION) # enter function
@@ -230,10 +212,11 @@ class CSParser(ContextUtils):
 
             # return as headless function
             return ({
-                TYPE   : ExpressionType.FUNCTION_EXPR,
-                "param": _parameters,
-                "body" : _func_body,
-                "loc"  : getLocation(self, _funcS, _funcE)
+                TYPE    : ExpressionType.FUNCTION_EXPR,
+                "name"  : "headless",
+                "params": _parameters,
+                "body"  : _func_body,
+                "loc"   : getLocation(self, _funcS, _funcE)
             })
         
         # cstoken: identifier

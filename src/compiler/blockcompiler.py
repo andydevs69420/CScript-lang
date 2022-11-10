@@ -30,8 +30,6 @@ class BlockCompiler(Compilable):
                 return self.cboolean(_node)
             case ExpressionType.NULL:
                 return self.cnull(_node)
-            case ExpressionType.THIS:
-                return self.cthis(_node)
             case ExpressionType.FUNCTION_EXPR:
                 return self.cfuncexpr(_node)
             case ExpressionType.ARRAY:
