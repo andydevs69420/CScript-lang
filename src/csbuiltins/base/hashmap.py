@@ -57,7 +57,7 @@ class LinkedList(Node):
 
 
 class HashMap(object):
-    """ 
+    """ Base of all cscript object
     """
 
     def walk(self, _key:str):
@@ -144,6 +144,20 @@ class HashMap(object):
        
         return _keys
     
+    def values(self):
+        """ Retrieve all values
+        """
+        _vals = []
+
+        for buck in self.__bucket:
+            if  buck:
+                _last = buck
+                while _last:
+                    _vals.append(_last.data)
+                    _last = _last.tail
+       
+        return _vals
+    
     def hasKey(self, _key:str):
         """ Checks if key exists
         """
@@ -160,6 +174,7 @@ class HashMap(object):
     def __str__(self):
         _keys   = self.keys()
         _attrib = ""
+
         for k in range(len(_keys)):
             _value  = self.get(_keys[k])
             _string = ...
@@ -174,7 +189,7 @@ class HashMap(object):
             if  _keys[k] not in self.hidden:
                 _attrib += f"{_keys[k]}: {_string}"
 
-                if  k < ((len(_keys) - 1) - len(self.hidden)):
+                if  k < len(_keys) - 1:
                     _attrib += ", "
 
         return "{" + f"{_attrib}" + "}"

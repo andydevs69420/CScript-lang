@@ -660,12 +660,12 @@ class Compilable(object):
             )
         )
     
-    def throw_error(self):
+    def throw_error(self, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.THROW_ERROR
+                CSOpCode.THROW_ERROR, loc=_loc, __hidden__=["loc"]
             )
         )
     

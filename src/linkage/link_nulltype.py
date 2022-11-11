@@ -18,9 +18,9 @@ class CSNullTypeLink(PyLinkInterface):
         super().__init__(_enherit)
         self.linkname = CSTypes.TYPE_CSNULLTYPE
         self.metadata = ({
-            "__toString__" : {"name": "__toString__", "argc": 1},
+            "toString" : {"name": "toString"  , "argc": 0},
         })
     
-    # __toString__
-    def __toString__(self, _args:list):
+    # toString
+    def toString(self, _args:list):
         return self.malloc(_args[0], CSString("null"))

@@ -25,7 +25,10 @@ class RawBlock(BlockCompiler):
 
     def __init__(self):
         super().__init__()
-    
+        self.while_stack = []
+        self.break_stack = []
+
+
     """ EXPRESSION AREA OF COMPILING
     """
 
@@ -406,7 +409,7 @@ class RawBlock(BlockCompiler):
             case ExpressionType.VARIABLE:
                 self.store_name(_node["left"]["var"], _node["left"]["loc"])
             # member assignment
-            case ExpressionType.MEMBER:
+            case ExpressionType.MEMBER|ExpressionType.STATIC_MEMBER:
                 # compile owner
                 self.visit(_node["left"]["left" ])
 
@@ -468,13 +471,15 @@ class RawBlock(BlockCompiler):
             # variable assignment
             case ExpressionType.VARIABLE:
                 self.store_name(_node["left"]["var"], _node["left"]["loc"])
+
             # member assignment
-            case ExpressionType.MEMBER:
+            case ExpressionType.MEMBER|ExpressionType.STATIC_MEMBER:
                 # compile owner
                 self.visit(_node["left"]["left" ])
 
                 # set attibute
                 self.set_attrib(_node["left"]["member"], _node["left"]["loc"])
+
             # index|member assignment
             case ExpressionType.SUBSCRIPT:
                 # compile index|member
@@ -485,6 +490,7 @@ class RawBlock(BlockCompiler):
 
                 # add subscript
                 self.set_subscript()
+
             # error
             case _:
                 CSXCompileError.csx_Error("SemanticError: can't assign left-hand of operator '%s'!" % _node["opt"])
@@ -667,6 +673,124 @@ class RawBlock(BlockCompiler):
                 # set jump target 1 to end if
                 _jump_t1.kwargs["target"] = self.getLine()
 
+    # switch
+    def cswitch(self, _node:dict):
+        _to_stm = []
+        _to_end = []
+        for each_case in _node["body"]["cases"]:
+            
+            for each_match in each_case["case"]:
+
+                # compile condition
+                self.visit(_node["condition"])
+
+                # compile
+                self.visit(each_match)
+
+                self.jump_equal(...)
+                _to_stm.append(self.peekLast())
+            
+            # jump to next case
+            self.jump_to(...)
+            _next_case = self.peekLast()
+
+            # jump here if equal
+            for target in _to_stm:
+                target.kwargs["target"] = self.getLine()
+            
+            # remove previous
+            _to_stm.clear()
+
+            # compile statemnt
+            self.visit(each_case["stmnt"])
+
+            # add jump to end
+            self.jump_to(...)
+            _to_end.append(self.peekLast())
+
+            # prepare for next or end
+            _next_case.kwargs["target"] = self.getLine()
+
+        if  _node["body"]["else"]:
+            # compile else
+            self.visit(_node["body"]["else"])
+        
+        for end_switch in _to_end:
+            end_switch.kwargs["target"] = self.getLine()
+
+    # for statement
+    def cfor(self, _node:dict):
+        # compile initialize
+
+        _break_count = len(self.break_stack)
+        
+        if  (_node["cond"]!= None and _node["cond"][TYPE]) and _node["cond"][TYPE] == ExpressionType.LOGICAL_EXPR:
+            if  _node["init"]:
+                self.visit(_node["init"])
+
+            _begin_for = self.getLine()
+            self.while_stack.append(_begin_for)
+
+            # compile condition
+            _jump_t0 = None
+            if  _node["cond"]:
+                self.visit(_node["cond"])
+            
+            # compile body
+            self.visit(_node["body"])
+
+            # compile inc/dec
+            if  _node["inc_dec"]:
+                self.visit(_node["inc_dec"])
+
+            # repeat for
+            self.absolute_jump(_begin_for)
+
+            if  _jump_t0:
+                # end for
+                _jump_t0.kwargs["target"] == self.getLine()
+
+            # end while
+            self.while_stack.pop()
+
+        else:
+            
+            if  _node["init"]:
+                self.visit(_node["init"])
+
+            _begin_for = self.getLine()
+            self.while_stack.append(_begin_for)
+
+            # compile condition
+            _jump_t0 = None
+            if  _node["cond"]:
+                self.visit(_node["cond"])
+
+                self.pop_jump_if_false(...)
+                _jump_t0 = self.peekLast()
+            
+            
+            # compile body
+            self.visit(_node["body"])
+
+            # compile inc/dec
+            if  _node["inc_dec"]:
+                self.visit(_node["inc_dec"])
+
+            # repeat for
+            self.absolute_jump(_begin_for)
+
+            if  _jump_t0:
+                # end for
+                _jump_t0.kwargs["target"] = self.getLine()
+        
+            # end while
+            self.while_stack.pop()
+        
+
+        for _r in range(len(self.break_stack) - _break_count):
+            _break_jump = self.break_stack.pop()
+            _break_jump.kwargs["target"] = self.getLine()
 
     # while statement
     def cwhile(self, _node:dict):
@@ -681,7 +805,11 @@ class RawBlock(BlockCompiler):
         
         # compile whole statement
         # start
+
+        _break_count = len(self.break_stack)
+
         _begin_while = self.getLine()
+        self.while_stack.append(_begin_while)
         
         match _node["condition"][TYPE]:
 
@@ -746,7 +874,13 @@ class RawBlock(BlockCompiler):
 
                 # jump to end while
                 _jump_t0.kwargs["target"] = self.getLine()
-    
+
+        self.while_stack.pop()
+        
+        for _r in range(len(self.break_stack) - _break_count):
+            _break_jump = self.break_stack.pop()
+            _break_jump.kwargs["target"] = self.getLine()
+
     # do while
     def cdowhile(self, _node:dict):
         _condition = self.evaluate(_node["condition"])
@@ -760,7 +894,11 @@ class RawBlock(BlockCompiler):
         
         # compile whole statement
         # start
+
+        _break_count = len(self.break_stack)
+
         _begin_while = self.getLine()
+        self.while_stack.append(_begin_while)
 
         match _node["condition"][TYPE]:
 
@@ -827,6 +965,11 @@ class RawBlock(BlockCompiler):
                 # jump here if false
                 _jump_t0.kwargs["target"] = self.getLine()
 
+        self.while_stack.pop()
+        
+        for _r in range(len(self.break_stack) - _break_count):
+            _break_jump = self.break_stack.pop()
+            _break_jump.kwargs["target"] = self.getLine()
 
     # block
     def cblock(self, _node:dict):
@@ -868,6 +1011,26 @@ class RawBlock(BlockCompiler):
             _varia = _dec["var"]
             self.make_local(_varia, _node["loc"])
     
+    # throw
+    def cthrow(self, _node:dict):
+        # compile expression
+        self.visit(_node["expression"])
+
+        # add throw
+        self.throw_error(_node["loc"])
+    
+    #  continue statement
+    def ccontinue(self, _node:dict):
+        # add jump
+        self.absolute_jump(self.while_stack[-1])
+
+    #  break statement
+    def cbreak(self, _node:dict):
+        # add jump
+        self.jump_to(...)
+
+        self.break_stack.append(self.peekLast())
+
     # return
     def creturn(self, _node:dict):
         
@@ -887,6 +1050,11 @@ class RawBlock(BlockCompiler):
         
         # add print
         self.print_object(len(_node["expressions"]))
+
+    # empty statement node
+    def cempty(self, _node:dict):
+        # no oepration
+        self.no_operation()
 
     # expression node
     def cexpression(self, _node:dict):
@@ -917,10 +1085,23 @@ class CSCompiler(RawBlock, CSEval):
 
     def compile(self):
         _root = self.csparser.parse()
+
+        # compile root
         self.visit(_root)
 
+        # add return
+        self.push_null(None)
+
+        # add return
+        self.return_op()
+
+        _raw = csrawcode(self.fpath, self.getInsntructions())
+
+        assert len(self.while_stack) == 0, "not all while has terminated!!!"
+        assert len(self.break_stack) == 0, "not all break has terminated!!!"
+
         # return raw code
-        return csrawcode(self.fpath, self.getInsntructions())
+        return _raw
     
     
 

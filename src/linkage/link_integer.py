@@ -20,9 +20,9 @@ class CSIntegerLink(PyLinkInterface):
         })
 
         self.metadata = ({
-            "initialize"  : {"name": "initialize"   , "argc": 1},
-            "tryParse"    : {"name": "tryParse"     , "argc": 1},
-            "__toString__": {"name": "__toString__" , "argc": 0},
+            "initialize" : {"name": "initialize", "argc": 1},
+            "tryParse"   : {"name": "tryParse"  , "argc": 1},
+            "toString"   : {"name": "toString"  , "argc": 0},
         })
     
     def initialize(self, _args:list):
@@ -42,9 +42,9 @@ class CSIntegerLink(PyLinkInterface):
         return self.malloc(_args[0], CSInteger(0))
    
     # toString
-    def __toString__(self, _args:list):
+    def toString(self, _args:list):
         # check if "this exist!"
-        if  not _args[0].scope[-1].exists("this"):
+        if  not _args[0].calls.top().locvars[-1].exists("this"):
             return self.malloc(_args[0], CSString(""))
 
         # invoke "this"

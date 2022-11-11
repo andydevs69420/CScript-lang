@@ -53,7 +53,7 @@ class PyLinkInterface(object):
             -------
             CSObject
         """
-        _info = _env.scope[-1].lookup(_name)
+        _info = _env.calls.top().locvars[-1].lookup(_name)
         return _env.vheap.cs__object_at(_info["_address"])
 
     def malloc(self, _env, _csobject):
@@ -65,7 +65,7 @@ class PyLinkInterface(object):
             def some_method(self, _args:list) -> CSString:
                 # args: [0]. _env, [1]. thisArg, [2~N]. ...arguments
 
-                return self.malloc(CSString("Hello World!"))
+                return self.malloc(_args[0], CSString("Hello World!"))
 
             Parameters
             ----------

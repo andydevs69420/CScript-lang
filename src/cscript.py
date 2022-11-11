@@ -11,19 +11,22 @@ path.append("./src/csbuiltins")
 path.append("./lib"           )
 path.append("./tests"         )
 
-setrecursionlimit(15000)
+setrecursionlimit(100000)
 
 
 
 # core
 from compiler.cscompiler import CSCompiler
-from cscriptvm import cs__run
+from cscriptvm import cs_run
 
 
 
 def main(_args:dict):
     FILE     = "tests/class_test.csx"
     compiler = CSCompiler(FILE, open(FILE, "r").read())
-    cs__run(compiler.compile())
+    cs_run(compiler.compile())
+
+
+
 main({})
 
