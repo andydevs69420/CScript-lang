@@ -74,6 +74,8 @@ class BlockCompiler(Compilable):
                 return self.cfunc(_node)
             case SyntaxType.IF_STMNT:
                 return self.cifstmnt(_node)
+            case SyntaxType.FOR_STMNT:
+                return self.cfor(_node)
             case SyntaxType.WHILE_STMNT:
                 return self.cwhile(_node)
             case SyntaxType.DO_WHILE_STMNT:
@@ -104,6 +106,8 @@ class BlockCompiler(Compilable):
                 return self.cprint(_node)
             case SyntaxType.PRINT_STMNT:
                 return self.cprint(_node)
+            case SyntaxType.EMPTY_STMNT:
+                return self.cempty(_node)
             case SyntaxType.EXPRESSION_STMNT:
                 return self.cexpression(_node)
             case SyntaxType.MODULE:

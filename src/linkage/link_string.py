@@ -20,9 +20,9 @@ class CSStringLink(PyLinkInterface):
         })
 
         self.metadata = ({
-            "initialize"   : {"name": "initialize"   , "argc": 1},
-            "length"       : {"name": "length"       , "argc": 0},
-            "__toString__" : {"name": "__toString__" , "argc": 0},
+            "initialize" : {"name": "initialize", "argc": 1},
+            "length"     : {"name": "length"    , "argc": 0},
+            "toString"   : {"name": "toString"  , "argc": 0},
         })
     
     # constructor
@@ -33,10 +33,10 @@ class CSStringLink(PyLinkInterface):
     def length(self, _args:list):
         return self.malloc(_args[0], CSInteger(len(self.getName(_args[0], "this").this)))
     
-    # __toString__
-    def __toString__(self, _args:list):
+    # toString
+    def toString(self, _args:list):
         # check if "this exist!"
-        if  not _args[0].scope[-1].exists("this"):
+        if  not _args[0].calls.top().locvars[-1].exists("this"):
             return self.malloc(_args[0], CSString(""))
 
         # invoke "this"

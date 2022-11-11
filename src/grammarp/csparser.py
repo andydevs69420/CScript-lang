@@ -143,10 +143,12 @@ class CSParser(ContextUtils):
 
         def invalid_raw_identifier():
             if  self.cstoken.matches(TokenType.IDENTIFIER) and \
-                (self.cstoken.matches("false") or \
-                 self.cstoken.matches("true" ) or \
-                 self.cstoken.matches("null" ) or \
-                 self.cstoken.matches("function" )):
+                (self.cstoken.matches("false"   ) or \
+                 self.cstoken.matches("true"    ) or \
+                 self.cstoken.matches("null"    ) or \
+                 self.cstoken.matches("new"     ) or \
+                 self.cstoken.matches("typeof"  ) or \
+                 self.cstoken.matches("function")):
                 # throw
                 return show_error("unexpected keyword for identifier \"%s\"" % self.cstoken.token, self.cstoken)
             
@@ -204,8 +206,6 @@ class CSParser(ContextUtils):
             _func_body = function_body()
 
             _funcE = self.previous
-
-            print(getLocation(self, _funcS, _funcE))
 
             self.leave()      # leave local
             self.leave() # leave function
@@ -1165,7 +1165,7 @@ class CSParser(ContextUtils):
         # function_dec: "function" raw_identifier '(' function_parameters ')' block_stmnt;
         def function_dec():
             if  not (self.inside(ContextType.GLOBAL) and self.inside(ContextType.CLASS)):
-                self.bind(self.contextStack[-1])
+                self.bind(ContextType.GLOBAL, _immediate=True)
 
             self.enter(ContextType.FUNCTION) # enter function
             self.enter(ContextType.LOCAL)       # enter local ofcourse!
@@ -1293,6 +1293,42 @@ class CSParser(ContextUtils):
                 "else"     : _else_stmnt,
                 "loc"      : getLocation(self, _ifsS, _ifsE)
             })
+        
+        def for_stmnt():
+            self.enter(ContextType.LOOP)
+
+            _forS = self.cstoken
+
+            self.eat("for", TokenType.IDENTIFIER)
+
+            self.eat("(", TokenType.OPERATOR)
+
+            _init = nullable_expression()
+
+            self.eat(";", TokenType.OPERATOR)
+
+            _cond = nullable_expression()
+
+            self.eat(";", TokenType.OPERATOR)
+
+            _inc_dec = nullable_expression()
+
+            self.eat(")", TokenType.OPERATOR)
+
+            _body = compound_stmnt()
+
+            _forE = self.previous
+
+            self.leave()
+
+            return ({
+                TYPE  : SyntaxType.FOR_STMNT,
+                "init": _init,
+                "cond": _cond, "inc_dec": _inc_dec,
+                "body": _body,
+                "loc" : getLocation(self, _forS, _forE)
+            })
+
 
         # while_stmnt: "while" '(' non_nullable_expression ')' compound_stmnt ;
         def while_stmnt():
@@ -1494,6 +1530,8 @@ class CSParser(ContextUtils):
                 return function_dec()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("if"):
                 return if_stmnt()
+            elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("for"):
+                return for_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("do"):
                 return do_while_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("while"):
@@ -1636,9 +1674,9 @@ class CSParser(ContextUtils):
 
             _expr = non_nullable_expression()
 
-            self.eat(";", TokenType.OPERATOR)
-
             _thrE = self.previous
+
+            self.eat(";", TokenType.OPERATOR)
 
             return ({
                 TYPE        : SyntaxType.THROW_STMNT,
@@ -1735,6 +1773,17 @@ class CSParser(ContextUtils):
                 "expressions": _expr_list,
                 "loc"        : getLocation(self, _retS, _retE)
             })
+        
+        # empty_stmnt: ";"* ;
+        def empty_stmnt():
+            while self.cstoken.matches(TokenType.OPERATOR) and\
+                  self.cstoken.matches(";"):
+                # eat type
+                self.eat(self.cstoken.ttype)
+            
+            return ({
+                TYPE : SyntaxType.EMPTY_STMNT,
+            })
 
         # expression_stmnt: (nullable_expression ';')? ;
         def expression_stmnt():
@@ -1783,6 +1832,8 @@ class CSParser(ContextUtils):
                 return return_stmnt()
             elif self.cstoken.matches(TokenType.IDENTIFIER) and self.cstoken.matches("print"):
                 return print_stmnt()
+            elif self.cstoken.matches(TokenType.OPERATOR  ) and self.cstoken.matches(";"):
+                return empty_stmnt()
             return expression_stmnt()
         
         
@@ -1792,7 +1843,11 @@ class CSParser(ContextUtils):
             _nodes = []
             
             while not self.cstoken.matches(TokenType.ENDOFFILE):
-                _nodes.append(compound_stmnt())
+                
+                _node = compound_stmnt()
+                if not _node: break
+
+                _nodes.append(_node)
             
             self.eat(TokenType.ENDOFFILE)
 

@@ -32,23 +32,25 @@ class SyntaxType:
     CLASS_FUNC_DEC   = 24
     FUNC_DEC         = 25
     IF_STMNT         = 26
-    WHILE_STMNT      = 27
-    DO_WHILE_STMNT   = 28
-    SWITCH_STMNT     = 29
-    TRY_EXCEPT       = 30
-    BLOCK            = 31
-    IMPORT_STMNT     = 32
-    VAR_STMNT        = 33
-    VAL_STMNT        = 34
-    LET_STMNT        = 35
-    THROW_STMNT      = 36
-    ASSERT_STMNT     = 37
-    BREAK_STMNT      = 38
-    CONTINUE_STMNT   = 39
-    RETURN_STMNT     = 40
-    PRINT_STMNT      = 41
-    EXPRESSION_STMNT = 42
-    MODULE           = 43
+    FOR_STMNT        = 27
+    WHILE_STMNT      = 28
+    DO_WHILE_STMNT   = 29
+    SWITCH_STMNT     = 30
+    TRY_EXCEPT       = 31
+    BLOCK            = 32
+    IMPORT_STMNT     = 33
+    VAR_STMNT        = 34
+    VAL_STMNT        = 35
+    LET_STMNT        = 36
+    THROW_STMNT      = 37
+    ASSERT_STMNT     = 38
+    BREAK_STMNT      = 39
+    CONTINUE_STMNT   = 40
+    RETURN_STMNT     = 41
+    PRINT_STMNT      = 42
+    EMPTY_STMNT      = 43
+    EXPRESSION_STMNT = 44
+    MODULE           = 45
 
 
 

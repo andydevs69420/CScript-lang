@@ -1,7 +1,9 @@
 
-from copy import deepcopy
-import re
+from sys import exit
+from enum import Enum
+from gc import collect
 
+# compiler
 from compiler import Instruction
 from compiler import CSOpCode
 
@@ -27,17 +29,28 @@ from utility import logger
 
 
 __ATTRIBUTE_INITIALIZE__ = "initialize"
-__ATTRIBUTE_QUALNAME__   = "qualname"
-__ATTRIBUTE_PROTO__      = "__proto__"
+__ATTRIBUTE___QUALNAME__ = "qualname"
+__ATTRIBUTE__PROTOTYPE__ = "__proto__"
+
+
+class SpecialAttrib(Enum):
+    A =__ATTRIBUTE___QUALNAME__
+    B =__ATTRIBUTE_INITIALIZE__
+    C =__ATTRIBUTE__PROTOTYPE__
 
 
 class CSXEnvironment(object):
     """ environment while running
     """
+
+    # NEW!!! intead of using magic number
+    MAX_CALL_STACK = 1000
+
     def __init__(self):
-        self.scope = [Scope()] # scope 0 is the global scope
-        self.stack = STACK()
-        self.vheap = CSXMemory(self)
+        self.scope = [Scope()]   # global scope
+        self.vheap = VHEAP(self) # virtual heap
+        self.stack = STACK()     # evaluation stack
+        self.calls = STACK()     # callstack
         
 
 
@@ -47,7 +60,7 @@ class STACK(object):
         self.__internal = [
         ]
     
-    def push(self, _any:CSObject):
+    def push(self, _any):
         self.__internal.append(_any)
 
     def pop(self):
@@ -58,13 +71,17 @@ class STACK(object):
     
     def all(self):
         return self.__internal
+    
+    def size(self):
+        return len(self.__internal)
 
 
-class CSXMemory(object):
+class VHEAP(object):
     """ Serves as heap memory
     """
 
-    MAGIC_NUMBER = 500
+    # NEW!!! intead of using magic number
+    ALLOCATION_SIZE = 500
 
     def __init__(self, _env:CSXEnvironment):
         self.__bucket = []
@@ -95,7 +112,7 @@ class CSXMemory(object):
     def __on_allocate(self):
         self.__allocation += 1
 
-        if  self.__allocation >= CSXMemory.MAGIC_NUMBER:
+        if  self.__allocation >= VHEAP.ALLOCATION_SIZE:
             self.collect()
             self.__allocation = 0
 
@@ -126,6 +143,9 @@ class Scope(object):
     
     def insert(self, _symbol:str, **_props):
         self.symbols[_symbol] = _props
+    
+    def delete(self, _symbol:str):
+        del self.symbols[_symbol]
     
     def update(self, _symbol:str, **_props):
         assert self.exists(_symbol, False), "null possibility not handled!"
@@ -159,6 +179,23 @@ class Scope(object):
             _node = _node.parent
         
         return False
+
+
+class CallFrame(object):
+    """ Serves as StackFrame in callstack
+
+        Parameters
+        ----------
+        _csrawcode : csrawcode
+    """ 
+
+    def __init__(self, _csrawcode:csrawcode, _global_scope:Scope):
+        self.pointer = 0
+        self.rawcode = _csrawcode
+        self.locvars = [Scope(_parent=_global_scope)]
+    
+    def __str__(self):
+        return "[csrawcode :pointer=%d]" % self.pointer
 
 
 """ Begin runtime functions
@@ -225,7 +262,7 @@ def cs_format_name_error_2(_env:CSXEnvironment, _name:str):
     return "NameError: re-assignment of '%s' without declairation !!!" % _name
 
 
-def cs_format_att_error(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
+def cs_format_att_error_0(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
     """ Formats attribute error message
 
         Parameters
@@ -240,6 +277,20 @@ def cs_format_att_error(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
     """
     return "AttributeError: missing attribute %s::%s !!!" % (_obj.type, _attribute)
 
+def cs_format_att_error_1(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
+    """ Formats attribute error message
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _func : CSObject
+        _attribute : str
+
+        Returns
+        -------
+        str
+    """
+    return "AttributeError: trying to set a read-only attribute %s::%s !!!" % (_obj.type, _attribute)
 
 def cs_format_method_error(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
     """ Formats attribute error message
@@ -366,713 +417,797 @@ def cs_format_zero_division_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject, 
     """
     return "ZeroDivisionError: divisor of dividend produces zero !!!"
 
-
-
-def cs__call(_env:CSXEnvironment, _code:csrawcode):
-    ...
-
-    _ipointer = 0
-
-    for i in _code:
-        print(i)
-
-    while _ipointer < len(_code):
-
-        _opc = _code.code[_ipointer]
-        _ipointer += 1
-
-        match _opc.opcode:
-
-            case CSOpCode.PUSH_CODE:
-                """"""
-                cs_new_code(_env, _opc.get("code"))
-
-            case CSOpCode.PUSH_INTEGER:
-                """"""
-                cs_new_number(_env, _opc.get("const"))
-
-            case CSOpCode.PUSH_DOUBLE:
-                """"""
-                cs_new_number(_env, _opc.get("const"))
-            
-            case CSOpCode.PUSH_STRING:
-                """"""
-                cs_new_string(_env, _opc.get("const"))
-            
-            case CSOpCode.PUSH_BOOLEAN:
-                """"""
-                cs_new_boolean(_env, _opc.get("const"))
-            
-            case CSOpCode.PUSH_NULL:
-                """"""
-                cs_new_nulltype(_env)
-            
-            case CSOpCode.MAKE_OBJECT:
-                """"""
-                cs_new_object(_env, _opc.get("size"))
-
-            case CSOpCode.PUSH_NAME:
-                """"""
-                if  not cs_has_name(_env, _opc.get("name")):
-                    cs__error(_env, cs_format_name_error_0(_env, _opc.get("name")), _opc.get("loc"))
-                    continue
-                    
-                #####
-                cs_push_name(_env, _opc.get("name"))
-            
-
-            case CSOpCode.GET_ATTRIB:
-                """"""
-                if  not cs_has_attribute(_env, _env.stack.top(), _opc.get("attr")):
-                    cs__error(_env, cs_format_att_error(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_get_attrib(_env, _opc.get("attr"))
-            
-            case CSOpCode.GET_METHOD:
-                """"""
-                if  not cs_has_method(_env, _env.stack.top(), _opc.get("attr")):
-                    cs__error(_env, cs_format_method_error(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_get_method(_env, _opc.get("attr"))
-            
-            case CSOpCode.CALL_METHOD:
-                """"""
-                if  _env.stack.top().get("argc").this != _opc.get("size"):
-                    cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
-                    continue
-                    
-                #####
-                cs_method_call(_env, _opc.get("size"))
-            
-
-
-            case CSOpCode.CALL:
-                """"""
-                if  not cs_is_callable(_env.stack.top()):
-                    cs__error(_env, cs_format_not_callable_error(_env, _env.stack.top()), _opc.get("loc"))
-                    continue
-
-                if  _env.stack.top().get("argc").this != _opc.get("size"):
-                    cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
-                    continue
-                    
-                #####
-                cs_function_call(_env, _opc.get("size"))
-            
-
-            case CSOpCode.POSTFIX_OP:
-                raise NotImplementedError("Not implemented op '%s' !!!" % _opc.get("opt"))
-                # match _opc.get("opt"):
-
-                #     case "++":
-                #         _top = _env.stack.pop()
-
-                #         if  not cs_is_number(_top):
-                #             cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
-                #             continue
-                    
-                #         #####
-                #         # push old
-                #         cs_new_number(_env, _top.this)
-
-                #         # inc
-                #         _top.this += 1
-
-                #     case "--":
-                #         _top = _env.stack.pop()
-
-                #         if  not cs_is_number(_top):
-                #             cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
-                #             continue
-                    
-                #         #####
-                #         # push old
-                #         cs_new_number(_env, _top.this)
-
-                #         # dec
-                #         _top.this -= 1
-
-
-            case CSOpCode.UNARY_OP:
-
-                match _opc.get("opt"):
-
-                    case "new":
-                        """"""
-                        if  not cs_is_constructor(_env.stack.top()):
-                            cs__error(_env, cs_format_not_constructor_error(_env, _env.stack.top()), _opc.get("loc"))
-                            continue
-                        
-                        _copy = _env.stack.top()
-
-                        # check arg
-                        cs_get_attrib(_env, __ATTRIBUTE_INITIALIZE__)
-                        
-                        if  _env.stack.top().get("argc").this != _opc.get("size"):
-                            cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
-                            continue
-                        
-                        # pop constructor
-                        _env.stack.pop()
-                        
-                        # push top old
-                        _env.stack.push(_copy)
-
-                        #####
-                        cs_constructor(_env, _opc.get("size"))
-                    
-                    case "typeof":
-                        """"""
-                        cs_new_string(_env, _env.stack.pop().type)
-
-                    case "!":
-                        _rhs = _env.stack.pop()
-
-                        #####
-                        cs_new_boolean(_env, not _rhs.this)
-
-                    case "~":
-                        _rhs = _env.stack.pop()
-
-                        if  not cs_is_integer(_rhs):
-                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                            continue
-
-                        #####
-                        cs_new_number(_env, ~ _rhs.this)
-                    
-
-                    case "+":
-                        _rhs = _env.stack.pop()
-
-                        if  not cs_is_number(_rhs):
-                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                            continue
-
-                        #####
-                        cs_new_number(_env, + _rhs.this)
-                    
-
-                    case "-":
-                        _rhs = _env.stack.pop()
-
-                        if  not cs_is_number(_rhs):
-                            cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                            continue
-
-                        #####
-                        cs_new_number(_env, - _rhs.this)
-                    
-
-                    # case "++":
-                    #     _rhs = _env.stack.pop()
-
-                    #     if  not cs_is_number(_rhs):
-                    #         cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    #         continue
-                        
-                    #     cs_new_number(_env, _rhs.this + 1)
-
-                    #     #####
-                    #     _rhs.this += 1
-
-                    
-                    # case "--":
-                    #     _rhs = _env.stack.top()
-
-                    #     if  not cs_is_number(_rhs):
-                    #         cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    #         continue
-
-                    #     #####
-                    #     _rhs.this -= 1
-                    case _:
-                        raise NotImplementedError("Not implemented op '%s' !!!" % _opc.get("opt"))
-
-
-            case CSOpCode.BINARY_POW:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_new_number(_env, _lhs.this ** _rhs.this)
-            
-
-            case CSOpCode.BINARY_MUL:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_new_number(_env, _lhs.this * _rhs.this)
-            
-
-            case CSOpCode.BINARY_DIV:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                # zero divisor
-                if  _rhs.this == 0:
-                    cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_new_number(_env, _lhs.this / _rhs.this)
-            
-
-            case CSOpCode.BINARY_MOD:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                # zero divisor
-                if  _rhs.this == 0:
-                    cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_new_number(_env, _lhs.this % _rhs.this)
-
-
-            case CSOpCode.BINARY_ADD:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-              
-                if  not ((cs_is_number(_lhs) and cs_is_number(_rhs)) or \
-                         (cs_is_string(_lhs) and cs_is_string(_rhs))):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+def cs_format_thrown_error(_env:CSXEnvironment, _obj:CSObject):
+    """ Formats type error message for zero division
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+
+        Returns
+        -------
+        str
+    """
+    _err = ...
+    if  cs_has_method(_env, _obj, "toString"):
+        _err = cs_invoke_method(_env, _obj, "toString", 0).__str__()
+    else:
+        _err = _obj.__str__()
+    return "Error: %s !!!" % _err
+
+"""OPCODE INJECTION"""
+def cs_rot_2(_env:CSXEnvironment):
+    """ Rotates 2 object in stack
+
+        Parameters
+        ----------
+        _env:CSXEnvironment
+    """
+    _top = _env.stack.pop()
+    _nxt = _env.stack.pop()
+
+    _env.stack.push(_top)
+    _env.stack.push(_nxt)
+
+
+def cs_execute(_env:CSXEnvironment, _once:bool=False):
+    
+    while _env.calls.size() > 0:
+        
+        ### TOP CALLSTACK CODE!!
+        _rawcode:CallFrame = _env.calls.top()
+
+        # for i in _code:
+        #     print(i)
+
+        while _rawcode.pointer < len(_rawcode.rawcode):
+
+            _opc:Instruction = _rawcode.rawcode.code[_rawcode.pointer]
+            _rawcode.pointer += 1
+
+            match _opc.opcode:
+
+                case CSOpCode.PUSH_CODE:
+                    """"""
+                    cs_new_code(_env, _opc.get("code"))
+
+                case CSOpCode.PUSH_INTEGER:
+                    """"""
+                    cs_new_number(_env, _opc.get("const"))
+
+                case CSOpCode.PUSH_DOUBLE:
+                    """"""
+                    cs_new_number(_env, _opc.get("const"))
                 
-                #####
-                if cs_is_number(_lhs) and cs_is_number(_rhs):
+                case CSOpCode.PUSH_STRING:
+                    """"""
+                    cs_new_string(_env, _opc.get("const"))
+                
+                case CSOpCode.PUSH_BOOLEAN:
+                    """"""
+                    cs_new_boolean(_env, _opc.get("const"))
+                
+                case CSOpCode.PUSH_NULL:
+                    """"""
+                    cs_new_nulltype(_env)
+                
+                case CSOpCode.MAKE_OBJECT:
+                    """"""
+                    cs_new_object(_env, _opc.get("size"))
+
+                case CSOpCode.PUSH_NAME:
+                    """"""
+                    _name = _opc.get("name")
+
+                    if  not cs_has_var(_env, _name):
+                        cs__error(_env, cs_format_name_error_0(_env, _name), _opc.get("loc"))
+                        continue
+                        
+                    #####
+                    cs_push_name(_env, _name)
+                
+
+                case CSOpCode.GET_ATTRIB:
+                    """"""
+                    if  not cs_has_attribute(_env, _env.stack.top(), _opc.get("attr")):
+                        cs__error(_env, cs_format_att_error_0(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_get_attrib(_env, _opc.get("attr"))
+                
+                case CSOpCode.SET_ATTRIB:
+                    """"""
+                    # allow making an attribute!!
+                    
+                    match _opc.get("attr"):
+
+                        case SpecialAttrib.A.value|\
+                             SpecialAttrib.B.value|\
+                             SpecialAttrib.C.value:
+                            # As for the moment, we cant freeze object!!
+                            cs__error(_env, cs_format_att_error_1(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                            continue
+
+                        case _:
+                            #####
+                            cs_set_attrib(_env, _opc.get("attr"))
+                
+                case CSOpCode.GET_METHOD:
+                    """"""
+                    if  not cs_has_method(_env, _env.stack.top(), _opc.get("attr")):
+                        cs__error(_env, cs_format_method_error(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_get_method(_env, _opc.get("attr"))
+                
+                case CSOpCode.CALL_METHOD:
+                    """"""
+                    if  _env.stack.top().get("argc").this != _opc.get("size"):
+                        cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                        continue
+                        
+                    #####
+                    cs_method_call(_env, _opc.get("size"))
+                    break
+                
+
+
+                case CSOpCode.CALL:
+                    """"""
+                    if  not cs_is_callable(_env.stack.top()):
+                        cs__error(_env, cs_format_not_callable_error(_env, _env.stack.top()), _opc.get("loc"))
+                        continue
+
+                    if  _env.stack.top().get("argc").this != _opc.get("size"):
+                        cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                        continue
+                        
+                    #####
+                    cs_function_call(_env, _opc.get("size"))
+                    break
+                
+
+                case CSOpCode.POSTFIX_OP:
+                    raise NotImplementedError("Not implemented op '%s' !!!" % _opc.get("opt"))
+                    # match _opc.get("opt"):
+
+                    #     case "++":
+                    #         _top = _env.stack.pop()
+
+                    #         if  not cs_is_number(_top):
+                    #             cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
+                    #             continue
+                        
+                    #         #####
+                    #         # push old
+                    #         cs_new_number(_env, _top.this)
+
+                    #         # inc
+                    #         _top.this += 1
+
+                    #     case "--":
+                    #         _top = _env.stack.pop()
+
+                    #         if  not cs_is_number(_top):
+                    #             cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
+                    #             continue
+                        
+                    #         #####
+                    #         # push old
+                    #         cs_new_number(_env, _top.this)
+
+                    #         # dec
+                    #         _top.this -= 1
+
+
+                case CSOpCode.UNARY_OP:
+
+                    match _opc.get("opt"):
+
+                        case "new":
+                            """"""
+                            if  not cs_is_constructor(_env.stack.top()):
+                                cs__error(_env, cs_format_not_constructor_error(_env, _env.stack.top()), _opc.get("loc"))
+                                continue
+                            
+                            _copy = _env.stack.top()
+
+                            # check arg
+                            cs_get_attrib(_env, __ATTRIBUTE_INITIALIZE__)
+                            
+                            if  _env.stack.top().get("argc").this != _opc.get("size"):
+                                cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                                continue
+                            
+                            # pop constructor
+                            _env.stack.pop()
+                            
+                            # push top old
+                            _env.stack.push(_copy)
+                            
+                            #####
+                            cs_constructor(_env, _opc.get("size"))
+                        
+                        case "typeof":
+                            """"""
+                            cs_new_string(_env, _env.stack.pop().type)
+
+                        case "!":
+                            _rhs = _env.stack.pop()
+
+                            #####
+                            cs_new_boolean(_env, not _rhs.this)
+
+                        case "~":
+                            _rhs = _env.stack.pop()
+
+                            if  not cs_is_integer(_rhs):
+                                cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                continue
+
+                            #####
+                            cs_new_number(_env, ~ _rhs.this)
+                        
+
+                        case "+":
+                            _rhs = _env.stack.pop()
+
+                            if  not cs_is_number(_rhs):
+                                cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                continue
+
+                            #####
+                            cs_new_number(_env, + _rhs.this)
+                        
+
+                        case "-":
+                            _rhs = _env.stack.pop()
+
+                            if  not cs_is_number(_rhs):
+                                cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                continue
+
+                            #####
+                            cs_new_number(_env, - _rhs.this)
+                        
+
+                        # case "++":
+                        #     _rhs = _env.stack.pop()
+
+                        #     if  not cs_is_number(_rhs):
+                        #         cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        #         continue
+                            
+                        #     cs_new_number(_env, _rhs.this + 1)
+
+                        #     #####
+                        #     _rhs.this += 1
+
+                        
+                        # case "--":
+                        #     _rhs = _env.stack.top()
+
+                        #     if  not cs_is_number(_rhs):
+                        #         cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        #         continue
+
+                        #     #####
+                        #     _rhs.this -= 1
+                        case _:
+                            raise NotImplementedError("Not implemented op '%s' !!!" % _opc.get("opt"))
+
+
+                case CSOpCode.BINARY_POW:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_new_number(_env, _lhs.this ** _rhs.this)
+                
+
+                case CSOpCode.BINARY_MUL:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_new_number(_env, _lhs.this * _rhs.this)
+                
+
+                case CSOpCode.BINARY_DIV:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    # zero divisor
+                    if  _rhs.this == 0:
+                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_new_number(_env, _lhs.this / _rhs.this)
+                
+
+                case CSOpCode.BINARY_MOD:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    # zero divisor
+                    if  _rhs.this == 0:
+                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_new_number(_env, _lhs.this % _rhs.this)
+
+
+                case CSOpCode.BINARY_ADD:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+                
+                    if  not ((cs_is_number(_lhs) and cs_is_number(_rhs)) or \
+                            (cs_is_string(_lhs) and cs_is_string(_rhs))):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    if cs_is_number(_lhs) and cs_is_number(_rhs):
+                        cs_new_number(_env, _lhs.this + _rhs.this)
+                    else:
+                        cs_new_string(_env, _lhs.this + _rhs.this)
+                
+
+                case CSOpCode.BINARY_SUB:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_new_number(_env, _lhs.this - _rhs.this)
+                
+                case CSOpCode.BINARY_LSHIFT:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_new_number(_env, _lhs.this << _rhs.this)
+                
+
+                case CSOpCode.BINARY_RSHIFT:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_new_number(_env, _lhs.this >> _rhs.this)
+                
+                case CSOpCode.COMPARE_OP:
+                    match _opc.get("opt"):
+
+                        case "<":
+                            _lhs = _env.stack.pop()
+                            _rhs = _env.stack.pop()
+
+                            if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                continue
+
+                            #####
+                            cs_new_boolean(_env, _lhs.this < _rhs.this)
+                        
+                        case "<=":
+                            _lhs = _env.stack.pop()
+                            _rhs = _env.stack.pop()
+
+                            if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                continue
+
+                            #####
+                            cs_new_boolean(_env, _lhs.this <= _rhs.this)
+                        
+
+                        case ">":
+                            _lhs = _env.stack.pop()
+                            _rhs = _env.stack.pop()
+
+                            if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                continue
+
+                            #####
+                            cs_new_boolean(_env, _lhs.this > _rhs.this)
+                        
+                        case ">=":
+                            _lhs = _env.stack.pop()
+                            _rhs = _env.stack.pop()
+
+                            if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                continue
+
+                            #####
+                            cs_new_boolean(_env, _lhs.this >= _rhs.this)
+                        
+                        case "==":
+                            _lhs = _env.stack.pop()
+                            _rhs = _env.stack.pop()
+
+                            if  not (cs_is_pointer(_lhs) or cs_is_pointer(_rhs)):
+                                cs_new_boolean(_env, _lhs.this == _rhs.this)
+                                continue
+                        
+                            ##### pointer: compare memory address
+                            cs_new_boolean(_env, _lhs.offset == _rhs.offset)
+                        
+
+                        case "!=":
+                            _lhs = _env.stack.pop()
+                            _rhs = _env.stack.pop()
+
+                            if  not (cs_is_pointer(_lhs) or cs_is_pointer(_rhs)):
+                                cs_new_boolean(_env, _lhs.this != _rhs.this)
+                                continue
+                        
+                            ##### pointer: compare memory address
+                            cs_new_boolean(_env, _lhs.offset != _rhs.offset)
+                        
+
+                case CSOpCode.BINARY_AND:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_new_number(_env, _lhs.this & _rhs.this)
+                
+
+                case CSOpCode.BINARY_XOR:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_new_number(_env, _lhs.this ^ _rhs.this)
+                
+
+                case CSOpCode.BINARY_OR:
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_new_number(_env, _lhs.this | _rhs.this)
+
+                case CSOpCode.MAKE_CLASS:
+                    """"""
+                    cs_new_class(_env, _opc.get("size"))
+
+                case CSOpCode.MAKE_FUNCTION:
+                    """"""
+                    cs_new_function(_env)
+
+                case CSOpCode.MAKE_VAR:
+                    """"""
+                    if  cs_has_name(_env, _opc.get("name")):
+                        cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_make_var(_env, _opc.get("name"))
+                
+                case CSOpCode.MAKE_LOCAL:
+                    """"""
+                    if  cs_has_local(_env, _opc.get("name")):
+                        cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_make_local(_env, _opc.get("name"))
+                
+                case CSOpCode.STORE_NAME:
+                    """"""
+                    _name = _opc.get("name")
+
+                    if  not cs_has_var(_env, _name):
+                        cs__error(_env, cs_format_name_error_2(_env, _name), _opc.get("loc"))
+                        continue
+
+                    #####
+                    cs_store_name(_env, _name)
+                
+                case CSOpCode.INPLACE_POW:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_new_number(_env, _lhs.this ** _rhs.this)
+                
+                case CSOpCode.INPLACE_MUL:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_new_number(_env, _lhs.this * _rhs.this)
+                
+                case CSOpCode.INPLACE_DIV:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    # zero divisor
+                    if  _rhs.this == 0:
+                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_new_number(_env, _lhs.this / _rhs.this)
+                
+                case CSOpCode.INPLACE_MOD:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    # zero divisor
+                    if  _rhs.this == 0:
+                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_new_number(_env, _lhs.this % _rhs.this)
+
+                case CSOpCode.INPLACE_ADD:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
+
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
+                    
+                    #####
                     cs_new_number(_env, _lhs.this + _rhs.this)
-                else:
-                    cs_new_string(_env, _lhs.this + _rhs.this)
-            
 
-            case CSOpCode.BINARY_SUB:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
+                case CSOpCode.INPLACE_SUB:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
 
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_new_number(_env, _lhs.this - _rhs.this)
-            
-            case CSOpCode.BINARY_LSHIFT:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_new_number(_env, _lhs.this << _rhs.this)
-            
-
-            case CSOpCode.BINARY_RSHIFT:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-
-                #####
-                cs_new_number(_env, _lhs.this >> _rhs.this)
-            
-            case CSOpCode.COMPARE_OP:
-                match _opc.get("opt"):
-
-                    case "<":
-                        _lhs = _env.stack.pop()
-                        _rhs = _env.stack.pop()
-
-                        if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                            continue
-
-                        #####
-                        cs_new_boolean(_env, _lhs.this < _rhs.this)
+                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
                     
-                    case "<=":
-                        _lhs = _env.stack.pop()
-                        _rhs = _env.stack.pop()
+                    #####
+                    cs_new_number(_env, _lhs.this - _rhs.this)
+                
+                case CSOpCode.INPLACE_LSHIFT:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
 
-                        if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                            continue
-
-                        #####
-                        cs_new_boolean(_env, _lhs.this <= _rhs.this)
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
                     
+                    #####
+                    cs_new_number(_env, _lhs.this << _rhs.this)
+                
+                case CSOpCode.INPLACE_RSHIFT:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
 
-                    case ">":
-                        _lhs = _env.stack.pop()
-                        _rhs = _env.stack.pop()
-
-                        if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                            continue
-
-                        #####
-                        cs_new_boolean(_env, _lhs.this > _rhs.this)
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
                     
-                    case ">=":
-                        _lhs = _env.stack.pop()
-                        _rhs = _env.stack.pop()
+                    #####
+                    cs_new_number(_env, _lhs.this >> _rhs.this)
+                
+                case CSOpCode.INPLACE_AND:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
 
-                        if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                            cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                            continue
-
-                        #####
-                        cs_new_boolean(_env, _lhs.this >= _rhs.this)
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
                     
-                    case "==":
-                        _lhs = _env.stack.pop()
-                        _rhs = _env.stack.pop()
+                    #####
+                    cs_new_number(_env, _lhs.this & _rhs.this)
+                
+                case CSOpCode.INPLACE_XOR:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
 
-                        if  not (cs_is_pointer(_lhs) and cs_is_pointer(_rhs)):
-                            cs_new_boolean(_env, _lhs.this == _rhs.this)
-                            continue
-                      
-                        ##### pointer: compare memory address
-                        cs_new_boolean(_env, _lhs.offset == _rhs.offset)
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
                     
+                    #####
+                    cs_new_number(_env, _lhs.this ^ _rhs.this)
+                
+                case CSOpCode.INPLACE_OR:
+                    """"""
+                    _lhs = _env.stack.pop()
+                    _rhs = _env.stack.pop()
 
-                    case "!=":
-                        _lhs = _env.stack.pop()
-                        _rhs = _env.stack.pop()
-
-                        if  not (cs_is_pointer(_lhs) and cs_is_pointer(_rhs)):
-                            cs_new_boolean(_env, _lhs.this != _rhs.this)
-                            continue
-                      
-                        ##### pointer: compare memory address
-                        cs_new_boolean(_env, _lhs.offset != _rhs.offset)
+                    if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
+                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        continue
                     
-
-            case CSOpCode.BINARY_AND:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                    #####
+                    cs_new_number(_env, _lhs.this | _rhs.this)
                 
-                #####
-                cs_new_number(_env, _lhs.this & _rhs.this)
-            
 
-            case CSOpCode.BINARY_XOR:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
+                case CSOpCode.POP_JUMP_IF_FALSE:
+                    """"""
+                    _top = _env.stack.pop()
 
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                    if  cs_is_nulltype(_top) or cs_is_bool_false(_top):
+                        _rawcode.pointer = _opc.get("target") // 2
                 
-                #####
-                cs_new_number(_env, _lhs.this ^ _rhs.this)
-            
+                case CSOpCode.POP_JUMP_IF_TRUE:
+                    """"""
+                    _top = _env.stack.pop()
 
-            case CSOpCode.BINARY_OR:
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                    if  not (cs_is_nulltype(_top) or cs_is_bool_false(_top)):
+                        _rawcode.pointer = _opc.get("target") // 2
                 
-                #####
-                cs_new_number(_env, _lhs.this | _rhs.this)
 
-            case CSOpCode.MAKE_CLASS:
-                """"""
-                cs_new_class(_env, _opc.get("size"))
+                case CSOpCode.JUMP_IF_TRUE_OR_POP:
+                    """"""
+                    _top = _env.stack.top()
 
-            case CSOpCode.MAKE_FUNCTION:
-                """"""
-                cs_new_function(_env)
+                    if  (not cs_is_nulltype(_top)) or cs_is_bool_true(_top):
+                        _rawcode.pointer = _opc.get("target") // 2
+                        continue
+                    
+                    ##### pop
+                    _env.stack.pop()
 
-            case CSOpCode.MAKE_VAR:
-                """"""
-                if  cs_has_name(_env, _opc.get("name")):
-                    cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
-                    continue
 
-                #####
-                cs_make_var(_env, _opc.get("name"))
-            
-            case CSOpCode.MAKE_LOCAL:
-                """"""
-                if  cs_has_local(_env, _opc.get("name")):
-                    cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
-                    continue
+                case CSOpCode.JUMP_IF_FALSE_OR_POP:
+                    """"""
+                    _top = _env.stack.top()
 
-                #####
-                cs_make_local(_env, _opc.get("name"))
-            
-            case CSOpCode.STORE_NAME:
-                """"""
-                if  not cs_has_name(_env, _opc.get("name")):
-                    cs__error(_env, cs_format_name_error_2(_env, _opc.get("name")), _opc.get("loc"))
-                    continue
+                    if  cs_is_nulltype(_top) or cs_is_bool_false(_top):
+                        _rawcode.pointer = _opc.get("target") // 2
+                        continue
+                    
+                    ##### pop
+                    _env.stack.pop()
 
-                #####
-                cs_store_name(_env, _opc.get("name"))
-            
-            case CSOpCode.INPLACE_POW:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
+                case CSOpCode.JUMP_EQUAL:
+                    """"""
+                    _a = _env.stack.pop()
+                    _b = _env.stack.pop()
 
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                    if  not (cs_is_pointer(_a) or cs_is_pointer(_b)):
+                        if  _a.this == _b.this:
+                            _rawcode.pointer = _opc.get("target") // 2
+                    else:
+                        if  _a.offset == _b.offset:
+                            _rawcode.pointer = _opc.get("target") // 2
+
+                case CSOpCode.ABSOLUTE_JUMP:
+                    """"""
+                    _rawcode.pointer = _opc.get("target") // 2
                 
-                #####
-                cs_new_number(_env, _lhs.this ** _rhs.this)
-            
-            case CSOpCode.INPLACE_MUL:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
 
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                case CSOpCode.JUMP_TO:
+                    """"""
+                    _rawcode.pointer = _opc.get("target") // 2
                 
-                #####
-                cs_new_number(_env, _lhs.this * _rhs.this)
-            
-            case CSOpCode.INPLACE_DIV:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
 
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                case CSOpCode.DUP_TOP:
+                    """"""
+                    _env.stack.push(_env.stack.top())
+
+
+                case CSOpCode.POP_TOP:
+                    """"""
+                    _env.stack.pop()
+
                 
-                # zero divisor
-                if  _rhs.this == 0:
-                    cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                case CSOpCode.PRINT_OBJECT:
+                    """"""
+                    _size = _opc.get("size")
+                    _frmt = ""
+
+                    for _r in range(_size):
+                        _frmt += _env.stack.pop().__str__()
+
+                        if  _r < (_size - 1):
+                            _frmt += " "
+                    
+                    print(_frmt)
                 
-                #####
-                cs_new_number(_env, _lhs.this / _rhs.this)
-            
-            case CSOpCode.INPLACE_MOD:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                case CSOpCode.NEW_BLOCK:
+                    """"""
+                    _env.calls.top().locvars.append(
+                        Scope(_parent=_env.calls.top().locvars[-1])
+                    )
                 
-                # zero divisor
-                if  _rhs.this == 0:
-                    cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                case CSOpCode.END_BLOCK:
+                    """"""
+                    _env.calls.top().locvars.pop()
                 
-                #####
-                cs_new_number(_env, _lhs.this % _rhs.this)
-
-            case CSOpCode.INPLACE_ADD:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
+                case CSOpCode.THROW_ERROR:
+                    """"""
+                    cs__error(_env, cs_format_thrown_error(_env, _env.stack.pop()), _opc.get("loc"))
                 
-                #####
-                cs_new_number(_env, _lhs.this + _rhs.this)
+                case CSOpCode.NO_OPERATION:
+                    """"""
+                    pass
 
-            case CSOpCode.INPLACE_SUB:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
+                case CSOpCode.RETURN_OP:
+                    """"""
+                    _env.calls.pop()
+                    break
 
-                if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-                
-                #####
-                cs_new_number(_env, _lhs.this - _rhs.this)
-            
-            case CSOpCode.INPLACE_LSHIFT:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
+                case _:
+                    print("Not implemented opcode", _opc.opcode.name)
+                    exit(1)
 
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-                
-                #####
-                cs_new_number(_env, _lhs.this << _rhs.this)
-            
-            case CSOpCode.INPLACE_RSHIFT:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-                
-                #####
-                cs_new_number(_env, _lhs.this >> _rhs.this)
-            
-            case CSOpCode.INPLACE_AND:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-                
-                #####
-                cs_new_number(_env, _lhs.this & _rhs.this)
-            
-            case CSOpCode.INPLACE_XOR:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-                
-                #####
-                cs_new_number(_env, _lhs.this ^ _rhs.this)
-            
-            case CSOpCode.INPLACE_OR:
-                """"""
-                _lhs = _env.stack.pop()
-                _rhs = _env.stack.pop()
-
-                if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                    cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                    continue
-                
-                #####
-                cs_new_number(_env, _lhs.this | _rhs.this)
-            
-
-            case CSOpCode.POP_JUMP_IF_FALSE:
-                """"""
-                _top = _env.stack.pop()
-
-                if  cs_is_nulltype(_top) or cs_is_bool_false(_top):
-                    _ipointer = _opc.get("target") // 2
-            
-            case CSOpCode.POP_JUMP_IF_TRUE:
-                """"""
-                _top = _env.stack.pop()
-
-                if  not (cs_is_nulltype(_top) or cs_is_bool_false(_top)):
-                    _ipointer = _opc.get("target") // 2
-            
-
-            case CSOpCode.JUMP_IF_TRUE_OR_POP:
-                """"""
-                _top = _env.stack.top()
-
-                if  (not cs_is_nulltype(_top)) or cs_is_bool_true(_top):
-                    _ipointer = _opc.get("target") // 2
-                    continue
-                
-                ##### pop
-                _env.stack.pop()
-
-
-            case CSOpCode.JUMP_IF_FALSE_OR_POP:
-                """"""
-                _top = _env.stack.top()
-
-                if  cs_is_nulltype(_top) or cs_is_bool_false(_top):
-                    _ipointer = _opc.get("target") // 2
-                    continue
-                
-                ##### pop
-                _env.stack.pop()
-
-
-            case CSOpCode.ABSOLUTE_JUMP:
-                """"""
-                _ipointer = _opc.get("target") // 2
-            
-
-            case CSOpCode.JUMP_TO:
-                """"""
-                _ipointer = _opc.get("target") // 2
-            
-
-            case CSOpCode.DUP_TOP:
-                """"""
-                _env.stack.push(_env.stack.top())
-
-
-            case CSOpCode.POP_TOP:
-                """"""
-                _env.stack.pop()
-
-            
-            case CSOpCode.PRINT_OBJECT:
-                """"""
-                _size = _opc.get("size")
-                _frmt = ""
-
-                for _r in range(_size):
-                    _frmt += _env.stack.pop().__str__()
-
-                    if  _r < (_size - 1):
-                        _frmt += " "
-                
-                print(_frmt)
-            
-            case CSOpCode.NEW_BLOCK:
-                """"""
-                _env.scope.append(Scope(_parent=_env.scope[-1]))
-            
-            case CSOpCode.END_BLOCK:
-                """"""
-                _env.scope.pop()
-            
-            case CSOpCode.RETURN_OP:
-                return
-
-            case _:
-                print("Not implemented opcode", _opc.opcode.name)
-                exit(1)
+        
+        if  _once:
+            break
 
 
 
@@ -1089,10 +1224,26 @@ def cs_ifdef(_env:CSXEnvironment, _name:str):
         -------
         bool
     """
-    return _env.scope[-1].exists(_name, _local=True)
+    return _env.calls.top().locvars[-1].exists(_name, _local=True)
+
+
+def cs_has_var(_env:CSXEnvironment, _name:str):
+    """ Checks if name exists in local->global scope
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+
+        Returns
+        -------
+        bool
+    """
+    return cs_has_local(_env, _name) or cs_has_name(_env, _name)
+
 
 def cs_has_name(_env:CSXEnvironment, _name:str):
-    """ Checks if name exists to scope
+    """ Checks if name exists in global scope
 
         Parameters
         ----------
@@ -1118,7 +1269,7 @@ def cs_has_local(_env:CSXEnvironment, _name:str):
         -------
         bool
     """
-    return _env.scope[-1].exists(_name, _local=True)
+    return _env.calls.top().locvars[-1].exists(_name, _local=True)
 
 
 def cs_has_class(_env:CSXEnvironment, _class_name:str):
@@ -1161,11 +1312,11 @@ def cs_has_method(_env:CSXEnvironment, _obj:CSObject, _method_name:str):
         bool
     """
     # if contains "__proto__"
-    if  not cs_has_attribute(_env, _obj, __ATTRIBUTE_PROTO__): 
+    if  not cs_has_attribute(_env, _obj, __ATTRIBUTE__PROTOTYPE__): 
         return False
 
     # search in class
-    _class = _obj.get(__ATTRIBUTE_PROTO__)
+    _class = _obj.get(__ATTRIBUTE__PROTOTYPE__)
 
     if  not cs_has_attribute(_env, _class, _method_name):
         return False
@@ -1191,15 +1342,15 @@ def cs_has_attribute(_env:CSXEnvironment, _obj:CSObject, _attribute_name:str):
         return True
     
     # search in prototype
-    if  not _obj.hasKey(__ATTRIBUTE_PROTO__):
+    if  not _obj.hasKey(__ATTRIBUTE__PROTOTYPE__):
         return False
     
-    _class = _obj.get(__ATTRIBUTE_PROTO__)
+    _class = _obj.get(__ATTRIBUTE__PROTOTYPE__)
 
     return _class.hasKey(_attribute_name)
 
 
-def cs_is_callable(_obj:CSObject):
+def cs_is_callable(_obj:CSObject|CSFunction|CSNativeFunction):
     """ Checks if object is a function
 
         Parameters
@@ -1229,7 +1380,7 @@ def cs_is_rawcode(_csobject:CSObject):
         -------
         bool
     """
-    return  _csobject.type == CSTypes.TYPE_CSRAWCODE
+    return _csobject.type == CSTypes.TYPE_CSRAWCODE
 
 
 
@@ -1355,9 +1506,18 @@ def cs_is_constructor(_csobject:CSObject):
         A valid class should have
             the following: 
             
-            [1]. initialize method(constructor)
+            [1]. initialize method(CSCallable constructor)
 
-            [2]. qualname attribute
+            [2]. qualname attribute(CSString)
+
+        so.. this is a valid class
+
+            var MYCLASS = {
+                qualname: "MyClass",
+                initialize: function() {
+                    
+                }
+            };
 
         
         Parameters
@@ -1371,11 +1531,11 @@ def cs_is_constructor(_csobject:CSObject):
     """
 
     # check if object has "qualname"
-    if  not _csobject.hasKey(__ATTRIBUTE_QUALNAME__):
+    if  not _csobject.hasKey(__ATTRIBUTE___QUALNAME__):
         return False
     
     # is qualname a string?
-    if  not cs_is_string(_csobject.get(__ATTRIBUTE_QUALNAME__)):
+    if  not cs_is_string(_csobject.get(__ATTRIBUTE___QUALNAME__)):
         # invalid qualname
         return False
     
@@ -1405,8 +1565,6 @@ def cs_is_pointer(_csobject:CSObject):
 
 
 """OPCODE METHODS"""
-
-
 def cs_define(_env:CSXEnvironment, _name:str, _value:CSObject):
     """ Creates local variable
         
@@ -1419,8 +1577,21 @@ def cs_define(_env:CSXEnvironment, _name:str, _value:CSObject):
     assert not cs_ifdef(_env, _name), "name '%s' already defined!" % _name
 
     # save var
-    _env.scope[-1].insert(_name, _address=_value.offset, _global=False)
+    _env.calls.top().locvars[-1].insert(_name, _address=_value.offset, _global=False)
 
+
+def cs_undefine(_env:CSXEnvironment, _name:str):
+    """ Removes local variable
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+    """
+    assert cs_ifdef(_env, _name), "name '%s' is not defined!" % _name
+
+    # save var
+    _env.calls.top().locvars[-1].delete(_name)
 
 def cs_make_var(_env:CSXEnvironment, _name:str):
     """ Creates global variable
@@ -1447,7 +1618,7 @@ def cs_make_local(_env:CSXEnvironment, _name:str):
     assert not cs_has_local(_env, _name), "name '%s' already defined!" % _name
 
     # save var
-    _env.scope[-1].insert(_name, _address=_env.stack.pop().offset, _global=False)
+    _env.calls.top().locvars[-1].insert(_name, _address=_env.stack.pop().offset, _global=False)
 
 
 def cs_store_name(_env:CSXEnvironment, _name:str):
@@ -1458,10 +1629,14 @@ def cs_store_name(_env:CSXEnvironment, _name:str):
         _env : CSXEnvironment
         _name : str
     """
-    assert cs_has_name(_env, _name), "no such name '%s'" % _name
+    assert cs_has_var(_env, _name), "no such name '%s'" % _name
 
-    # save var
-    _env.scope[-1].update(_name, _address=_env.stack.pop().offset)
+    if  cs_has_local(_env, _name):
+        # save locally
+        _env.calls.top().locvars[-1].update(_name, _address=_env.stack.pop().offset)
+    else:
+        # save global
+        _env.scope[-1].update(_name, _address=_env.stack.pop().offset)
 
 
 def cs_new_code(_env:CSXEnvironment, _raw_code:csrawcode):
@@ -1495,9 +1670,8 @@ def cs_new_number(_env:CSXEnvironment, _py_number:int|float):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
-    else:
-        print("No class")
+        _obj.put(__ATTRIBUTE__PROTOTYPE__, _env.stack.pop())
+   
 
     # push #
     _env.stack.push(_obj)
@@ -1520,7 +1694,7 @@ def cs_new_string(_env:CSXEnvironment, _py_string:str):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+        _obj.put(__ATTRIBUTE__PROTOTYPE__, _env.stack.pop())
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
 
@@ -1541,7 +1715,7 @@ def cs_new_boolean(_env:CSXEnvironment, _py_boolean:bool):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+        _obj.put(__ATTRIBUTE__PROTOTYPE__, _env.stack.pop())
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
 
@@ -1562,7 +1736,7 @@ def cs_new_nulltype(_env:CSXEnvironment):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+        _obj.put(__ATTRIBUTE__PROTOTYPE__, _env.stack.pop())
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
 
@@ -1582,7 +1756,7 @@ def cs_new_object(_env:CSXEnvironment, _pop_size:int):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+        _obj.put(__ATTRIBUTE__PROTOTYPE__, _env.stack.pop())
     
 
     for _r in range(_pop_size):
@@ -1607,7 +1781,7 @@ def cs_new_class(_env:CSXEnvironment, _pop_size:int):
     _obj = _env.vheap.cs__malloc(CSObject())
 
     # set qualifed name
-    _obj.put(__ATTRIBUTE_QUALNAME__, _class_proto_name)
+    _obj.put(__ATTRIBUTE___QUALNAME__, _class_proto_name)
 
     for _r in range(_pop_size):
         _key = _env.stack.pop()
@@ -1636,7 +1810,7 @@ def cs_new_function(_env:CSXEnvironment):
         cs_get_class(_env, _obj.type)
 
         # pop and put
-        _obj.put(__ATTRIBUTE_PROTO__, _env.stack.pop())
+        _obj.put(__ATTRIBUTE__PROTOTYPE__, _env.stack.pop())
 
 
     _env.stack.push(_env.vheap.cs__malloc(_obj))
@@ -1651,10 +1825,17 @@ def cs_push_name(_env:CSXEnvironment, _name:str):
         _env : CSXEnvironment
         _name : str
     """
-    assert cs_has_name(_env, _name), "no such name '%s'" % _name
+    assert cs_has_var(_env, _name), "no such name '%s'" % _name
 
-    # retrieve
-    _info = _env.scope[-1].lookup(_name)
+    # retrieve starts from local to global
+    _info = ...
+
+    if  cs_has_local(_env, _name):
+        # search locally
+        _info = _env.calls.top().locvars[-1].lookup(_name)
+    else:
+        # search globally
+        _info = _env.scope[-1].lookup(_name)
     
     # push stack
     _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
@@ -1678,6 +1859,8 @@ def cs_get_class(_env:CSXEnvironment, _class_name:str):
     _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
 
 
+"""MEMBER"""
+
 def cs_get_attrib(_env:CSXEnvironment, _attribute_name:str):
     """ Gets attribute of an object
 
@@ -1694,7 +1877,7 @@ def cs_get_attrib(_env:CSXEnvironment, _attribute_name:str):
         return 
     
     # search in class
-    _class = _top.get(__ATTRIBUTE_PROTO__)
+    _class = _top.get(__ATTRIBUTE__PROTOTYPE__)
 
     # push to stack
     _env.stack.push(_class.get(_attribute_name))
@@ -1716,11 +1899,23 @@ def cs_get_method(_env:CSXEnvironment, _method_name:str):
     _objct = _env.stack.pop()
     
     # class becomes __proto__
-    _class = _objct.get(__ATTRIBUTE_PROTO__)
+    _class = _objct.get(__ATTRIBUTE__PROTOTYPE__)
 
     # push to stack
     _env.stack.push(_env.vheap.cs__malloc(CSMethod(_objct, _class.get(_method_name))))
 
+
+def cs_set_attrib(_env:CSXEnvironment, _attribute_name:str):
+    """ Sets attribute of an object
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _attribute_name : str
+    """
+    _obj = _env.stack.pop()
+    _obj.put(_attribute_name, _env.stack.pop())
+    
 
 """FUNCTIONS"""
 def cs_method_call(_env:CSXEnvironment, _argument_size:int):
@@ -1732,23 +1927,18 @@ def cs_method_call(_env:CSXEnvironment, _argument_size:int):
         _argument_size : int
     """
     assert cs_is_callable(_env.stack.top()), "not a function!"
-    
+
     #   stack
     # ---------
     #  method
     #  args 0
     #  args N
 
-    # new scope
-    _env.scope.append(Scope(_env.scope[-1]))
-
     # method
     _func = _env.stack.pop()
 
-    # define "this"
-    cs_define(_env, "this", _func.get("owner"))
-
     match _func.meth:
+        
         case CSTypes.TYPE_CSNATIVEFUNCTION:
             # call function
             _args = [_env]
@@ -1756,14 +1946,20 @@ def cs_method_call(_env:CSXEnvironment, _argument_size:int):
             for _r in range(_argument_size):
                 _args.append(_env.stack.pop())
 
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
+
             _env.stack.push(_func.call(_args))
+
+            # remove this from scope
+            cs_undefine(_env, "this")
 
         case CSTypes.TYPE_CSFUNCTION:
             # call function
-            cs__call(_env, _func.get("code"))
-
-    # end scope
-    _env.scope.pop()
+            cs_call(_env, _func.get("code"))
+    
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
 
 
 def cs_function_call(_env:CSXEnvironment, _argument_size:int):
@@ -1779,9 +1975,6 @@ def cs_function_call(_env:CSXEnvironment, _argument_size:int):
     #  method
     #  args 0
     #  args N
-
-    # new scope
-    _env.scope.append(Scope(_env.scope[-1]))
 
     assert cs_is_callable(_env.stack.top()), "not a function!"
 
@@ -1800,10 +1993,72 @@ def cs_function_call(_env:CSXEnvironment, _argument_size:int):
 
         case CSTypes.TYPE_CSFUNCTION:
             # call function
-            cs__call(_env, _func.get("code"))
+            cs_call(_env, _func.get("code"))
 
-    # end scope
-    _env.scope.pop()
+
+
+def cs_invoke_method(
+    _env : CSXEnvironment,
+    _obj : CSObject,
+    _method_name : str,
+    _argument_size : int
+):
+    """ Invokes internal method and return
+
+        # NOTE: caller should pop!!!
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+        _method_name : str
+        _argument_size : int
+
+        Returns
+        -------
+        CSOject
+    """
+    assert cs_has_method(_env, _obj, _method_name), "No such method '%s'" % _method_name
+
+    # NOTE: caller should pop!!!
+    # push back to stack
+    _env.stack.push(_obj)
+
+    # push method to stack
+    cs_get_method(_env, _method_name)
+
+    # request call
+    _func = _env.stack.pop()
+
+    match _func.meth:
+
+        case CSTypes.TYPE_CSNATIVEFUNCTION:
+            # call function
+            _args = [_env]
+
+            for _r in range(_argument_size):
+                _args.append(_env.stack.pop())
+
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
+            
+            _env.stack.push(_func.call(_args))
+
+            # remove this from scope
+            cs_undefine(_env, "this")
+
+        case CSTypes.TYPE_CSFUNCTION:
+            # call function
+            cs_call(_env, _func.get("code"))
+
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
+
+            # execute once
+            cs_execute(_env, _once=True)
+
+    # return result
+    return _env.stack.pop()
 
 
 """CLASS"""
@@ -1821,10 +2076,10 @@ def cs_constructor(_env:CSXEnvironment, _argument_size:int):
     _class_proto = _env.stack.pop()
 
     _new_class = _env.vheap.cs__malloc(CSObject())
-    _new_class.put(__ATTRIBUTE_PROTO__, _class_proto)
+    _new_class.put(__ATTRIBUTE__PROTOTYPE__, _class_proto)
 
     # get qualname
-    _new_class.type = _class_proto.get(__ATTRIBUTE_QUALNAME__).__str__()
+    _new_class.type = _class_proto.get(__ATTRIBUTE___QUALNAME__).__str__()
     
     # copy non callable/attribute
     for _k in _class_proto.keys():
@@ -1838,24 +2093,49 @@ def cs_constructor(_env:CSXEnvironment, _argument_size:int):
     # push method to stack
     cs_get_method(_env, __ATTRIBUTE_INITIALIZE__)
 
-    # call constructor if any
-    cs_method_call(_env, _argument_size)
+    # request call
+    _func = _env.stack.pop()
 
-    # a constructor/initialize mu return null!!!!!
-    # otherwise use return type as immediate return.
-    if cs_is_nulltype(_env.stack.top()):
+    match _func.meth:
 
-        # pop initialize return value
+        case CSTypes.TYPE_CSNATIVEFUNCTION:
+            # call function
+            _args = [_env]
+
+            for _r in range(_argument_size):
+                _args.append(_env.stack.pop())
+
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
+
+            _env.stack.push(_func.call(_args))
+
+            # remove this from scope
+            cs_undefine(_env, "this")
+
+        case CSTypes.TYPE_CSFUNCTION:
+            # call function
+            cs_call(_env, _func.get("code"))
+
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
+
+            # execute once
+            cs_execute(_env, _once=True)
+
+    if  cs_is_nulltype(_env.stack.top()):
+        # pop return
         _env.stack.pop()
         
-        # push back instance
+        # push back
         _env.stack.push(_new_class)
-    
+
     else:
-        logger("class", "class constructor '%s' should return null !!!" % _new_class.type)
+        # log info
+        logger("class", "class constructor '%s' returned a value !!!" % _new_class.type)
 
 
-def cs__init_builtin(_env:CSXEnvironment):
+def cs_init_builtin(_env:CSXEnvironment):
     """ Initialize builtins
 
         Parameters
@@ -1863,20 +2143,42 @@ def cs__init_builtin(_env:CSXEnvironment):
         _env : CSXEnvironment
     """ 
     # linkage
-    for each_class in ln:\
-    each_class().link([_env])
+    for each_class in ln: each_class().link([_env])
 
 
 
-def cs__run(_code:csrawcode):
+def cs_call(_env:CSXEnvironment, _csrawcode:csrawcode):
+    """ Calls a user defined function
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _csrawcode : csrawcode
+    """
+
+    # check for overflow!!!!
+    if  _env.calls.size() >= _env.MAX_CALL_STACK:
+        raise RecursionError("StackOverflow!!!!")
+
+    ######################################
+    ## push frame
+    _env.calls.push(CallFrame(_csrawcode, _env.scope[-1]))
+
+
+
+def cs_run(_code:csrawcode):
+    """ 
+    """ 
     _env = CSXEnvironment()
 
     # initialize before run
-    cs__init_builtin(_env)
+    cs_init_builtin(_env)
 
     # call module
-    cs__call(_env, _code)
+    cs_call(_env, _code)
 
+    # run vm
+    cs_execute(_env)
 
-
-
+    # collect python
+    collect()

@@ -33,6 +33,6 @@ class CSMethod(CSObject):
         
     
     def __str__(self):
-        return "<CSMethod %s />" % self.get(CSMethod.KEY_FCALL).get("name").__str__()
+        return "<CSMethod %s />" % self.get(CSMethod.KEY_NAME).__str__()
 
 

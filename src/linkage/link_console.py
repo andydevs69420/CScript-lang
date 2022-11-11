@@ -12,6 +12,7 @@ class ConsoleLink(PyLinkInterface):
         super().__init__()
         self.linkname = "console"
         self.metadata = ({
+            "write"   : {"name": "write"   , "argc": 1},
             "log"     : {"name": "log"     , "argc": 1},
             "error"   : {"name": "error"   , "argc": 1},
             "warn"    : {"name": "warn"    , "argc": 1},
@@ -19,6 +20,9 @@ class ConsoleLink(PyLinkInterface):
             "clear"   : {"name": "clear"   , "argc": 0}
         })
     
+    def write(self, _args:list):
+        print(_args[1], end="")
+        return self.malloc(_args[0], CSNullType())
 
     def log(self, _args:list):
         print(_args[1])
@@ -38,7 +42,8 @@ class ConsoleLink(PyLinkInterface):
                 _input = input(_args[1].__str__())
                 return self.malloc(_args[0], CSString(_input))
             except KeyboardInterrupt:
-                pass
+                print()
+                continue
         return self.malloc(_args[0], CSNullType())
     
     def clear(self, _args:list):
