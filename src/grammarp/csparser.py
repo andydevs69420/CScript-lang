@@ -1696,12 +1696,12 @@ class CSParser(ContextUtils):
 
             _message = non_nullable_expression()
 
-            self.eat(";", TokenType.OPERATOR)
-
             _assE = self.previous
 
+            self.eat(";", TokenType.OPERATOR)
+
             return ({
-                TYPE: SyntaxType.ASSERTT_STMNT,
+                TYPE: SyntaxType.ASSERT_STMNT,
                 "condition": _cond,
                 "message"  : _message,
                 "loc"      : getLocation(self, _assS, _assE)

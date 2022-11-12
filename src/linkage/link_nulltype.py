@@ -6,7 +6,7 @@ from . import PyLinkInterface, CSTypes, CSString, CSBoolean, CSInteger
 """ Serves as CSInteger prototype
         and all CSInteger operation
             from
-            constructo, concat, __toString__
+            constructor, concat, __toString__
 
     Strictly: do not modify!!!
     NOTE: you an create your own custom prototype attribute inside cscript
