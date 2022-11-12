@@ -557,7 +557,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     cs_method_call(_env, _opc.get("size"))
 
                     # request break when user defined method
-                    if  _copy.meth == CSTypes.TYPE_CSFUNCTION:
+                    if  cs_is_function(_copy):
                         break
 
 
@@ -577,7 +577,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     cs_function_call(_env, _opc.get("size"))
 
                     # request break when user defined function
-                    if  _copy.type == CSTypes.TYPE_CSFUNCTION:
+                    if  cs_is_function(_copy):
                         break
                 
 
@@ -1393,10 +1393,39 @@ def cs_is_callable(_obj:CSObject|CSFunction|CSNativeFunction):
         bool
     """ 
     return (
-        _obj.type == CSTypes.TYPE_CSNATIVEFUNCTION or
-        _obj.type == CSTypes.TYPE_CSFUNCTION       or
-        _obj.type == CSTypes.TYPE_CSMETHOD
+        cs_is_native_function(_obj) or
+        cs_is_function(_obj)        or
+        cs_is_method(_obj)
     )
+
+def cs_is_native_function(_csobject:CSObject):
+    """ Checks if object is a native function
+
+        Parameters
+        ----------
+        _csobject : CSObject
+    """
+    return _csobject.type == CSTypes.TYPE_CSNATIVEFUNCTION
+
+
+def cs_is_function(_csobject:CSObject):
+    """ Checks if object is a user function
+
+        Parameters
+        ----------
+        _csobject : CSObject
+    """
+    return _csobject.type == CSTypes.TYPE_CSFUNCTION
+
+
+def cs_is_method(_csobject:CSObject):
+    """ Checks if object is a method
+
+        Parameters
+        ----------
+        _csobject : CSObject
+    """
+    return _csobject.type == CSTypes.TYPE_CSMETHOD
 
 
 def cs_is_rawcode(_csobject:CSObject):
