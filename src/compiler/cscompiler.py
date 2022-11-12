@@ -430,12 +430,11 @@ class RawBlock(BlockCompiler):
     
     # augmented
     def caugmented(self, _node:dict):
+        # compile rhs
+        self.visit(_node["right"])
 
         # compile left
         self.visit(_node["left" ])
-
-        # compile rhs
-        self.visit(_node["right"])
 
         _operator = _node["opt"]
         match _operator:
@@ -1018,6 +1017,24 @@ class RawBlock(BlockCompiler):
 
         # add throw
         self.throw_error(_node["loc"])
+    
+    # assert
+    def cassert(self, _node:dict):
+        # compile condition
+        self.visit(_node["condition"])
+
+        # continue if not error
+        self.pop_jump_if_true(...)
+        _jump_t0 = self.peekLast()
+
+        # compile message
+        self.visit(_node["message"])
+
+        # add throw
+        self.throw_error(_loc=_node["loc"])
+
+        # jump here if not error!
+        _jump_t0.kwargs["target"] = self.getLine()
     
     #  continue statement
     def ccontinue(self, _node:dict):

@@ -44,7 +44,7 @@ class CSXEnvironment(object):
     """
 
     # NEW!!! intead of using magic number
-    MAX_CALL_STACK = 1000
+    MAX_CALL_STACK = 2000
 
     def __init__(self):
         self.scope = [Scope()]   # global scope
@@ -434,7 +434,9 @@ def cs_format_thrown_error(_env:CSXEnvironment, _obj:CSObject):
         _err = cs_invoke_method(_env, _obj, "toString", 0).__str__()
     else:
         _err = _obj.__str__()
-    return "Error: %s !!!" % _err
+    return _err
+
+
 
 """OPCODE INJECTION"""
 def cs_rot_2(_env:CSXEnvironment):
@@ -458,14 +460,14 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
         ### TOP CALLSTACK CODE!!
         _rawcode:CallFrame = _env.calls.top()
 
-        # for i in _code:
+        # for i in _rawcode.rawcode:
         #     print(i)
 
         while _rawcode.pointer < len(_rawcode.rawcode):
 
             _opc:Instruction = _rawcode.rawcode.code[_rawcode.pointer]
             _rawcode.pointer += 1
-
+            
             match _opc.opcode:
 
                 case CSOpCode.PUSH_CODE:
@@ -548,11 +550,15 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     if  _env.stack.top().get("argc").this != _opc.get("size"):
                         cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
                         continue
-                        
+                    
+                    _copy = _env.stack.top()
+
                     #####
                     cs_method_call(_env, _opc.get("size"))
-                    break
-                
+
+                    # request break when user defined method
+                    if  _copy.meth == CSTypes.TYPE_CSFUNCTION:
+                        break
 
 
                 case CSOpCode.CALL:
@@ -564,10 +570,15 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     if  _env.stack.top().get("argc").this != _opc.get("size"):
                         cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
                         continue
-                        
+                    
+                    _copy = _env.stack.top()
+
                     #####
                     cs_function_call(_env, _opc.get("size"))
-                    break
+
+                    # request break when user defined function
+                    if  _copy.type == CSTypes.TYPE_CSFUNCTION:
+                        break
                 
 
                 case CSOpCode.POSTFIX_OP:
@@ -639,7 +650,10 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             #####
-                            cs_new_boolean(_env, not _rhs.this)
+                            if  not cs_is_pointer(_rhs):
+                                cs_new_boolean(_env, not _rhs.this)
+                            else:
+                                cs_new_boolean(_env, False)
 
                         case "~":
                             _rhs = _env.stack.pop()
@@ -925,7 +939,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
 
                 case CSOpCode.MAKE_VAR:
                     """"""
-                    if  cs_has_name(_env, _opc.get("name")):
+                    if  cs_has_global(_env, _opc.get("name")):
                         cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
                         continue
 
@@ -963,6 +977,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     
                     #####
                     cs_new_number(_env, _lhs.this ** _rhs.this)
+                    
                 
                 case CSOpCode.INPLACE_MUL:
                     """"""
@@ -1014,13 +1029,17 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     """"""
                     _lhs = _env.stack.pop()
                     _rhs = _env.stack.pop()
-
-                    if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
+    
+                    if  not ((cs_is_number(_lhs) and cs_is_number(_rhs)) or \
+                             (cs_is_string(_lhs) and cs_is_string(_rhs))):
                         cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
                         continue
                     
                     #####
-                    cs_new_number(_env, _lhs.this + _rhs.this)
+                    if cs_is_number(_lhs) and cs_is_number(_rhs):
+                        cs_new_number(_env, _lhs.this + _rhs.this)
+                    else:
+                        cs_new_string(_env, _lhs.this + _rhs.this)
 
                 case CSOpCode.INPLACE_SUB:
                     """"""
@@ -1101,6 +1120,8 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
 
                     if  cs_is_nulltype(_top) or cs_is_bool_false(_top):
                         _rawcode.pointer = _opc.get("target") // 2
+                    
+                    # print(_env.vheap.cs__object_at(_env.calls.top().locvars[-1].lookup("_head")["_address"]))
                 
                 case CSOpCode.POP_JUMP_IF_TRUE:
                     """"""
@@ -1171,7 +1192,16 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _frmt = ""
 
                     for _r in range(_size):
-                        _frmt += _env.stack.pop().__str__()
+                        
+                        _top = _env.stack.pop()
+                        _str = ""; 
+
+                        if  cs_has_method(_env, _top, "toString") and not cs_is_string(_top):
+                            _str += cs_invoke_method(_env, _top, "toString", 0).__str__()
+                        else:
+                            _str += _top.__str__()
+
+                        _frmt += _str
 
                         if  _r < (_size - 1):
                             _frmt += " "
@@ -1180,13 +1210,11 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                 
                 case CSOpCode.NEW_BLOCK:
                     """"""
-                    _env.calls.top().locvars.append(
-                        Scope(_parent=_env.calls.top().locvars[-1])
-                    )
+                    cs_new_scope(_env)
                 
                 case CSOpCode.END_BLOCK:
                     """"""
-                    _env.calls.top().locvars.pop()
+                    cs_end_scope(_env)
                 
                 case CSOpCode.THROW_ERROR:
                     """"""
@@ -1205,10 +1233,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     print("Not implemented opcode", _opc.opcode.name)
                     exit(1)
 
-        
-        if  _once:
-            break
-
+        if _once: break
 
 
 """HELPERS"""
@@ -1230,6 +1255,8 @@ def cs_ifdef(_env:CSXEnvironment, _name:str):
 def cs_has_var(_env:CSXEnvironment, _name:str):
     """ Checks if name exists in local->global scope
 
+        Allow cascade search
+
         Parameters
         ----------
         _env : CSXEnvironment
@@ -1239,10 +1266,13 @@ def cs_has_var(_env:CSXEnvironment, _name:str):
         -------
         bool
     """
-    return cs_has_local(_env, _name) or cs_has_name(_env, _name)
+    if  _env.scope[-1].exists(_name, _local=False):
+        return True
+    #####
+    return _env.calls.top().locvars[-1].exists(_name, _local=False)
 
 
-def cs_has_name(_env:CSXEnvironment, _name:str):
+def cs_has_global(_env:CSXEnvironment, _name:str):
     """ Checks if name exists in global scope
 
         Parameters
@@ -1601,7 +1631,7 @@ def cs_make_var(_env:CSXEnvironment, _name:str):
         _env : CSXEnvironment
         _name : str
     """
-    assert not cs_has_name(_env, _name), "name '%s' already defined!" % _name
+    assert not cs_has_global(_env, _name), "name '%s' already defined!" % _name
 
     # save var
     _env.scope[-1].insert(_name, _address=_env.stack.pop().offset, _global=True)
@@ -1631,12 +1661,12 @@ def cs_store_name(_env:CSXEnvironment, _name:str):
     """
     assert cs_has_var(_env, _name), "no such name '%s'" % _name
 
-    if  cs_has_local(_env, _name):
-        # save locally
-        _env.calls.top().locvars[-1].update(_name, _address=_env.stack.pop().offset)
-    else:
-        # save global
+    if  _env.scope[-1].exists(_name, _local=False):
+        #### search globally
         _env.scope[-1].update(_name, _address=_env.stack.pop().offset)
+    else:
+        #### search locally
+        _env.calls.top().locvars[-1].update(_name, _address=_env.stack.pop().offset)
 
 
 def cs_new_code(_env:CSXEnvironment, _raw_code:csrawcode):
@@ -1830,12 +1860,12 @@ def cs_push_name(_env:CSXEnvironment, _name:str):
     # retrieve starts from local to global
     _info = ...
 
-    if  cs_has_local(_env, _name):
-        # search locally
-        _info = _env.calls.top().locvars[-1].lookup(_name)
-    else:
-        # search globally
+    if  _env.scope[-1].exists(_name, _local=False):
+        #### search globally
         _info = _env.scope[-1].lookup(_name)
+    else:
+        #### search locally
+        _info = _env.calls.top().locvars[-1].lookup(_name)
     
     # push stack
     _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
@@ -1945,6 +1975,9 @@ def cs_method_call(_env:CSXEnvironment, _argument_size:int):
 
             for _r in range(_argument_size):
                 _args.append(_env.stack.pop())
+            
+            # add native scope
+            cs_new_scope(_env)
 
             # define "this"
             cs_define(_env, "this", _func.get("owner"))
@@ -1953,6 +1986,9 @@ def cs_method_call(_env:CSXEnvironment, _argument_size:int):
 
             # remove this from scope
             cs_undefine(_env, "this")
+
+            # pop native scope
+            cs_end_scope(_env)
 
         case CSTypes.TYPE_CSFUNCTION:
             # call function
@@ -1988,8 +2024,14 @@ def cs_function_call(_env:CSXEnvironment, _argument_size:int):
 
             for _r in range(_argument_size):
                 _args.append(_env.stack.pop())
+            
+            # add native scope
+            cs_new_scope(_env)
 
             _env.stack.push(_func.call(_args))
+
+            # pop native scope
+            cs_end_scope(_env)
 
         case CSTypes.TYPE_CSFUNCTION:
             # call function
@@ -2023,10 +2065,10 @@ def cs_invoke_method(
     # NOTE: caller should pop!!!
     # push back to stack
     _env.stack.push(_obj)
-
+    
     # push method to stack
     cs_get_method(_env, _method_name)
-
+    
     # request call
     _func = _env.stack.pop()
 
@@ -2039,6 +2081,9 @@ def cs_invoke_method(
             for _r in range(_argument_size):
                 _args.append(_env.stack.pop())
 
+            # add native scope
+            cs_new_scope(_env)
+
             # define "this"
             cs_define(_env, "this", _func.get("owner"))
             
@@ -2047,16 +2092,19 @@ def cs_invoke_method(
             # remove this from scope
             cs_undefine(_env, "this")
 
+            # pop native scope
+            cs_end_scope(_env)
+
         case CSTypes.TYPE_CSFUNCTION:
             # call function
             cs_call(_env, _func.get("code"))
-
+            
             # define "this"
             cs_define(_env, "this", _func.get("owner"))
 
             # execute once
             cs_execute(_env, _once=True)
-
+            
     # return result
     return _env.stack.pop()
 
@@ -2133,6 +2181,29 @@ def cs_constructor(_env:CSXEnvironment, _argument_size:int):
     else:
         # log info
         logger("class", "class constructor '%s' returned a value !!!" % _new_class.type)
+
+
+
+def cs_new_scope(_env:CSXEnvironment):
+    """ Creates new local scope
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+    """
+    _env.calls.top().locvars.append(
+        Scope(_parent=_env.calls.top().locvars[-1])
+    )
+
+
+def cs_end_scope(_env:CSXEnvironment):
+    """ Creates new local scope
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+    """
+    _env.calls.top().locvars.pop()
 
 
 def cs_init_builtin(_env:CSXEnvironment):
