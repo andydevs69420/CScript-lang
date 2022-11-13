@@ -15,6 +15,6 @@ def show_error(_message, _token):
         -------
         None
     """
-    _header = f"[{_token.fsrce}:{_token.yS}:{_token.xS}] {_message}"
+    _header = f"[{_token.fsrce}] {_message}"
     
     return __throw__(_header + '\n' + _token.trace)

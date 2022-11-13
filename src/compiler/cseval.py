@@ -83,7 +83,7 @@ class CSEval(object):
         except TypeError:
             return \
                 CSXCompileError.csx_Error(
-                    ("TypeError: invalid operation (%s) of right operand!" % _node["opt"])
+                    ("[%s] invalid operation (%s) of right operand!" % (self.modname, _node["opt"]))
                     + "\n"
                     + _node["loc"]
                 )
@@ -124,14 +124,14 @@ class CSEval(object):
         except TypeError:
             return \
                 CSXCompileError.csx_Error(
-                    ("TypeError: invalid operation (%s) of operands!" % _node["opt"])
+                    ("[%s] invalid operation (%s) of operands!" % (self.modname, _node["opt"]))
                     + "\n"
                     + _node["loc"]
                 )
         except ZeroDivisionError:
             return \
                 CSXCompileError.csx_Error(
-                    ("ZeroDivisionError: divisor of dividend produces zero !!!")
+                    ("[%s] divisor of dividend produces zero." % self.modname)
                     + "\n"
                     + _node["loc"]
                 )

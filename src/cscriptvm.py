@@ -18,6 +18,7 @@ from csbuiltins import CSDouble
 from csbuiltins import CSString
 from csbuiltins import CSBoolean
 from csbuiltins import CSNullType
+from csbuiltins import CSArray
 from csbuiltins import CSHashMap
 from csbuiltins import CSMethod
 from csbuiltins import CSNativeFunction
@@ -51,10 +52,13 @@ class CSXEnvironment(object):
         self.vheap = VHEAP(self) # virtual heap
         self.stack = STACK()     # evaluation stack
         self.calls = STACK()     # callstack
+        self.error = STACK()     # errorstack
         
 
 
 class STACK(object):
+    """ list stack wrapper
+    """
 
     def __init__(self):
         self.__internal = [
@@ -211,234 +215,291 @@ def cs__error(_env:CSXEnvironment, _message:str, _location:str):
         _message : str
         _location : str
     """
-    return __throw__(
-        _message
-        + "\n"
-        + _location
-    )
+    if  _env.error.size() <= 0:
+        return __throw__(
+            _message
+            + "\n"
+            + _location
+        )
+    else:
+        cs_new_string(
+            _env,
+            _message
+            + "\n"
+            + _location
+        )
+        # jump!!
+        _env.calls.top().pointer = _env.error.top() // 2
 
-def cs_format_name_error_0(_env:CSXEnvironment, _name:str):
-    """ Formats name error message if not defined!
+
+
+
+def cs_error__NameError_define(_env:CSXEnvironment, _name:str, _loc:str):
+    """ Throws name already defined error
 
         Parameters
         ----------
-        _env : CSXEnvironment
+        _env  : CSXEnvironment
         _name : str
-
-        Returns
-        -------
-        str
+        _loc  : str
     """
-    return "ReferenceError: name '%s' is not defined in scope !!!" % _name
+
+    cs__error(_env, "NameError: name '%s' is already defined!!!" % _name, _loc)
 
 
-def cs_format_name_error_1(_env:CSXEnvironment, _name:str):
-    """ Formats name error message if defined!
+
+
+def cs_error__NameError_notdef(_env:CSXEnvironment, _name:str, _loc:str):
+    """ Throws name not defined error
 
         Parameters
         ----------
-        _env : CSXEnvironment
+        _env  : CSXEnvironment
         _name : str
-
-        Returns
-        -------
-        str
+        _loc  : str
     """
-    return "NameError: name '%s' was already defined in scope !!!" % _name
+
+    cs__error(_env, "NameError: name '%s' was not defined!!!" % _name, _loc)
 
 
-def cs_format_name_error_2(_env:CSXEnvironment, _name:str):
-    """ Formats name error message if reassign without defining
+
+def cs_error__NameError_reassign_without_define(_env:CSXEnvironment, _name:str, _loc:str):
+    """ Throws re-assignment without define error
 
         Parameters
         ----------
-        _env : CSXEnvironment
+        _env  : CSXEnvironment
         _name : str
-
-        Returns
-        -------
-        str
+        _loc  : str
     """
-    return "NameError: re-assignment of '%s' without declairation !!!" % _name
+
+    cs__error(_env, "NameError: re-assigned '%s' without declairation!!!" % _name, _loc)
 
 
-def cs_format_att_error_0(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
-    """ Formats attribute error message
+
+def cs_error__AttributeError_no_such_attribute(
+    _env  : CSXEnvironment, 
+    _type : CSTypes,
+    _attr : str, 
+    _loc  : str
+):
+    """ Throws error when method not found
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _type : CSTypes
+        _attr : str
+        _loc  : str
+    """
+    cs__error(_env, "AttributeError: %s has no attribute %s." % (_type, _attr), _loc)
+
+
+
+def cs_error__AttributeError_no_such_method(
+    _env  : CSXEnvironment, 
+    _type : CSTypes,
+    _attr : str, 
+    _loc  : str
+):
+    """ Throws error when method not found
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _type : CSTypes
+        _attr : str
+        _loc  : str
+    """
+    cs__error(_env, "AttributeError: %s has no method %s." % (_type, _attr), _loc)
+
+
+
+def cs_error__AttributeError_assignment_of_read_only(
+    _env  : CSXEnvironment, 
+    _type : CSTypes,
+    _attr : str, 
+    _loc  : str
+):
+    """ Throws error when method not found
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _type : CSTypes
+        _attr : str
+        _loc  : str
+    """
+    cs__error(_env, "AttributeError: object attribute %s::%s is read-only." % (_type, _attr), _loc)
+
+
+
+
+
+def cs_error__TypeError_not_a_constructor(_env:CSXEnvironment, _type:CSTypes, _loc:str):
+    """ Throws error if not a constructor
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _name : str
+        _loc  : str
+    """
+    cs__error(_env, "TypeError: %s instance is not a constructor." % _type, _loc)
+
+
+
+def cs_error__TypeError_not_subscriptible(_env:CSXEnvironment, _object_type:CSTypes, _loc:str):
+    """ Throws name not defined error
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _name : str
+        _loc  : str
+    """
+    cs__error(_env, "TypeError: %s is not subscriptible" % _object_type, _loc)
+
+
+
+def cs_error__TypeError_invalid_r_operand(
+    _env : CSXEnvironment, 
+    _opt : str,
+    _rhs : CSTypes, 
+    _loc : str
+):
+    """ Throws unsupported operator for right operand
+
+        use: unary type checking
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _func : CSObject
-        _attribute : str
-
-        Returns
-        -------
-        str
+        _opt : str
+        _rhs : CSTypes
+        _loc : str
     """
-    return "AttributeError: missing attribute %s::%s !!!" % (_obj.type, _attribute)
+    cs__error(_env, "TypeError: invalid operator (%s) for right operand." % (_opt, _rhs), _loc)
 
-def cs_format_att_error_1(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
-    """ Formats attribute error message
+
+
+
+
+def cs_error__TypeError_invalid_l_r_operand(
+    _env : CSXEnvironment, 
+    _lhs : CSTypes, 
+    _opt : str,
+    _rhs : CSTypes, 
+    _loc : str
+):
+    """ Throws unsupported operator for both operands
+
+        use: binary expr type checking
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _func : CSObject
-        _attribute : str
-
-        Returns
-        -------
-        str
+        _lhs : CSTypes
+        _opt : str
+        _rhs : CSTypes
+        _loc : str
     """
-    return "AttributeError: trying to set a read-only attribute %s::%s !!!" % (_obj.type, _attribute)
+    cs__error(_env, "TypeError: invalid operator (%s) for operand types(s) %s and %s." % (_opt, _lhs, _rhs), _loc)
 
-def cs_format_method_error(_env:CSXEnvironment, _obj:CSObject, _attribute:str):
-    """ Formats attribute error message
+
+
+def cs_error__TypeError_not_callable(
+    _env  : CSXEnvironment, 
+    _type : CSTypes, 
+    _loc  : str
+):
+    """ Throws not callable
+
 
         Parameters
         ----------
         _env : CSXEnvironment
-        _func : CSObject
-        _attribute : str
-
-        Returns
-        -------
-        str
+        _lhs : CSTypes
+        _opt : str
+        _rhs : CSTypes
+        _loc : str
     """
-    return "AttributeError: missing method %s::%s !!!" % (_obj.type, _attribute)
+    cs__error(_env, "TypeError: %s is not callable." % _type, _loc)
 
-def cs_format_not_callable_error(_env:CSXEnvironment, _obj:CSObject):
-    """ Formats argument error message
+
+def cs_error__TypeError_invalid_arg_size(
+    _env  : CSXEnvironment, 
+    _required : int, 
+    _recieved : int,
+    _loc      : str
+):
+    """ Throws error if arg count missmatch
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _lhs : CSTypes
+        _opt : str
+        _rhs : CSTypes
+        _loc : str
+    """
+    cs__error(_env, "TypeError: required argument count %d, got %d." % (_required, _recieved), _loc)
+
+
+def cs_error__ZeroDivisionError(
+    _env : CSXEnvironment, 
+    _loc : str
+):
+    """ Throws zero division error
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _loc : str
+    """
+    cs__error(_env, "ZeroDivisionError: divisor of devidend produces zero.", _loc)
+
+
+def cs_error__Throw(
+    _env : CSXEnvironment, 
+    _obj : CSObject,
+    _loc : str
+):
+    """ Throws error
 
         Parameters
         ----------
         _env : CSXEnvironment
         _obj : CSObject
-
-        Returns
-        -------
-        str
-    """
-    return "TypeError: %s is not callable !!!" % _obj.type
-
-def cs_format_arg_error(_env:CSXEnvironment, _func:CSObject, _arg_size:int):
-    """ Formats argument error message
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _func : CSObject
-        _arg_size : int
-
-        Returns
-        -------
-        str
-    """
-    _fname = _func.get("name").__str__()
-    _fargc = _func.get("argc").__str__()
-    return "ArgumentError: %s expected arg count %s, got %d !!!" % (_fname, _fargc, _arg_size)
-
-
-def cs_format_post_type_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject):
-    """ Formats type error message for postfix expression
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _opt : str
-        _lhs : CSObject
-
-        Returns
-        -------
-        str
-    """
-    return "TypeError: invalid postfix operator (%s) for type %s !!!" % (_opt, _lhs.type)
-
-def cs_format_not_constructor_error(_env:CSXEnvironment, _obj:CSObject):
-    """ Formats constructor error
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _obj : CSObject
-
-        Returns
-        -------
-        str
-    """
-    return "TypeError: %s is not a constructor !!!" % (_obj.type)
-
-def cs_format_una_type_error(_env:CSXEnvironment, _opt:str, _rhs:CSObject):
-    """ Formats type error message for unary expression
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _opt : str
-        _rhs : CSObject
-
-        Returns
-        -------
-        str
-    """
-    return "TypeError: invalid unary operator (%s) for type %s !!!" % (_opt, _rhs.type)
-
-
-def cs_format_bin_type_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject, _rhs:CSObject):
-    """ Formats type error message for binary expression
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _opt : str
-        _lhs : CSObject
-        _rhs : CSObject
-
-        Returns
-        -------
-        str
-    """
-    return "TypeError: invalid operator (%s) for operands type %s and %s !!!" % (_opt, _lhs.type, _rhs.type)
-
-
-def cs_format_zero_division_error(_env:CSXEnvironment, _opt:str, _lhs:CSObject, _rhs:CSObject):
-    """ Formats type error message for zero division
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _opt : str
-        _lhs : CSObject
-        _rhs : CSObject
-
-        Returns
-        -------
-        str
-    """
-    return "ZeroDivisionError: divisor of dividend produces zero !!!"
-
-def cs_format_thrown_error(_env:CSXEnvironment, _obj:CSObject):
-    """ Formats type error message for zero division
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _obj : CSObject
-
-        Returns
-        -------
-        str
+        _loc : str
     """
     _err = ...
     if  cs_has_method(_env, _obj, "toString"):
-        _err = cs_invoke_method(_env, _obj, "toString", 0).__str__()
+        _env.stack.push(_obj)
+
+        _err = cs_invoke_method(_env, _env.stack.top(), "toString", 0)
+        _err = _err.__str__()
+
     else:
         _err = _obj.__str__()
-    return _err
+        
+    cs__error(_env, _err, _loc)
 
 
 
 """OPCODE INJECTION"""
+
+def cs_dup_top(_env:CSXEnvironment):
+    """ Duplicate top object
+
+        Parameters
+        ----------
+        _env:CSXEnvironment
+    """
+    _env.stack.push(_env.stack.top())
+
+
+
 def cs_rot_2(_env:CSXEnvironment):
     """ Rotates 2 object in stack
 
@@ -451,6 +512,8 @@ def cs_rot_2(_env:CSXEnvironment):
 
     _env.stack.push(_top)
     _env.stack.push(_nxt)
+
+
 
 
 def cs_execute(_env:CSXEnvironment, _once:bool=False):
@@ -494,6 +557,10 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     """"""
                     cs_new_nulltype(_env)
                 
+                case CSOpCode.MAKE_ARRAY:
+                    """"""
+                    cs_new_array(_env, _opc.get("size"))
+                
                 case CSOpCode.MAKE_OBJECT:
                     """"""
                     cs_new_object(_env, _opc.get("size"))
@@ -503,58 +570,130 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _name = _opc.get("name")
 
                     if  not cs_has_var(_env, _name):
-                        cs__error(_env, cs_format_name_error_0(_env, _name), _opc.get("loc"))
+                        cs_error__NameError_notdef(_env, _name, _opc.get("loc"))
                         continue
                         
                     #####
                     cs_push_name(_env, _name)
                 
 
-                case CSOpCode.GET_ATTRIB:
+
+
+
+
+
+                case CSOpCode.BINARY_SUBSCRIPT:
                     """"""
-                    if  not cs_has_attribute(_env, _env.stack.top(), _opc.get("attr")):
-                        cs__error(_env, cs_format_att_error_0(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                    if  not cs_is_subscriptible(_env.stack.top()):
+                        cs_error__TypeError_not_subscriptible(_env, _env.stack.top(), _opc.get("loc"))
                         continue
 
                     #####
-                    cs_get_attrib(_env, _opc.get("attr"))
-                
-                case CSOpCode.SET_ATTRIB:
-                    """"""
-                    # allow making an attribute!!
-                    
-                    match _opc.get("attr"):
+                    cs_subscript(_env)
 
+                        
+                case CSOpCode.SET_SUBSCRIPT:
+                    """"""
+                    raise NotImplementedError("Implement!!!")
+                
+                
+
+
+
+
+                case CSOpCode.GET_STATIC:
+                    """"""
+                    if  not cs_is_constructor(_env.stack.top()):
+                        cs_error__TypeError_not_a_constructor(_env, _env.stack.top().type, _opc.get("loc"))
+                        continue
+                    
+                    if  not cs_has_static(_env, _env.stack.top(), _opc.get("attr")):
+                        cs_error__AttributeError_no_such_attribute(_env, _env.stack.top().type, _opc.get("attr"), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_get_static(_env, _opc.get("attr"))
+                    
+
+                case CSOpCode.SET_STATIC:
+                    """"""
+                    if  not cs_is_constructor(_env.stack.top()):
+                        cs_error__TypeError_not_a_constructor(_env, _env.stack.top().type, _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    # check if attrib is read-only
+                    match _opc.get("attr"):
                         case SpecialAttrib.A.value|\
                              SpecialAttrib.B.value|\
                              SpecialAttrib.C.value:
-                            # As for the moment, we cant freeze object!!
-                            cs__error(_env, cs_format_att_error_1(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                            # As for the moment, I can't freeze object!!
+                            cs_error__AttributeError_assignment_of_read_only(_env, _env.stack.top().type, _opc.get("attr"), _opc.get("loc"))
                             continue
 
                         case _:
-                            #####
+                            # allows making attribute
+                            cs_set_static(_env, _opc.get("attr"))
+                    
+                   
+
+
+                case CSOpCode.GET_ATTRIB:
+                    """"""
+                    if  not cs_has_attrib(_env, _env.stack.top(), _opc.get("attr")):
+                        cs_error__AttributeError_no_such_attribute(_env, _env.stack.top().type, _opc.get("attr"), _opc.get("loc"))
+                        continue
+                    
+                    #####
+                    cs_get_attrib(_env, _opc.get("attr"))
+
+                
+                case CSOpCode.SET_ATTRIB:
+                    """"""
+                    if  not cs_has_attrib(_env, _env.stack.top(), _opc.get("attr")):
+                        cs_error__AttributeError_no_such_attribute(_env, _env.stack.top().type, _opc.get("attr"), _opc.get("loc"))
+                        continue
+
+                    #####
+                    # check if attrib is read-only
+                    match _opc.get("attr"):
+                        case SpecialAttrib.A.value|\
+                             SpecialAttrib.B.value|\
+                             SpecialAttrib.C.value:
+                            # As for the moment, I can't freeze object!!
+                            cs_error__AttributeError_assignment_of_read_only(_env, _env.stack.top().type, _opc.get("attr"), _opc.get("loc"))
+                            continue
+
+                        case _:
                             cs_set_attrib(_env, _opc.get("attr"))
                 
+
+
+
+
                 case CSOpCode.GET_METHOD:
                     """"""
                     if  not cs_has_method(_env, _env.stack.top(), _opc.get("attr")):
-                        cs__error(_env, cs_format_method_error(_env, _env.stack.top(), _opc.get("attr")), _opc.get("loc"))
+                        cs_error__AttributeError_no_such_method(_env, _env.stack.top().type, _opc.get("attr"), _opc.get("loc"))
                         continue
 
                     #####
                     cs_get_method(_env, _opc.get("attr"))
                 
+
                 case CSOpCode.CALL_METHOD:
                     """"""
                     if  _env.stack.top().get("argc").this != _opc.get("size"):
-                        cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                        cs_error__TypeError_invalid_arg_size(_env, _env.stack.top().get("argc").this, _opc.get("size"), _opc.get("loc"))
                         continue
                     
                     _copy = _env.stack.top()
 
                     #####
                     cs_method_call(_env, _opc.get("size"))
+
+                    if  cs_is_method(_copy):
+                        if _copy.meth == CSTypes.TYPE_CSFUNCTION: break
 
                     # request break when user defined method
                     if  cs_is_function(_copy):
@@ -564,11 +703,11 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                 case CSOpCode.CALL:
                     """"""
                     if  not cs_is_callable(_env.stack.top()):
-                        cs__error(_env, cs_format_not_callable_error(_env, _env.stack.top()), _opc.get("loc"))
+                        cs_error__TypeError_not_callable(_env, _env.stack.top().type, _opc.get("loc"))
                         continue
 
                     if  _env.stack.top().get("argc").this != _opc.get("size"):
-                        cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                        cs_error__TypeError_invalid_arg_size(_env, _env.stack.top().get("argc").this, _opc.get("size"), _opc.get("loc"))
                         continue
                     
                     _copy = _env.stack.top()
@@ -583,35 +722,6 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
 
                 case CSOpCode.POSTFIX_OP:
                     raise NotImplementedError("Not implemented op '%s' !!!" % _opc.get("opt"))
-                    # match _opc.get("opt"):
-
-                    #     case "++":
-                    #         _top = _env.stack.pop()
-
-                    #         if  not cs_is_number(_top):
-                    #             cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
-                    #             continue
-                        
-                    #         #####
-                    #         # push old
-                    #         cs_new_number(_env, _top.this)
-
-                    #         # inc
-                    #         _top.this += 1
-
-                    #     case "--":
-                    #         _top = _env.stack.pop()
-
-                    #         if  not cs_is_number(_top):
-                    #             cs__error(_env, cs_format_post_type_error(_env, _opc.get("opt"), _top), _opc.get("loc"))
-                    #             continue
-                        
-                    #         #####
-                    #         # push old
-                    #         cs_new_number(_env, _top.this)
-
-                    #         # dec
-                    #         _top.this -= 1
 
 
                 case CSOpCode.UNARY_OP:
@@ -621,7 +731,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                         case "new":
                             """"""
                             if  not cs_is_constructor(_env.stack.top()):
-                                cs__error(_env, cs_format_not_constructor_error(_env, _env.stack.top()), _opc.get("loc"))
+                                cs_error__TypeError_not_a_constructor(_env, _env.stack.top().type, _opc.get("loc"))
                                 continue
                             
                             _copy = _env.stack.top()
@@ -630,7 +740,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             cs_get_attrib(_env, __ATTRIBUTE_INITIALIZE__)
                             
                             if  _env.stack.top().get("argc").this != _opc.get("size"):
-                                cs__error(_env, cs_format_arg_error(_env, _env.stack.top(), _opc.get("size")), _opc.get("loc"))
+                                cs_error__TypeError_invalid_arg_size(_env, _env.stack.top().get("argc").this, _opc.get("size"))
                                 continue
                             
                             # pop constructor
@@ -659,7 +769,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             if  not cs_is_integer(_rhs):
-                                cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                cs_error__TypeError_invalid_r_operand(_env, _opc.get("opt"), _rhs.type, _opc.get("loc"))
                                 continue
 
                             #####
@@ -670,7 +780,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             if  not cs_is_number(_rhs):
-                                cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                cs_error__TypeError_invalid_r_operand(_env, _opc.get("opt"), _rhs.type, _opc.get("loc"))
                                 continue
 
                             #####
@@ -681,35 +791,12 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             if  not cs_is_number(_rhs):
-                                cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                cs_error__TypeError_invalid_r_operand(_env, _opc.get("opt"), _rhs.type, _opc.get("loc"))
                                 continue
 
                             #####
                             cs_new_number(_env, - _rhs.this)
                         
-
-                        # case "++":
-                        #     _rhs = _env.stack.pop()
-
-                        #     if  not cs_is_number(_rhs):
-                        #         cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                        #         continue
-                            
-                        #     cs_new_number(_env, _rhs.this + 1)
-
-                        #     #####
-                        #     _rhs.this += 1
-
-                        
-                        # case "--":
-                        #     _rhs = _env.stack.top()
-
-                        #     if  not cs_is_number(_rhs):
-                        #         cs__error(_env, cs_format_una_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
-                        #         continue
-
-                        #     #####
-                        #     _rhs.this -= 1
                         case _:
                             raise NotImplementedError("Not implemented op '%s' !!!" % _opc.get("opt"))
 
@@ -719,7 +806,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
 
                     #####
@@ -731,7 +818,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
 
                     #####
@@ -743,12 +830,12 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
 
                     # zero divisor
                     if  _rhs.this == 0:
-                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__ZeroDivisionError(_env, _opc.get("loc"))
                         continue
 
                     #####
@@ -760,12 +847,12 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
 
                     # zero divisor
                     if  _rhs.this == 0:
-                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__ZeroDivisionError(_env, _opc.get("loc"))
                         continue
 
                     #####
@@ -777,8 +864,8 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
                 
                     if  not ((cs_is_number(_lhs) and cs_is_number(_rhs)) or \
-                            (cs_is_string(_lhs) and cs_is_string(_rhs))):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                             (cs_is_string(_lhs) and cs_is_string(_rhs))):
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -793,7 +880,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
 
                     #####
@@ -804,7 +891,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
 
                     #####
@@ -816,7 +903,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not cs_is_integer(_lhs) and cs_is_integer(_rhs):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
 
                     #####
@@ -830,7 +917,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                                 continue
 
                             #####
@@ -841,7 +928,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                                 continue
 
                             #####
@@ -853,7 +940,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                                 continue
 
                             #####
@@ -864,7 +951,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                             _rhs = _env.stack.pop()
 
                             if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                                cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                                cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                                 continue
 
                             #####
@@ -899,7 +986,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -911,7 +998,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -923,7 +1010,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -940,7 +1027,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                 case CSOpCode.MAKE_VAR:
                     """"""
                     if  cs_has_global(_env, _opc.get("name")):
-                        cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
+                        cs_error__NameError_define(_env, _opc.get("name"), _opc.get("loc"))
                         continue
 
                     #####
@@ -949,7 +1036,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                 case CSOpCode.MAKE_LOCAL:
                     """"""
                     if  cs_has_local(_env, _opc.get("name")):
-                        cs__error(_env, cs_format_name_error_1(_env, _opc.get("name")), _opc.get("loc"))
+                        cs_error__NameError_define(_env, _opc.get("name"), _opc.get("loc"))
                         continue
 
                     #####
@@ -960,7 +1047,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _name = _opc.get("name")
 
                     if  not cs_has_var(_env, _name):
-                        cs__error(_env, cs_format_name_error_2(_env, _name), _opc.get("loc"))
+                        cs_error__NameError_reassign_without_define(_env, _name, _opc.get("loc"))
                         continue
 
                     #####
@@ -972,7 +1059,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -985,7 +1072,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -997,12 +1084,12 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     # zero divisor
                     if  _rhs.this == 0:
-                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__ZeroDivisionError(_env, _opc.get("loc"))
                         continue
                     
                     #####
@@ -1014,12 +1101,12 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     # zero divisor
                     if  _rhs.this == 0:
-                        cs__error(_env, cs_format_zero_division_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__ZeroDivisionError(_env, _opc.get("loc"))
                         continue
                     
                     #####
@@ -1032,7 +1119,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
     
                     if  not ((cs_is_number(_lhs) and cs_is_number(_rhs)) or \
                              (cs_is_string(_lhs) and cs_is_string(_rhs))):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -1047,7 +1134,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_number(_lhs) and cs_is_number(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -1059,7 +1146,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -1071,7 +1158,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -1083,7 +1170,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -1095,7 +1182,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -1107,7 +1194,7 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                     _rhs = _env.stack.pop()
 
                     if  not (cs_is_integer(_lhs) and cs_is_integer(_rhs)):
-                        cs__error(_env, cs_format_bin_type_error(_env, _opc.get("opt"), _lhs, _rhs), _opc.get("loc"))
+                        cs_error__TypeError_invalid_l_r_operand(_env, _lhs.type, _opc.get("opt"), _rhs.type)
                         continue
                     
                     #####
@@ -1218,7 +1305,15 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
                 
                 case CSOpCode.THROW_ERROR:
                     """"""
-                    cs__error(_env, cs_format_thrown_error(_env, _env.stack.pop()), _opc.get("loc"))
+                    cs_error__Throw(_env, _env.stack.pop(), _opc.get("loc"))
+                
+                case CSOpCode.SETUP_TRY:
+                    """"""
+                    _env.error.push(_opc.get("target"))
+                
+                case CSOpCode.POP_TRY:
+                    """"""
+                    _env.error.pop()
                 
                 case CSOpCode.NO_OPERATION:
                     """"""
@@ -1236,7 +1331,8 @@ def cs_execute(_env:CSXEnvironment, _once:bool=False):
         if _once: break
 
 
-"""HELPERS"""
+"""NAME HELPERS"""
+
 def cs_ifdef(_env:CSXEnvironment, _name:str):
     """ Checks if name exists to local scope
 
@@ -1301,7 +1397,6 @@ def cs_has_local(_env:CSXEnvironment, _name:str):
     """
     return _env.calls.top().locvars[-1].exists(_name, _local=True)
 
-
 def cs_has_class(_env:CSXEnvironment, _class_name:str):
     """ Checks if class exist
 
@@ -1328,6 +1423,98 @@ def cs_has_class(_env:CSXEnvironment, _class_name:str):
 
 
 
+"""MEMBER HELPERS"""
+
+
+    
+
+def cs_has_static(_env:CSXEnvironment, _obj:CSObject, _static_attr:str):
+    """ Checks if class proto has static attribute "_static_attr:str"
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+        _static_attr : str
+
+        Returns
+        -------
+        bool
+    """
+    assert cs_is_constructor(_obj), "Not a constructor!!"
+    return _obj.hasKey(_static_attr)
+
+
+
+def cs_has_attrib(_env:CSXEnvironment, _obj:CSObject, _attrib:str):
+    """ Checks objecto has attribute "_attrib:str"
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _obj : CSObject
+        _attrib : str
+
+        Returns
+        -------
+        bool
+    """
+    return _obj.hasKey(_attrib)
+
+
+
+"""OBJECT HELPERS"""
+
+def cs_is_constructor(_csobject:CSObject):
+    """ Checks if object is a constructor
+        
+        A valid class should have
+            the following: 
+            
+            [1]. initialize method(CSCallable constructor)
+
+            [2]. qualname attribute(CSString)
+
+        so.. this is a valid class
+
+            var MYCLASS = {
+                qualname: "MyClass",
+                initialize: function() {
+                    
+                }
+            };
+
+        
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+
+    # check if object has "qualname"
+    if  not _csobject.hasKey(__ATTRIBUTE___QUALNAME__):
+        return False
+    
+    # is qualname a string?
+    if  not cs_is_string(_csobject.get(__ATTRIBUTE___QUALNAME__)):
+        # invalid qualname
+        return False
+    
+    # has qualname!
+
+    # check if has "initialize" method
+    if  not _csobject.hasKey(__ATTRIBUTE_INITIALIZE__):
+        # no valid constructor
+        return False
+    
+    # is constructor callable?
+    return cs_is_callable(_csobject.get(__ATTRIBUTE_INITIALIZE__))
+
+
 def cs_has_method(_env:CSXEnvironment, _obj:CSObject, _method_name:str):
     """ Checks if _obj has _method_name to its class proto
 
@@ -1342,90 +1529,30 @@ def cs_has_method(_env:CSXEnvironment, _obj:CSObject, _method_name:str):
         bool
     """
     # if contains "__proto__"
-    if  not cs_has_attribute(_env, _obj, __ATTRIBUTE__PROTOTYPE__): 
+    if  not cs_has_attrib(_env, _obj, __ATTRIBUTE__PROTOTYPE__): 
         return False
 
     # search in class
     _class = _obj.get(__ATTRIBUTE__PROTOTYPE__)
 
-    if  not cs_has_attribute(_env, _class, _method_name):
+    if  not cs_has_attrib(_env, _class, _method_name):
         return False
 
     return cs_is_callable(_class.get(_method_name))
 
 
-
-def cs_has_attribute(_env:CSXEnvironment, _obj:CSObject, _attribute_name:str):
-    """ Check if object has direct attribute/key
+def cs_is_pointer(_csobject:CSObject):
+    """ Checks if object is a pointer type
 
         Parameters
         ----------
-        _env : CSXEnvironment
-        _obj : CSObject
-        _method_name : str
+        _csobject : CSObject
 
         Returns
         -------
         bool
     """
-    if  _obj.hasKey(_attribute_name):
-        return True
-    
-    # search in prototype
-    if  not _obj.hasKey(__ATTRIBUTE__PROTOTYPE__):
-        return False
-    
-    _class = _obj.get(__ATTRIBUTE__PROTOTYPE__)
-
-    return _class.hasKey(_attribute_name)
-
-
-def cs_is_callable(_obj:CSObject|CSFunction|CSNativeFunction):
-    """ Checks if object is a function
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _obj : CSObject
-
-        Returns
-        -------
-        bool
-    """ 
-    return (
-        cs_is_native_function(_obj) or
-        cs_is_function(_obj)        or
-        cs_is_method(_obj)
-    )
-
-def cs_is_native_function(_csobject:CSObject):
-    """ Checks if object is a native function
-
-        Parameters
-        ----------
-        _csobject : CSObject
-    """
-    return _csobject.type == CSTypes.TYPE_CSNATIVEFUNCTION
-
-
-def cs_is_function(_csobject:CSObject):
-    """ Checks if object is a user function
-
-        Parameters
-        ----------
-        _csobject : CSObject
-    """
-    return _csobject.type == CSTypes.TYPE_CSFUNCTION
-
-
-def cs_is_method(_csobject:CSObject):
-    """ Checks if object is a method
-
-        Parameters
-        ----------
-        _csobject : CSObject
-    """
-    return _csobject.type == CSTypes.TYPE_CSMETHOD
+    return not (cs_is_number(_csobject) or cs_is_string(_csobject) or cs_is_boolean(_csobject) or cs_is_nulltype(_csobject))
 
 
 def cs_is_rawcode(_csobject:CSObject):
@@ -1559,58 +1686,54 @@ def cs_is_nulltype(_csobject:CSObject):
     return _csobject.type == CSTypes.TYPE_CSNULLTYPE
 
 
-def cs_is_constructor(_csobject:CSObject):
-    """ Checks if object is a constructor
-        
-        A valid class should have
-            the following: 
-            
-            [1]. initialize method(CSCallable constructor)
+def cs_is_array(_csobject:CSObject):
+    """ Checks if object is an array
 
-            [2]. qualname attribute(CSString)
+        Parameters
+        ----------
+        _csobject : CSObject
 
-        so.. this is a valid class
+        Returns
+        -------
+        bool
+    """
+    return _csobject.type == CSTypes.TYPE_CSARRAY
 
-            var MYCLASS = {
-                qualname: "MyClass",
-                initialize: function() {
-                    
-                }
-            };
 
-        
+def cs_is_hashmap(_csobject:CSObject):
+    """ Checks if object is hashmap
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return _csobject.type == CSTypes.TYPE_CSHASHMAP
+
+
+def cs_is_callable(_obj:CSObject|CSFunction|CSNativeFunction):
+    """ Checks if object is a function
+
         Parameters
         ----------
         _env : CSXEnvironment
-        _csobject : CSObject
+        _obj : CSObject
 
         Returns
         -------
         bool
-    """
+    """ 
+    return (
+        cs_is_native_function(_obj) or
+        cs_is_function(_obj)        or
+        cs_is_method(_obj)
+    )
 
-    # check if object has "qualname"
-    if  not _csobject.hasKey(__ATTRIBUTE___QUALNAME__):
-        return False
-    
-    # is qualname a string?
-    if  not cs_is_string(_csobject.get(__ATTRIBUTE___QUALNAME__)):
-        # invalid qualname
-        return False
-    
-    # has qualname!
-
-    # check if has "initialize" method
-    if  not _csobject.hasKey(__ATTRIBUTE_INITIALIZE__):
-        # no valid constructor
-        return False
-    
-    # is constructor callable?
-    return cs_is_callable(_csobject.get(__ATTRIBUTE_INITIALIZE__))
-
-
-def cs_is_pointer(_csobject:CSObject):
-    """ Checks if object is a pointer type
+def cs_is_native_function(_csobject:CSObject):
+    """ Checks if object is a native function
 
         Parameters
         ----------
@@ -1620,10 +1743,53 @@ def cs_is_pointer(_csobject:CSObject):
         -------
         bool
     """
-    return not (cs_is_number(_csobject) or cs_is_string(_csobject) or cs_is_boolean(_csobject) or cs_is_nulltype(_csobject))
+    return _csobject.type == CSTypes.TYPE_CSNATIVEFUNCTION
 
 
-"""OPCODE METHODS"""
+def cs_is_function(_csobject:CSObject):
+    """ Checks if object is a user function
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return _csobject.type == CSTypes.TYPE_CSFUNCTION
+
+
+def cs_is_method(_csobject:CSObject):
+    """ Checks if object is a method
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return _csobject.type == CSTypes.TYPE_CSMETHOD
+
+
+def cs_is_subscriptible( _obj:CSObject):
+    """ Checks if an object can be subscript
+
+        Parameters
+        ----------
+        _csobject : CSObject
+
+        Returns
+        -------
+        bool
+    """
+    return (cs_is_pointer(_obj) or cs_is_string(_obj)) and not cs_is_callable(_obj)
+
+
+"""NAME CREATION | SETTING | RETRIEVAL"""
+
 def cs_define(_env:CSXEnvironment, _name:str, _value:CSObject):
     """ Creates local variable
         
@@ -1651,6 +1817,7 @@ def cs_undefine(_env:CSXEnvironment, _name:str):
 
     # save var
     _env.calls.top().locvars[-1].delete(_name)
+
 
 def cs_make_var(_env:CSXEnvironment, _name:str):
     """ Creates global variable
@@ -1697,6 +1864,50 @@ def cs_store_name(_env:CSXEnvironment, _name:str):
         #### search locally
         _env.calls.top().locvars[-1].update(_name, _address=_env.stack.pop().offset)
 
+
+def cs_push_name(_env:CSXEnvironment, _name:str):
+    """ Gets variable value
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _name : str
+    """
+    assert cs_has_var(_env, _name), "no such name '%s'" % _name
+
+    # retrieve starts from local to global
+    _info = ...
+
+    if  _env.scope[-1].exists(_name, _local=False):
+        #### search globally
+        _info = _env.scope[-1].lookup(_name)
+    else:
+        #### search locally
+        _info = _env.calls.top().locvars[-1].lookup(_name)
+    
+    # push stack
+    _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
+
+
+
+def cs_get_class(_env:CSXEnvironment, _class_name:str):
+    """ Retrievs class prototype
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _class_name : str
+    """
+    assert cs_has_class(_env, _class_name), "No such class" % _class_name
+
+    # retrieve
+    _info = _env.scope[-1].lookup(_class_name)
+    
+    # push stack
+    _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
+
+
+"""OBJECT CREATION"""
 
 def cs_new_code(_env:CSXEnvironment, _raw_code:csrawcode):
     """ Push number to stack
@@ -1800,12 +2011,36 @@ def cs_new_nulltype(_env:CSXEnvironment):
     _env.stack.push(_env.vheap.cs__malloc(_obj))
 
 
-def cs_new_object(_env:CSXEnvironment, _pop_size:int):
-    """ Push boolean to stack
+def cs_new_array(_env:CSXEnvironment, _pop_size:int):
+    """ Push array to stack
 
         Parameters
         ----------
         _env : CSXEnvironment
+        _pop_size : int
+    """ 
+    _obj = CSArray()
+
+    if  cs_has_class(_env, _obj.type): #$
+        # push to top
+        cs_get_class(_env, _obj.type)
+
+        # pop and put
+        _obj.put(__ATTRIBUTE__PROTOTYPE__, _env.stack.pop())
+
+    for _r in range(_pop_size):
+        _elm = _env.stack.pop()
+        _obj.put(_elm)
+    
+    _env.stack.push(_env.vheap.cs__malloc(_obj))
+
+def cs_new_object(_env:CSXEnvironment, _pop_size:int):
+    """ Push hahsmap to stack
+
+        Parameters
+        ----------
+        _env : CSXEnvironment
+        _pop_size : int
     """ 
 
     _obj = CSHashMap()
@@ -1875,71 +2110,138 @@ def cs_new_function(_env:CSXEnvironment):
     _env.stack.push(_env.vheap.cs__malloc(_obj))
 
 
-
-def cs_push_name(_env:CSXEnvironment, _name:str):
-    """ Gets variable value
-
+def cs_constructor(_env:CSXEnvironment, _argument_size:int):
+    """ Creates a new instance
+        
         Parameters
         ----------
         _env : CSXEnvironment
-        _name : str
+        _argument_size : int
     """
-    assert cs_has_var(_env, _name), "no such name '%s'" % _name
 
-    # retrieve starts from local to global
-    _info = ...
+    assert cs_is_constructor(_env.stack.top()), "not a constructor '%s'!" % _env.stack.top().type
 
-    if  _env.scope[-1].exists(_name, _local=False):
-        #### search globally
-        _info = _env.scope[-1].lookup(_name)
+    _class_proto = _env.stack.pop()
+
+    _new_class = _env.vheap.cs__malloc(CSObject())
+    _new_class.put(__ATTRIBUTE__PROTOTYPE__, _class_proto)
+
+    # get qualname
+    _new_class.type = _class_proto.get(__ATTRIBUTE___QUALNAME__).__str__()
+    
+    # copy non callable/attribute
+    for _k in _class_proto.keys():
+        if  not cs_is_callable(_class_proto.get(_k)):
+            _new_class.put(_k, _class_proto.get(_k))
+
+    # ============= PUSH STACK|
+    # ========================|
+    _env.stack.push(_new_class)
+
+    # push method to stack
+    cs_get_method(_env, __ATTRIBUTE_INITIALIZE__)
+
+    # request call
+    _func = _env.stack.pop()
+
+    match _func.meth:
+
+        case CSTypes.TYPE_CSNATIVEFUNCTION:
+            # call function
+            _args = [_env]
+
+            for _r in range(_argument_size):
+                _args.append(_env.stack.pop())
+
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
+
+            _env.stack.push(_func.call(_args))
+
+            # remove this from scope
+            cs_undefine(_env, "this")
+
+        case CSTypes.TYPE_CSFUNCTION:
+            # call function
+            cs_call(_env, _func.get("code"))
+
+            # define "this"
+            cs_define(_env, "this", _func.get("owner"))
+
+            # execute once
+            cs_execute(_env, _once=True)
+
+    if  cs_is_nulltype(_env.stack.top()):
+        # pop return
+        _env.stack.pop()
+        
+        # push back
+        _env.stack.push(_new_class)
+
     else:
-        #### search locally
-        _info = _env.calls.top().locvars[-1].lookup(_name)
-    
-    # push stack
-    _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
-
-
-
-def cs_get_class(_env:CSXEnvironment, _class_name:str):
-    """ Retrievs class prototype
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _class_name : str
-    """
-    assert cs_has_class(_env, _class_name), "No such class" % _class_name
-
-    # retrieve
-    _info = _env.scope[-1].lookup(_class_name)
-    
-    # push stack
-    _env.stack.push(_env.vheap.cs__object_at(_info["_address"]))
+        # log info
+        logger("class", "class constructor '%s' returned a value !!!" % _new_class.type)
 
 
 """MEMBER"""
 
-def cs_get_attrib(_env:CSXEnvironment, _attribute_name:str):
-    """ Gets attribute of an object
+
+def cs_subscript(_env:CSXEnvironment):
+    """
+    """
+    _obj = _env.stack.pop()
+    _exp = _env.stack.pop()
+
+
+def cs_get_static(_env:CSXEnvironment, _attr:str):
+    """ Push static attribute of Class proto to stack
 
         Parameters
         ----------
-        _env : CSXEnvironment
-        _attribute_name : str
+        _env  : CSXEnvironment
+        _attr : str
     """
-    assert cs_has_attribute(_env, _env.stack.top(), _attribute_name), "No such attribute '%s'" % _attribute_name
+    assert cs_is_constructor(_env.stack.top()), "Not a constructor!!!"
+    _env.stack.push(_env.stack.pop().get(_attr))
 
-    _top = _env.stack.pop()
-    if  _top.hasKey(_attribute_name):
-        _env.stack.push(_top.get(_attribute_name))
-        return 
-    
-    # search in class
-    _class = _top.get(__ATTRIBUTE__PROTOTYPE__)
 
-    # push to stack
-    _env.stack.push(_class.get(_attribute_name))
+
+def cs_set_static(_env:CSXEnvironment, _attr:str):
+    """ Make/update static attribute on Class proto
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _attr : str
+    """
+    assert cs_is_constructor(_env.stack.top()), "Not a constructor!!!"
+    _env.stack.pop().put(_attr, _env.stack.pop())
+
+
+
+def cs_get_attrib(_env:CSXEnvironment, _attr:str):
+    """ Push  attribute of object to stack
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _attr : str
+    """
+    assert cs_has_attrib(_env, _env.stack.top(), _attr), "Not a constructor!!!"
+    _env.stack.push(_env.stack.pop().get(_attr))
+
+
+
+def cs_set_attrib(_env:CSXEnvironment, _attr:str):
+    """ Set attribute of an object
+
+        Parameters
+        ----------
+        _env  : CSXEnvironment
+        _attr : str
+    """
+    assert cs_has_attrib(_env, _env.stack.top(), _attr), "Not a constructor!!!"
+    _env.stack.pop().put(_attr, _env.stack.pop())
 
 
 
@@ -1964,19 +2266,8 @@ def cs_get_method(_env:CSXEnvironment, _method_name:str):
     _env.stack.push(_env.vheap.cs__malloc(CSMethod(_objct, _class.get(_method_name))))
 
 
-def cs_set_attrib(_env:CSXEnvironment, _attribute_name:str):
-    """ Sets attribute of an object
-
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _attribute_name : str
-    """
-    _obj = _env.stack.pop()
-    _obj.put(_attribute_name, _env.stack.pop())
-    
-
 """FUNCTIONS"""
+
 def cs_method_call(_env:CSXEnvironment, _argument_size:int):
     """ Calls a method
 
@@ -2138,80 +2429,7 @@ def cs_invoke_method(
     return _env.stack.pop()
 
 
-"""CLASS"""
-def cs_constructor(_env:CSXEnvironment, _argument_size:int):
-    """ Creates a new class
-        
-        Parameters
-        ----------
-        _env : CSXEnvironment
-        _argument_size : int
-    """
-
-    assert cs_is_constructor(_env.stack.top()), "not a constructor '%s'!" % _env.stack.top().type
-
-    _class_proto = _env.stack.pop()
-
-    _new_class = _env.vheap.cs__malloc(CSObject())
-    _new_class.put(__ATTRIBUTE__PROTOTYPE__, _class_proto)
-
-    # get qualname
-    _new_class.type = _class_proto.get(__ATTRIBUTE___QUALNAME__).__str__()
-    
-    # copy non callable/attribute
-    for _k in _class_proto.keys():
-        if  not cs_is_callable(_class_proto.get(_k)):
-            _new_class.put(_k, _class_proto.get(_k))
-
-    # ============= PUSH STACK|
-    # ========================|
-    _env.stack.push(_new_class)
-
-    # push method to stack
-    cs_get_method(_env, __ATTRIBUTE_INITIALIZE__)
-
-    # request call
-    _func = _env.stack.pop()
-
-    match _func.meth:
-
-        case CSTypes.TYPE_CSNATIVEFUNCTION:
-            # call function
-            _args = [_env]
-
-            for _r in range(_argument_size):
-                _args.append(_env.stack.pop())
-
-            # define "this"
-            cs_define(_env, "this", _func.get("owner"))
-
-            _env.stack.push(_func.call(_args))
-
-            # remove this from scope
-            cs_undefine(_env, "this")
-
-        case CSTypes.TYPE_CSFUNCTION:
-            # call function
-            cs_call(_env, _func.get("code"))
-
-            # define "this"
-            cs_define(_env, "this", _func.get("owner"))
-
-            # execute once
-            cs_execute(_env, _once=True)
-
-    if  cs_is_nulltype(_env.stack.top()):
-        # pop return
-        _env.stack.pop()
-        
-        # push back
-        _env.stack.push(_new_class)
-
-    else:
-        # log info
-        logger("class", "class constructor '%s' returned a value !!!" % _new_class.type)
-
-
+"""SCOPE CREATION | DELETION"""
 
 def cs_new_scope(_env:CSXEnvironment):
     """ Creates new local scope
@@ -2234,6 +2452,10 @@ def cs_end_scope(_env:CSXEnvironment):
     """
     _env.calls.top().locvars.pop()
 
+
+
+
+"""VM SETUP"""
 
 def cs_init_builtin(_env:CSXEnvironment):
     """ Initialize builtins

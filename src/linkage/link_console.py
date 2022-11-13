@@ -1,5 +1,5 @@
 
-from . import PyLinkInterface, CSNullType, CSString
+from . import PyLinkInterface, CSNullType, CSString, CSObject
 
 
 from colorama import Fore
@@ -11,14 +11,22 @@ class ConsoleLink(PyLinkInterface):
     def __init__(self):
         super().__init__()
         self.linkname = "console"
-        self.metadata = ({
-            "write"   : {"name": "write"   , "argc": 1},
-            "log"     : {"name": "log"     , "argc": 1},
-            "error"   : {"name": "error"   , "argc": 1},
-            "warn"    : {"name": "warn"    , "argc": 1},
-            "readLine": {"name": "readLine", "argc": 1},
-            "clear"   : {"name": "clear"   , "argc": 0}
+        self.variable = ({
+            "qualname" : CSString(self.linkname)
         })
+        
+        self.metadata = ({
+            "initialize" : {"name": "initialize", "argc": 0},
+            "write"      : {"name": "write"     , "argc": 1},
+            "log"        : {"name": "log"       , "argc": 1},
+            "error"      : {"name": "error"     , "argc": 1},
+            "warn"       : {"name": "warn"      , "argc": 1},
+            "readLine"   : {"name": "readLine"  , "argc": 1},
+            "clear"      : {"name": "clear"     , "argc": 0}
+        })
+    
+    def initialize(self, _args:list):
+        return self.malloc(_args[0], CSObject())
     
     def write(self, _args:list):
         print(_args[1], end="")
