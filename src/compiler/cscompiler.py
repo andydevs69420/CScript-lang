@@ -27,6 +27,7 @@ class RawBlock(BlockCompiler):
         super().__init__()
         self.while_stack = []
         self.break_stack = []
+        self.modname     = ...
 
 
     """ EXPRESSION AREA OF COMPILING
@@ -116,7 +117,7 @@ class RawBlock(BlockCompiler):
         self.visit(_node["left"])
 
         # add get attrib
-        self.get_attrib(_node["member"], _node["loc"])
+        self.get_static(_node["member"], _node["loc"])
 
     # member access
     def cmember(self, _node:dict):
@@ -135,7 +136,7 @@ class RawBlock(BlockCompiler):
         self.visit(_node["left"])
 
         # add subscript
-        self.binary_subscript()
+        self.binary_subscript(_node["loc"])
     
     # call
     def ccall(self, _node:dict):
@@ -408,13 +409,23 @@ class RawBlock(BlockCompiler):
             # variable assignment
             case ExpressionType.VARIABLE:
                 self.store_name(_node["left"]["var"], _node["left"]["loc"])
+            
+            # static member 
+            case ExpressionType.STATIC_MEMBER:
+                # compile owner
+                self.visit(_node["left"]["left" ])
+
+                # set attibute
+                self.set_static(_node["left"]["member"], _node["left"]["loc"])
+
             # member assignment
-            case ExpressionType.MEMBER|ExpressionType.STATIC_MEMBER:
+            case ExpressionType.MEMBER:
                 # compile owner
                 self.visit(_node["left"]["left" ])
 
                 # set attibute
                 self.set_attrib(_node["left"]["member"], _node["left"]["loc"])
+
             # index|member assignment
             case ExpressionType.SUBSCRIPT:
                 # compile index|member
@@ -424,7 +435,7 @@ class RawBlock(BlockCompiler):
                 self.visit(_node["left"]["left" ])
 
                 # add subscript
-                self.set_subscript()
+                self.set_subscript(_node["loc"])
             case _:
                 CSXCompileError.csx_Error("SemanticError: can't assign left-hand of operator '%s'!" % _node["opt"])
     
@@ -471,8 +482,16 @@ class RawBlock(BlockCompiler):
             case ExpressionType.VARIABLE:
                 self.store_name(_node["left"]["var"], _node["left"]["loc"])
 
+            # static member 
+            case ExpressionType.STATIC_MEMBER:
+                # compile owner
+                self.visit(_node["left"]["left" ])
+
+                # set attibute
+                self.set_static(_node["left"]["member"], _node["left"]["loc"])
+                
             # member assignment
-            case ExpressionType.MEMBER|ExpressionType.STATIC_MEMBER:
+            case ExpressionType.MEMBER:
                 # compile owner
                 self.visit(_node["left"]["left" ])
 
@@ -970,6 +989,50 @@ class RawBlock(BlockCompiler):
             _break_jump = self.break_stack.pop()
             _break_jump.kwargs["target"] = self.getLine()
 
+
+    # try/except
+    def ctryexcept(self, _node:dict):
+        # setup
+        self.setup_try(...)
+        _jump_if_error = self.peekLast()
+
+        # visit try block
+        self.visit(_node["try_block"])
+
+        # pop try block
+        # pop before no error
+        self.pop_try()
+
+        # end try/except
+        self.jump_to(...)
+        _jump_end = self.peekLast()
+        
+        # make except block
+        self.new_block()
+
+        # jump here if error
+        _jump_if_error.kwargs["target"] = self.getLine()
+
+        # pop try block
+        # pop before except
+        self.pop_try()
+
+        # store local
+        self.make_local(_node["except_param"], _node["loc"])
+
+        # compile except
+        self.visit(_node["except_block"])
+
+        # pop except block
+        self.end_block()
+
+        # jump end or finally
+        _jump_end.kwargs["target"] = self.getLine()
+
+        if  _node["finally_block"]:
+            # compile finally
+            self.visit(_node["finally_block"])
+
     # block
     def cblock(self, _node:dict):
         # new for scoping
@@ -1083,6 +1146,9 @@ class RawBlock(BlockCompiler):
 
     # module node
     def cmodule(self, _node:dict):
+        # module name
+        self.modname = _node["modname"]
+
         for _child in _node["children"]:
             self.visit(_child)
         

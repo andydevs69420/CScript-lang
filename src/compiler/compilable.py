@@ -203,6 +203,14 @@ class Compilable(object):
             )
         )
     
+    def get_static(self, _attrib:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.GET_STATIC, attr=_attrib, loc=_loc, __hidden__=["loc"]
+            )
+        )
     
     def get_attrib(self, _attrib:str, _loc:str):
         self.__instructions\
@@ -222,6 +230,14 @@ class Compilable(object):
             )
         )
 
+    def set_static(self, _attrib:str, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.SET_STATIC, attr=_attrib, loc=_loc, __hidden__=["loc"]
+            )
+        )
     
     def set_attrib(self, _attrib:str, _loc:str):
         self.__instructions\
@@ -419,22 +435,22 @@ class Compilable(object):
         )
     
     
-    def binary_subscript(self):
+    def binary_subscript(self, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.BINARY_SUBSCRIPT
+                CSOpCode.BINARY_SUBSCRIPT, loc=_loc, __hidden__=["loc"]
             )
         )
     
     
-    def set_subscript(self):
+    def set_subscript(self, _loc:str):
         self.__instructions\
         .append(
             Instruction(
                 len(self.__instructions) * 2,
-                CSOpCode.SET_SUBSCRIPT
+                CSOpCode.SET_SUBSCRIPT, loc=_loc, __hidden__=["loc"]
             )
         )
     

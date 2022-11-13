@@ -1856,6 +1856,7 @@ class CSParser(ContextUtils):
             # return as module
             return ({
                 TYPE      : SyntaxType.MODULE,
+                "modname" : self.fpath,
                 "children": tuple(_nodes)
             })
 
