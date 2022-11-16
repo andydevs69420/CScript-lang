@@ -1,61 +1,57 @@
 
 
 
-class Dog 
-{
-    val xxx = 002;
-    val cat = xxx;
+function add() {
 
-    function init()
-    { return new Dog(); }
+    print: "Hello World!", 2;
 
-    function initialize()
-    { this.xxx = 100; }
-}
-
-
-var xx = Dog::init();
-
-print: xx;
-
-Dog::add = (function(a, b) {
-    print: "extended:", this;
-    return a + b;
-});
-
-print: Dog;
-print: xx.add(10, 3);
-
-while (0) {
-
-    let x, y, z, cell = CSInteger::tryParse(console::readLine("Input:> "));
-
-    for (x = 0; x < cell; x+=1) 
+    let x = 2;
     {
-
-        for (y = 0; y < cell - x; y+=1) 
-        console::write(" ");
-
-        for (z = 1; z < ((x + 1) * 2); z+=1) 
-        console::write("*");
-
-        print: "";
+        let x = 20;
+        let y = 25;
+        print: "outer", x;
+        {
+            print: "inner", x;
+            print: "inner", y;
+        }
     }
 
+    print: "OuterOuter", x;
+
+    return 69420;
+}
+
+{
+    let x = 50;
+    print: x;
+
+    while (x > 10) {
+        print: "x =", x;
+        x -= 1;
+    }
+    print: "x =", x;
+}
+
+var x = 100000;
+add();
+print:x;
+x = 100;
+print: x;
+
+class Dog {
+    val x = 2;
+    function initialize() {
+        print: "New!!";
+        print: this;
+    }
+
+    function toString() {
+        return "[Instance]";
+    }
 }
 
 
-var arr = [1,2,3];
 
-print: arr;
 
-try 
-{
-    throw xx;
-}except(err)
-{
-    print: err;
-}
 
-4[0];
-
+print: new Dog();

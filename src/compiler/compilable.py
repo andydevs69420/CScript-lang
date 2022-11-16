@@ -265,6 +265,15 @@ class Compilable(object):
                 CSOpCode.MAKE_LOCAL, name=_name, loc=_loc, __hidden__=["loc"]
             )
         )
+    
+    def make_param(self, _name:str, _offset:int, _loc:str):
+        self.__instructions\
+        .append(
+            Instruction(
+                len(self.__instructions) * 2,
+                CSOpCode.MAKE_PARAM, name=_name, offset=_offset, loc=_loc, __hidden__=["loc"]
+            )
+        )
 
     def store_name(self, _name:str, _loc:str):
         self.__instructions\

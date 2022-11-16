@@ -21,7 +21,7 @@ class CSDoubleLink(PyLinkInterface):
 
         self.metadata = ({
             "initialize" : {"name": "initialize", "argc": 1},
-            "toString"   : {"name": "toString"  , "argc": 0},
+            "toString"   : {"name": "toString"  , "argc": 1},
         })
     
     def initialize(self, _args:list):
@@ -29,13 +29,6 @@ class CSDoubleLink(PyLinkInterface):
     
     # toString
     def toString(self, _args:list):
-        # check if "this exist!"
-        if  not _args[0].calls.top().locvars[-1].exists("this"):
-            return self.malloc(_args[0], CSString(""))
-
-        # invoke "this"
-        _this = self.getName(_args[0], "this")
-
         # return
-        return self.malloc(_args[0], CSString(_this.__str__()))
+        return CSString("not implemented")
         

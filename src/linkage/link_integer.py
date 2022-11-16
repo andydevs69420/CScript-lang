@@ -44,7 +44,7 @@ class CSIntegerLink(PyLinkInterface):
     # toString
     def toString(self, _args:list):
         # check if "this exist!"
-        if  not _args[0].calls.top().locvars[-1].exists("this"):
+        if  not _args[0].scope[-1].exists("this"):
             return self.malloc(_args[0], CSString(""))
 
         # invoke "this"

@@ -162,7 +162,7 @@ class CSEval(object):
         except TypeError:
             return \
                 CSXCompileError.csx_Error(
-                    ("TypeError: invalid operation (==) of operands!" % _node["opt"])
+                    ("[%s] invalid operation (==) of operands!" % (self.modname, _node["opt"]))
                     + "\n"
                     + _node["loc"]
                 )

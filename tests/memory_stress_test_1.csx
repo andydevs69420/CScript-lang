@@ -2,20 +2,28 @@
 
 
 
-var state = {a: 0, b: 1};
-print: "old state:", state;
-
-while (state["b"] < 10000) 
-{
-    state->b += 1;
+class State {
+    val a = 0;
+    val b = 0;
+    function initialize() {
+        
+    }
 }
 
-print: "state->b =", state["b"];
-print: "new state:", state;
+print: "old State:", State;
+
+while (State::b < 10000) 
+{
+    State::b += 1;
+    print: State::b;
+}
+
+print: "State->b =", State::b;
+print: "new State:", State;
 
 
-state->a = state;
-print: "contains self refrence", state;
+State::a = State;
+print: "contains self refrence", State;
 
 
 var list_of_ambot = [0,1,2,3];
@@ -29,18 +37,6 @@ do {
 
 print: "new list:", list_of_ambot;
 
-class Language {
-    name: null,
-    constructor: (func(this, _name){
-        this->name = _name;
-    }),
-    getName: (func(this){
-        return this->name;
-    }),
-    toString: (func(this){
-        return "Programming language: " + this->name;
-    })
-}
 
 
 var lang;
@@ -57,11 +53,11 @@ while (list_of_ambot[1] < 100000)
 
 list_of_ambot[2] = lang;
 
-print: lang->toString();
+print: lang;
 print: list_of_ambot;
 
 
-switch(lang->name) 
+switch(lang.name) 
 {
     case 0, 1, 2, "Java":
         print: "list_of_ambot at index 1 is above 15000";
@@ -74,6 +70,6 @@ switch(lang->name)
         print: localVar;
 }
 
-print: state;
+print: State;
 print: list_of_ambot;
-print: lang->toString();
+print: lang.toString();

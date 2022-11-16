@@ -507,7 +507,7 @@ class RawBlock(BlockCompiler):
                 self.visit(_node["left"]["left" ])
 
                 # add subscript
-                self.set_subscript()
+                self.set_subscript(_node["loc"])
 
             # error
             case _:
@@ -1173,7 +1173,7 @@ class CSCompiler(RawBlock, CSEval):
         self.visit(_root)
 
         # add return
-        self.push_null(None)
+        self.push_integer(69420)
 
         # add return
         self.return_op()
@@ -1240,9 +1240,11 @@ class FunctionCompiler(RawBlock, CSEval):
     def compile(self):
         # ==== parameters|
         # ===============|
+        _offset = 0
         for _param in self.node["params"]:
             # compile parameters
-            self.make_local(_param, self.node["loc"])
+            self.make_param(_param, _offset, self.node["loc"])
+            _offset += 1
     
         # ========== body|
         # ===============|

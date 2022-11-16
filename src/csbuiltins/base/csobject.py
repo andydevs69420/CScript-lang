@@ -15,7 +15,8 @@ class CSObject(HashMap):
         # ======== memory flags|
         # =====================|
         self.offset = -69420
-        self.marked = False
+        self.cstate = None
+        self.objage = None
 
         self.type = type(self).__name__
 
