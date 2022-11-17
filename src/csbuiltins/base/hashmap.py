@@ -132,7 +132,10 @@ class HashMap(object):
                     last = last.tail
 
     def all(self):
-        return self.values()
+        x = []
+        for each in self.values():
+                x.extend(each.all())
+        return list(set(x))
 
     def keys(self):
         """ Retrieve all keys

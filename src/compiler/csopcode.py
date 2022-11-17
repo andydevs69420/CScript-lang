@@ -26,6 +26,7 @@ class CSOpCode(Enum):
    MAKE_VAR    = 22
    STORE_NAME  = 23
    MAKE_LOCAL  = 24
+   MAKE_PARAM   = 1000
    STORE_LOCAL = 25
    CALL       = 26
    CALL_METHOD = 27

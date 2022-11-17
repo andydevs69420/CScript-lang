@@ -23,9 +23,9 @@ class CSFunction(CSObject):
         self.put(CSFunction.KEY_CODE, _code)
 
         # debug:
-        assert _name.offset != -69420, "not allocated!!!"
-        assert _argc.offset != -69420, "not allocated!!!"
-        assert _code.offset != -69420, "not allocated!!!"
+        # assert _name.offset != -69420, "not allocated!!!"
+        # assert _argc.offset != -69420, "not allocated!!!"
+        # assert _code.offset != -69420, "not allocated!!!"
 
     def __str__(self):
         """ Specify as native when printing in python
